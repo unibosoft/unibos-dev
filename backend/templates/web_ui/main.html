@@ -28,10 +28,11 @@
              hx-get="{% url 'web_ui:module' module.id %}"
              hx-target="#main-content"
              hx-push-url="true">
-            <div class="module-icon">{{ module.icon }}</div>
-            <div class="module-info">
-                <div class="module-name">{{ module.name }}</div>
-                <div class="module-desc">
+            <div class="module-header">
+                <span class="module-icon">{{ module.icon }}</span>
+                <span class="module-name">{{ module.name }}</span>
+            </div>
+            <div class="module-desc">
                     {% if module.id == 'recaria' %}
                         ultima online inspired system
                     {% elif module.id == 'birlikteyiz' %}
@@ -57,7 +58,6 @@
                     {% elif module.id == 'restopos' %}
                         restaurant pos system
                     {% endif %}
-                </div>
             </div>
         </div>
         {% endfor %}

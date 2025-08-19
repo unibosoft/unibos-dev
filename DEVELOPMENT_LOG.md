@@ -682,4 +682,27 @@ Each entry should follow this format:
 - Added safeguards to unibos_version.sh to clean version numbers and prevent double 'v' prefix. Deleted vv492 branch from GitHub
 - Result: All version functions now strip existing 'v' prefix to prevent duplication
 
+## [2025-08-19 08:25] Archive System: Major Archive Size Anomaly Investigation
+- Analyzed versions v488-v498 discovering major size fluctuations (5MB to 45MB range)
+- v489: Added 23MB of scanned documents causing 5x increase
+- v491: Peak 45MB with log files, databases, and documents accumulated
+- v494→v495: 77% decrease from cleanup operation (not documented)
+- v498: Added 7MB old database backup from May 2025
+- **Result**: Identified root causes: document files, database backups, log files being included in archives
+
+
+## [2025-08-19 08:31] Archive System: Archive Optimization Implementation
+- Created .archiveignore file to exclude large/unnecessary files from version archives (logs, databases, media files, venv, etc.). Updated version_manager.sh to use .archiveignore patterns during archiving. Added intelligent size thresholds based on .archiveignore presence
+- Result: Archive sizes will be significantly reduced (from ~30MB to ~5-8MB expected) preventing future anomalies
+
+
+## [2025-08-19 08:33] Archive System: Removed ZIP archiving from version manager
+- Modified version_manager.sh to only create folder archives without ZIP compression as requested. ZIP creation code removed, size checks updated for folders only
+- Result: Smaller archive footprint, faster archiving process, no duplicate storage
+
+
+## [2025-08-19 08:44] Archive System: Major Archive Cleanup Operation Completed
+- Cleaned 233 version archives by removing 22,910 document files and 120 log files. Created full backup before cleanup in archive/backup_before_cleanup_20250819. Used new cleanup_archives.sh script with safety checks
+- Result: Archive size reduced from 5.3GB to 2.2GB (58% reduction), saved 3.1GB disk space, zero data loss - all code preserved
+
 

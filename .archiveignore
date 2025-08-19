@@ -1,0 +1,141 @@
+# UNIBOS Archive Ignore File
+# This file specifies patterns for files/directories to exclude from version archives
+# Created: 2025-08-19
+# Purpose: Prevent large/unnecessary files from bloating version archives
+
+# Database files
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3.backup
+*.db
+*.sql
+db.sqlite3*
+
+# Log files
+*.log
+*.log.*
+logs/
+server.log
+unibos.log
+debug_output.txt
+
+# Media and document files
+/backend/documents/
+/backend/media/
+/backend/documents/thumbnails/
+/data_db/documents/
+/data_db/media/
+media/
+documents/
+thumbnails/
+
+# Virtual environments
+venv/
+env/
+.venv/
+.env/
+virtualenv/
+
+# Node modules
+node_modules/
+bower_components/
+npm-debug.log
+yarn-error.log
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.bak
+*.backup
+*.old
+tmp/
+temp/
+
+# Test files and coverage
+.coverage
+.pytest_cache/
+htmlcov/
+.tox/
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+
+# Backup directories
+backup/
+backups/
+data_db_backup*/
+berk_claude_file_pool_DONT_DELETE/
+
+# Large data files
+*.csv
+*.xlsx
+*.xls
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# Security sensitive files
+.env
+.env.*
+secrets/
+credentials/
+*.key
+*.pem
+*.crt
+
+# Django specific
+staticfiles/
+static_root/
+media_root/
+
+# Project specific large directories
+/data_db/
+/quarantine/
+/berk_claude_file_pool_DONT_DELETE/
+/archive/media/screenshots/
+cookies.txt
+
+# Old database backups (specific pattern)
+unicorn_db_backup*.sql
+*_backup_*.sql
+
+# Invoice processor output
+/berk_claude_file_pool_DONT_DELETE/output/
+/berk_claude_file_pool_DONT_DELETE/input/
+/berk_claude_file_pool_DONT_DELETE/claude_results/

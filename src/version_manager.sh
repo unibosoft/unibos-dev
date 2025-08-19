@@ -107,29 +107,34 @@ create_backup() {
         mkdir -p "archive/versions"
     fi
     
-    if [ ! -d "archive/compressed" ]; then
-        echo -e "${YELLOW}📁 archive/compressed dizini oluşturuluyor...${NC}"
-        mkdir -p "archive/compressed"
-    fi
+    # compressed dizini artık kullanılmıyor (ZIP oluşturulmadığı için)
     
     # Açık klasör olarak yedekle (archive hariç!)
     mkdir -p "archive/versions/${backup_name}"
     
-    # rsync ile kopyala - archive dizinini ASLA kopyalama!
-    rsync -av --exclude='archive' --exclude='.git' --exclude='venv' \
-              --exclude='src/venv' --exclude='__pycache__' \
-              --exclude='*.pyc' --exclude='.DS_Store' \
+    # .archiveignore dosyasını oku ve exclude listesi oluştur
+    local exclude_args=""
+    if [ -f ".archiveignore" ]; then
+        echo -e "${BLUE}📋 .archiveignore dosyası kullanılıyor...${NC}"
+        while IFS= read -r pattern || [ -n "$pattern" ]; do
+            # Boş satırları ve yorumları atla
+            if [[ -n "$pattern" && ! "$pattern" =~ ^# ]]; then
+                # Trim whitespace
+                pattern=$(echo "$pattern" | xargs)
+                if [ -n "$pattern" ]; then
+                    exclude_args="$exclude_args --exclude='$pattern'"
+                fi
+            fi
+        done < ".archiveignore"
+    fi
+    
+    # rsync ile kopyala - .archiveignore ve varsayılan exclude'ları kullan
+    eval rsync -av --exclude='archive' --exclude='.git' \
+              $exclude_args \
               . "archive/versions/${backup_name}/"
     
-    # ZIP olarak da sakla (archive dizinini ASLA ekleme!)
-    echo -e "${YELLOW}🗜️  zip dosyası oluşturuluyor...${NC}"
-    mkdir -p "archive/compressed"
-    # Önce versions klasörüne geç ve oradan ZIP yap
-    cd "archive/versions"
-    zip -r "../compressed/${backup_name}.zip" "${backup_name}" \
-        -x "*/.git/*" -x "*/venv/*" -x "*/__pycache__/*" \
-        -x "*.pyc" -x "*/.DS_Store" -x "*/archive/*" -q
-    cd "../.."
+    # ZIP oluşturma kaldırıldı - sadece açık klasör olarak arşivleniyor
+    echo -e "${YELLOW}📁 Sadece klasör olarak arşivleniyor (ZIP oluşturulmuyor)...${NC}"
     
     # Kritik doğrulama: archive dizini kopyalanmış mı?
     if find "archive/versions/${backup_name}" -name "archive" -type d | grep -q "archive"; then
@@ -140,27 +145,45 @@ create_backup() {
     
     echo -e "${GREEN}✅ yedekleme tamamlandı: ${backup_name}${NC}"
     
-    # Boyut kontrolü ve raporu
-    local zip_size=$(ls -lh "archive/compressed/${backup_name}.zip" 2>/dev/null | awk '{print $5}')
+    # Boyut kontrolü ve raporu - Sadece dizin boyutu
     local dir_size=$(du -sh "archive/versions/${backup_name}" 2>/dev/null | cut -f1)
     
-    echo -e "${BLUE}📊 Yedekleme Boyutları:${NC}"
-    echo -e "   ZIP: ${zip_size:-HATA}"
+    echo -e "${BLUE}📊 Arşiv Boyutu:${NC}"
     echo -e "   Dizin: ${dir_size:-HATA}"
     
-    # Boyut anomali kontrolü
-    if [ -f "archive/compressed/${backup_name}.zip" ]; then
-        local zip_size_bytes=$(ls -l "archive/compressed/${backup_name}.zip" | awk '{print $5}')
-        if [ $zip_size_bytes -gt 10485760 ]; then  # 10MB
-            echo -e "${RED}⚠️  UYARI: ZIP dosyası 10MB'dan büyük! Archive veya venv dahil edilmiş olabilir!${NC}"
-        elif [ $zip_size_bytes -lt 512000 ]; then  # 500KB
-            echo -e "${RED}⚠️  UYARI: ZIP dosyası 500KB'dan küçük! Eksik dosyalar olabilir!${NC}"
+    # Boyut anomali kontrolü - .archiveignore kullanıldığında boyutlar düşük olacak
+    if [ -d "archive/versions/${backup_name}" ]; then
+        local dir_size_bytes=$(du -sb "archive/versions/${backup_name}" 2>/dev/null | cut -f1)
+        if [ -n "$dir_size_bytes" ]; then
+            # .archiveignore kullanıldığında boyutlar daha düşük olacak
+            if [ -f ".archiveignore" ]; then
+                # .archiveignore varsa daha düşük limitler
+                if [ $dir_size_bytes -gt 8388608 ]; then  # 8MB
+                    echo -e "${RED}⚠️  UYARI: Arşiv 8MB'dan büyük! Gereksiz dosyalar dahil edilmiş olabilir!${NC}"
+                    echo -e "${YELLOW}   .archiveignore dosyasını kontrol edin${NC}"
+                elif [ $dir_size_bytes -lt 102400 ]; then  # 100KB
+                    echo -e "${RED}⚠️  UYARI: Arşiv 100KB'dan küçük! Kritik dosyalar eksik olabilir!${NC}"
+                else
+                    echo -e "${GREEN}✅ Arşiv boyutu normal aralıkta (${dir_size})${NC}"
+                fi
+            else
+                # .archiveignore yoksa eski limitler
+                if [ $dir_size_bytes -gt 10485760 ]; then  # 10MB
+                    echo -e "${RED}⚠️  UYARI: Arşiv 10MB'dan büyük! .archiveignore dosyası oluşturun${NC}"
+                elif [ $dir_size_bytes -lt 512000 ]; then  # 500KB
+                    echo -e "${RED}⚠️  UYARI: Arşiv 500KB'dan küçük! Eksik dosyalar olabilir!${NC}"
+                fi
+            fi
         fi
     fi
     
-    # Son 3 versiyon karşılaştırması
+    # Son 3 versiyon karşılaştırması - Dizinler için
     echo -e "${BLUE}📈 Son 3 Versiyon Boyut Karşılaştırması:${NC}"
-    ls -lah archive/compressed/unibos_v*.zip 2>/dev/null | tail -3 | awk '{print "   " $9 ": " $5}'
+    ls -dh archive/versions/unibos_v* 2>/dev/null | tail -3 | while read dir; do
+        size=$(du -sh "$dir" 2>/dev/null | cut -f1)
+        basename=$(basename "$dir")
+        echo "   $basename: $size"
+    done
 }
 
 update_version_files() {
@@ -318,14 +341,14 @@ else
     echo -e "${GREEN}✅ Archive dizini kontrolü: Temiz${NC}"
 fi
 
-# ZIP boyut kontrolü
-latest_zip=$(ls -t archive/compressed/unibos_v*.zip 2>/dev/null | head -1)
-if [ -f "$latest_zip" ]; then
-    zip_contents=$(unzip -l "$latest_zip" 2>/dev/null | grep -E "(archive/|venv/|.git/)" | wc -l)
-    if [ $zip_contents -gt 0 ]; then
-        echo -e "${RED}❌ UYARI: ZIP dosyasında yasak dizinler var!${NC}"
+# Dizin içeriği kontrolü (ZIP yerine)
+latest_version=$(ls -t archive/versions/ 2>/dev/null | head -1)
+if [ -d "archive/versions/$latest_version" ]; then
+    forbidden_dirs=$(find "archive/versions/$latest_version" -type d \( -name "venv" -o -name "__pycache__" -o -name "node_modules" \) 2>/dev/null | wc -l)
+    if [ $forbidden_dirs -gt 0 ]; then
+        echo -e "${RED}❌ UYARI: Arşivde yasak dizinler var!${NC}"
     else
-        echo -e "${GREEN}✅ ZIP içeriği kontrolü: Temiz${NC}"
+        echo -e "${GREEN}✅ Arşiv içeriği kontrolü: Temiz${NC}"
     fi
 fi
 
