@@ -2,7 +2,7 @@
 
 <div align="center">
 
-[![Version](https://img.shields.io/badge/version-v499-blue.svg)](src/VERSION.json)
+[![Version](https://img.shields.io/badge/version-v500-blue.svg)](src/VERSION.json)
 [![Python](https://img.shields.io/badge/python-3.8+-green.svg)](https://www.python.org/)
 [![Django](https://img.shields.io/badge/django-4.2+-092e20.svg)](https://www.djangoproject.com/)
 [![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
@@ -16,17 +16,19 @@
 
 ## 🌟 about unibos
 
-unibos is an ambitious project that started as a simple Raspberry Pi system and evolved into a comprehensive platform with 448 versions of continuous development. It combines the simplicity of terminal interfaces with the power of modern web technologies, offering both offline-first capabilities and cloud integration.
+unibos is an ambitious project that started as a simple raspberry pi system and evolved into a comprehensive platform with 499+ versions of continuous development. it combines the simplicity of terminal interfaces with the power of modern web technologies, offering both offline-first capabilities and cloud integration.
 
 ### 🎯 key features
 
-- **🔐 enterprise security**: JWT authentication, 2FA support, role-based access control
-- **🌍 multi-language**: Support for 10 languages including English, Turkish, Spanish, French, German, Chinese, Japanese
-- **📊 comprehensive modules**: Financial tracking, inventory management, document OCR, camera monitoring
-- **🚀 446+ versions**: Continuous development from v001 (June 2025) to present
-- **💾 dual database**: SQLite for development, PostgreSQL for production
-- **🔄 real-time updates**: WebSocket support for live data
-- **📱 cross-platform**: Works on Linux, macOS, Windows, and Raspberry Pi
+- **🔐 enterprise security**: JWT authentication, 2FA support, role-based access control, password show/hide toggle
+- **🌍 multi-language**: support for 10 languages including english, turkish, spanish, french, german, chinese, japanese
+- **📊 comprehensive modules**: financial tracking, inventory management, document OCR, camera monitoring
+- **🚀 499+ versions**: continuous development from v001 (june 2025) to present
+- **💾 postgresql mandatory**: postgresql 15+ required for production, automatic database backups with unibos_vXXX_timestamp.sql files
+- **🔄 real-time updates**: websocket support for live data
+- **📱 cross-platform**: works on linux, macos, windows, and raspberry pi
+- **🎨 dynamic version management**: version_info.py module with intelligent release system
+- **🧡 orange theme popups**: admin bulk delete with orange theme (#ff8c00) and user list display
 
 ## 📦 modules
 
@@ -51,7 +53,7 @@ unibos is an ambitious project that started as a simple Raspberry Pi system and 
 - Python 3.8+ (3.11+ recommended)
 - 2GB RAM minimum (8GB recommended)
 - 10GB disk space
-- PostgreSQL 15+ (for production)
+- postgresql 15+ (mandatory - sqlite not supported)
 - Redis 7+ (optional, for caching)
 
 ### Installation
@@ -151,25 +153,27 @@ pip install -r requirements-dev.txt
 python -m pytest tests/
 ```
 
-## 🔒 Security
+## 🔒 security
 
-- JWT-based authentication with refresh tokens
-- Two-factor authentication (2FA) support
-- Role-based access control (RBAC)
-- Encrypted data storage
-- Input validation and sanitization
-- Rate limiting and DDoS protection
+- jwt-based authentication with refresh tokens
+- two-factor authentication (2fa) support  
+- role-based access control (rbac)
+- encrypted data storage with bcrypt password hashing
+- input validation and sanitization
+- rate limiting and ddos protection
+- user import functionality from old sql dumps
+- password show/hide toggle for improved usability
 
-For security issues, please email security@unibos.com instead of using the issue tracker.
+for security issues, please email security@unibos.com instead of using the issue tracker.
 
-## 📈 Project Statistics
+## 📈 project statistics
 
-- **Versions Released**: 446+
-- **Development Period**: June 2025 - Present
-- **Lines of Code**: 55,000+
-- **Modules**: 11 major modules
-- **Languages Supported**: 10
-- **Active Contributors**: Growing community
+- **versions released**: 499+
+- **development period**: june 2025 - present
+- **lines of code**: 55,000+
+- **modules**: 11 major modules
+- **languages supported**: 10
+- **active contributors**: growing community
 
 ## 🗺️ Roadmap
 

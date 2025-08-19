@@ -38,20 +38,22 @@ Complete support for 10 languages:
 - Russian (RU)
 - Arabic (AR)
 
-### 📊 Version Management System
-Sophisticated version control with 429 iterations:
-- Automatic version incrementing
-- Complete version archiving
-- Git integration
-- Communication logs for each development session
-- Rollback capabilities
+### 📊 version management system
+sophisticated version control with 499+ iterations:
+- automatic version incrementing with version_info.py module
+- complete version archiving with postgresql database backups
+- postgresql backup integration creating unibos_vXXX_timestamp.sql files  
+- git integration with intelligent commit message generation
+- communication logs for each development session
+- rollback capabilities with full database restoration
 
-### 🗄️ Dual Database Support
-Flexible database architecture:
-- **SQLite**: For development and single-user deployments
-- **PostgreSQL**: For production and multi-user environments
-- **PostGIS**: Spatial data support for mapping features
-- **Automatic migrations**: Seamless database updates
+### 🗄️ postgresql mandatory
+postgresql-only database architecture:
+- **postgresql 15+**: mandatory for all deployments (sqlite never used)
+- **automatic database backups**: pg_dump integration with version management
+- **postGIS**: spatial data support for mapping features
+- **automatic migrations**: seamless database updates
+- **backup monitoring**: size warnings for exports larger than 10mb
 
 ## Module Features
 
@@ -275,12 +277,14 @@ LoRa-based emergency communication system for disaster scenarios.
 
 ### 🔐 Authentication & Authorization
 
-#### Authentication Methods:
-- **JWT Tokens**: Secure API authentication
-- **Refresh Tokens**: Automatic token renewal
-- **2FA Support**: TOTP-based two-factor
-- **Session Management**: Secure session handling
-- **Device Tracking**: Monitor login devices
+#### authentication methods:
+- **jwt tokens**: secure api authentication
+- **refresh tokens**: automatic token renewal
+- **2fa support**: totp-based two-factor
+- **session management**: secure session handling
+- **device tracking**: monitor login devices
+- **password toggle**: show/hide password functionality on login
+- **user import**: legacy user data import from sql dumps
 
 #### Authorization System:
 - **Role-Based Access**: 8 predefined roles

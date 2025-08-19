@@ -4,7 +4,7 @@
 # DevOps Security Enhanced Version
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-VENV_PATH="${SCRIPT_DIR}/../venv"
+VENV_PATH="${SCRIPT_DIR}/venv"
 PYTHON_BIN="${VENV_PATH}/bin/python"
 PID_FILE="${SCRIPT_DIR}/.backend.pid"
 LOG_FILE="${SCRIPT_DIR}/server.log"

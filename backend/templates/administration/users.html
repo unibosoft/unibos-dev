@@ -171,6 +171,10 @@
         </div>
         <div class="popup-body">
             <p id="popupMessage">are you sure?</p>
+            <div id="popupUserList" class="user-list" style="display: none;">
+                <div class="user-list-header">affected users:</div>
+                <ul id="affectedUsersList"></ul>
+            </div>
         </div>
         <div class="popup-footer">
             <button class="btn-cancel" onclick="closePopup()">cancel</button>
@@ -195,75 +199,144 @@
 
 .popup-content {
     background: #1a1a1a;
-    border: 2px solid #00ff00;
-    border-radius: 0;
+    border: 2px solid #ff8c00;
+    border-radius: 8px;
     padding: 0;
-    width: 400px;
+    width: 450px;
+    max-width: 90%;
     font-family: 'Courier New', monospace;
-    box-shadow: 0 0 20px rgba(0, 255, 0, 0.3);
+    box-shadow: 0 0 30px rgba(255, 140, 0, 0.4);
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
 }
 
 .popup-header {
-    background: #0a0a0a;
-    padding: 15px;
-    border-bottom: 1px solid #00ff00;
+    background: rgba(255, 140, 0, 0.1);
+    padding: 20px;
+    border-bottom: 1px solid rgba(255, 140, 0, 0.3);
     text-align: center;
+    border-radius: 8px 8px 0 0;
 }
 
 .popup-icon {
-    font-size: 24px;
+    font-size: 32px;
     display: block;
     margin-bottom: 10px;
+    filter: drop-shadow(0 0 10px rgba(255, 140, 0, 0.5));
 }
 
 .popup-header h3 {
-    color: #00ff00;
+    color: #ff8c00;
     margin: 0;
-    font-size: 16px;
+    font-size: 18px;
     text-transform: lowercase;
+    letter-spacing: 1px;
 }
 
 .popup-body {
-    padding: 20px;
+    padding: 25px;
     text-align: center;
 }
 
 .popup-body p {
-    color: #00ff00;
-    margin: 0;
+    color: #f0f0f0;
+    margin: 0 0 15px 0;
     font-size: 14px;
+    line-height: 1.5;
+}
+
+.user-list {
+    margin-top: 20px;
+    text-align: left;
+    max-height: 200px;
+    overflow-y: auto;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 140, 0, 0.2);
+    border-radius: 4px;
+    padding: 10px;
+}
+
+.user-list-header {
+    color: #ff8c00;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 10px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255, 140, 0, 0.2);
+}
+
+#affectedUsersList {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#affectedUsersList li {
+    color: #f0f0f0;
+    font-size: 13px;
+    padding: 5px 10px;
+    margin: 2px 0;
+    background: rgba(255, 140, 0, 0.05);
+    border-left: 2px solid #ff8c00;
+    transition: all 0.2s;
+}
+
+#affectedUsersList li:hover {
+    background: rgba(255, 140, 0, 0.1);
 }
 
 .popup-footer {
-    padding: 15px;
-    border-top: 1px solid #00ff00;
+    padding: 20px;
+    border-top: 1px solid rgba(255, 140, 0, 0.3);
     display: flex;
-    justify-content: space-around;
+    justify-content: space-between;
+    gap: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 0 0 8px 8px;
 }
 
 .btn-cancel, .btn-confirm {
-    padding: 8px 20px;
-    border: 1px solid #00ff00;
-    background: #0a0a0a;
-    color: #00ff00;
+    flex: 1;
+    padding: 12px 24px;
+    border: 1px solid #ff8c00;
+    background: transparent;
+    color: #ff8c00;
     cursor: pointer;
     font-family: 'Courier New', monospace;
-    font-size: 12px;
+    font-size: 14px;
     text-transform: lowercase;
+    border-radius: 4px;
+    transition: all 0.3s;
+    letter-spacing: 1px;
 }
 
 .btn-cancel:hover {
-    background: #1a1a1a;
+    background: rgba(255, 140, 0, 0.1);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(255, 140, 0, 0.2);
 }
 
 .btn-confirm {
-    background: #ff0000;
-    border-color: #ff0000;
-    color: #ffffff;
+    background: #ff8c00;
+    color: #000;
+    font-weight: bold;
 }
 
 .btn-confirm:hover {
-    background: #cc0000;
+    background: #ffa500;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 140, 0, 0.4);
 }
 
 .delete-link {
@@ -283,10 +356,27 @@
 let currentAction = null;
 let currentUserId = null;
 
-function showPopup(title, message, action) {
+function showPopup(title, message, action, userList = null) {
     currentAction = action;
     document.getElementById('popupTitle').textContent = title;
     document.getElementById('popupMessage').textContent = message;
+    
+    // Handle user list display
+    const userListDiv = document.getElementById('popupUserList');
+    const affectedUsersList = document.getElementById('affectedUsersList');
+    
+    if (userList && userList.length > 0) {
+        userListDiv.style.display = 'block';
+        affectedUsersList.innerHTML = '';
+        userList.forEach(user => {
+            const li = document.createElement('li');
+            li.textContent = user;
+            affectedUsersList.appendChild(li);
+        });
+    } else {
+        userListDiv.style.display = 'none';
+    }
+    
     document.getElementById('confirmPopup').style.display = 'flex';
     
     // Set confirm button action
@@ -320,7 +410,8 @@ function toggleUserStatus(userId) {
                     location.reload();
                 }
             });
-        }
+        },
+        userNames
     );
 }
 
@@ -342,7 +433,8 @@ function deleteUser(userId, username) {
                     alert('Error deleting user');
                 }
             });
-        }
+        },
+        userNames
     );
 }
 
@@ -364,9 +456,17 @@ function bulkDelete() {
         return;
     }
     
+    // Get usernames for display
+    const userNames = [];
+    selectedUsers.forEach(userId => {
+        const row = document.querySelector(`input[value="${userId}"]`).closest('tr');
+        const username = row.querySelector('td:nth-child(2)').textContent.trim();
+        userNames.push(username);
+    });
+    
     showPopup(
-        '⚠️ confirm bulk deletion',
-        `are you sure you want to permanently delete ${selectedUsers.length} selected users? this action cannot be undone!`,
+        '🗑️ confirm bulk deletion',
+        `you are about to permanently delete ${selectedUsers.length} user${selectedUsers.length > 1 ? 's' : ''}. this action cannot be undone!`,
         function() {
             fetch('/administration/users/bulk-delete/', {
                 method: 'POST',
@@ -382,7 +482,8 @@ function bulkDelete() {
                     alert('Error deleting users');
                 }
             });
-        }
+        },
+        userNames
     );
 }
 
@@ -393,9 +494,17 @@ function bulkDeactivate() {
         return;
     }
     
+    // Get usernames for display
+    const userNames = [];
+    selectedUsers.forEach(userId => {
+        const row = document.querySelector(`input[value="${userId}"]`).closest('tr');
+        const username = row.querySelector('td:nth-child(2)').textContent.trim();
+        userNames.push(username);
+    });
+    
     showPopup(
-        'confirm bulk deactivation',
-        `are you sure you want to deactivate ${selectedUsers.length} selected users?`,
+        '🔒 confirm bulk deactivation',
+        `you are about to deactivate ${selectedUsers.length} user${selectedUsers.length > 1 ? 's' : ''}. they will not be able to login.`,
         function() {
             fetch('/administration/users/bulk-status/', {
                 method: 'POST',
@@ -409,7 +518,8 @@ function bulkDeactivate() {
                     location.reload();
                 }
             });
-        }
+        },
+        userNames
     );
 }
 
@@ -436,7 +546,8 @@ function bulkActivate() {
                     location.reload();
                 }
             });
-        }
+        },
+        userNames
     );
 }
 

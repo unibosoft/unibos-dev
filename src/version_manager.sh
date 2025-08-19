@@ -353,17 +353,18 @@ fi
 export TZ='Europe/Istanbul'
 timestamp=$(date '+%Y%m%d_%H%M')
 
-# PostgreSQL export - versiyon arşivi oluşturmadan önce
-export_postgresql "$current_version" "$timestamp"
-
-# Yedekleme yap
+# Yedekleme yap (mevcut durum arşivlenir)
 create_backup "$current_version" "$timestamp"
 
-# Versiyon dosyalarını güncelle
+# Versiyon dosyalarını güncelle  
 update_version_files "$new_version" "$timestamp"
 
 # CHANGELOG güncelle
 update_changelog "$new_version" "$timestamp"
+
+# PostgreSQL export - YENİ versiyonla export et, arşivlemeden SONRA
+echo -e "${YELLOW}🗄️ PostgreSQL veritabanı export ediliyor...${NC}"
+export_postgresql "$new_version" "$timestamp"
 
 # README.md'deki version badge'i güncelle
 if [ -f "README.md" ]; then
