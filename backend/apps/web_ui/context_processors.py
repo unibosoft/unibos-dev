@@ -1,0 +1,121 @@
+"""
+UNIBOS Context Processors
+Provides global context variables for all templates
+"""
+
+def sidebar_context(request):
+    """
+    Provides sidebar data for all views
+    Single source of truth for navigation
+    """
+    
+    # Base modules - always visible (using CLI emojis)
+    modules = [
+        {'id': 'recaria', 'name': 'recaria', 'icon': '🪐'},
+        {'id': 'birlikteyiz', 'name': 'birlikteyiz', 'icon': '📡'},
+        {'id': 'kisisel_enflasyon', 'name': 'kişisel enflasyon', 'icon': '📈'},
+        {'id': 'currencies', 'name': 'currencies', 'icon': '💰'},
+        {'id': 'wimm', 'name': 'wimm', 'icon': '💸'},
+        {'id': 'wims', 'name': 'wims', 'icon': '📦'},
+        {'id': 'store', 'name': 'store', 'icon': '🛍️'},
+        {'id': 'cctv', 'name': 'cctv', 'icon': '📹'},
+        {'id': 'documents', 'name': 'documents', 'icon': '📄'},
+        {'id': 'movies', 'name': 'movies', 'icon': '🎬'},
+        {'id': 'music', 'name': 'music', 'icon': '🎵'},
+        {'id': 'restopos', 'name': 'restopos', 'icon': '🍽️'},
+    ]
+    
+    # Base tools - conditionally add administration (using CLI emojis)
+    tools = [
+        {'id': 'system_scrolls', 'name': 'system scrolls', 'icon': '📊'},
+        {'id': 'castle_guard', 'name': 'castle guard', 'icon': '🔒'},
+        {'id': 'forge_smithy', 'name': 'forge smithy', 'icon': '🔧'},
+        {'id': 'anvil_repair', 'name': 'anvil repair', 'icon': '🛠️'},
+        {'id': 'code_forge', 'name': 'code forge', 'icon': '📦'},
+        {'id': 'web_forge', 'name': 'web forge', 'icon': '🌐'},
+    ]
+    
+    # Add administration for admin users
+    if request.user.is_authenticated:
+        if request.user.is_superuser or request.user.username == 'berkhatirli':
+            tools.append({'id': 'administration', 'name': 'administration', 'icon': '🔐'})
+    
+    # Dev tools
+    dev_tools = [
+        {'id': 'ai_builder', 'name': 'ai builder', 'icon': '🤖'},
+        {'id': 'database_setup', 'name': 'database setup', 'icon': '🗄️'},
+        {'id': 'web_forge_dev', 'name': 'web forge', 'icon': '🌐'},
+        {'id': 'sd_card', 'name': 'sd card', 'icon': '💾'},
+        {'id': 'version_manager', 'name': 'version manager', 'icon': '📊', 'url': '/version-manager/'},
+    ]
+    
+    # Create a list of dev tool IDs for template checks
+    dev_tools_list = [tool['id'] for tool in dev_tools]
+    
+    return {
+        'modules': modules,
+        'tools': tools,
+        'dev_tools': dev_tools,
+        'dev_tools_list': dev_tools_list,
+    }
+
+
+def version_context(request):
+    """
+    Provides version information for all templates
+    """
+    import json
+    from pathlib import Path
+    
+    try:
+        # Try to load VERSION.json
+        src_path = Path(__file__).parent.parent.parent.parent / 'src'
+        version_file = src_path / 'VERSION.json'
+        
+        if version_file.exists():
+            with open(version_file, 'r') as f:
+                version_data = json.load(f)
+        else:
+            # Fallback version
+            version_data = {
+                "version": "v436",
+                "build_number": "20250809_1032",
+                "release_date": "2025-08-09"
+            }
+    except:
+        # Fallback version
+        version_data = {
+            "version": "v436",
+            "build_number": "20250809_1032",
+            "release_date": "2025-08-09"
+        }
+    
+    return {
+        'version': version_data['version'],
+        'build_number': version_data['build_number'],
+        'release_date': version_data.get('release_date', ''),
+    }
+
+
+def unibos_context(request):
+    """
+    General UNIBOS context data
+    """
+    from datetime import datetime
+    
+    # Check online status
+    def check_online_status():
+        try:
+            import socket
+            socket.create_connection(("8.8.8.8", 53), timeout=3)
+            return True
+        except:
+            return False
+    
+    return {
+        'current_time': datetime.now().strftime('%H:%M:%S'),
+        'current_date': datetime.now().strftime('%Y-%m-%d'),
+        'location': 'bitez, bodrum',
+        'online_status': check_online_status(),
+        'user': request.user if request.user.is_authenticated else None,
+    }

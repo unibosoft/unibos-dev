@@ -1,0 +1,361 @@
+{% extends "web_ui/base.html" %}
+
+{% block title %}add marketplace - store - unibos{% endblock %}
+
+{% block content %}
+<div class="marketplace-add">
+    <div class="page-header">
+        <h1>add new marketplace</h1>
+        <a href="{% url 'store:dashboard' %}" class="back-link">← back to dashboard</a>
+    </div>
+
+    <form method="post" class="marketplace-form">
+        {% csrf_token %}
+        
+        <div class="form-section">
+            <h2>marketplace type</h2>
+            <div class="platform-grid">
+                {% for value, label in platform_choices %}
+                <label class="platform-option">
+                    <input type="radio" name="platform" value="{{ value }}" {% if value == 'sentos' %}checked{% endif %}>
+                    <div class="platform-card">
+                        <div class="platform-icon">
+                            {% if value == 'sentos' %}🔗{% elif value == 'amazon' %}📦{% elif value == 'etsy' %}🎨{% elif value == 'hepsiburada' %}🛒{% elif value == 'woocommerce' %}🛍️{% else %}📱{% endif %}
+                        </div>
+                        <div class="platform-name">{{ label|lower }}</div>
+                    </div>
+                </label>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h2>basic information</h2>
+            <div class="form-group">
+                <label for="shop_name">shop name</label>
+                <input type="text" id="shop_name" name="shop_name" required placeholder="e.g., my awesome store">
+            </div>
+        </div>
+
+        <!-- Sentos Configuration -->
+        <div class="form-section platform-config" id="sentos-config">
+            <h2>sentos configuration</h2>
+            <div class="info-box">
+                <p>sentos is a marketplace integrator that connects multiple platforms</p>
+                <p>api documentation: <a href="https://api.sentos.com.tr/docs" target="_blank">api.sentos.com.tr/docs</a></p>
+            </div>
+            
+            <div class="form-group">
+                <label for="sentos_api_key">api key</label>
+                <input type="text" id="sentos_api_key" name="sentos_api_key" placeholder="your sentos api key">
+                <small>example: 54783f92-fd8f-4904-96d5-cc7d9cc77c60</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="sentos_shop_url">shop url</label>
+                <input type="url" id="sentos_shop_url" name="sentos_shop_url" placeholder="https://yourshop.sentos.com.tr">
+                <small>example: https://berkinatolyesi.sentos.com.tr</small>
+            </div>
+        </div>
+
+        <!-- Other Platform Configurations (hidden by default) -->
+        <div class="form-section platform-config" id="other-config" style="display: none;">
+            <h2>api configuration</h2>
+            <div class="form-group">
+                <label for="api_key">api key</label>
+                <input type="text" id="api_key" name="api_key" placeholder="your api key">
+            </div>
+            
+            <div class="form-group">
+                <label for="api_secret">api secret</label>
+                <input type="password" id="api_secret" name="api_secret" placeholder="your api secret">
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="submit-button">connect marketplace</button>
+            <a href="{% url 'store:dashboard' %}" class="cancel-button">cancel</a>
+        </div>
+    </form>
+</div>
+
+<style>
+.marketplace-add {
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.page-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.page-header h1 {
+    font-size: 1.8rem;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.back-link {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+.marketplace-form {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 2rem;
+}
+
+.form-section {
+    margin-bottom: 2rem;
+}
+
+.form-section h2 {
+    font-size: 1.2rem;
+    color: var(--text-color);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.platform-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+}
+
+.platform-option {
+    cursor: pointer;
+}
+
+.platform-option input[type="radio"] {
+    display: none;
+}
+
+.platform-card {
+    background: var(--card-bg);
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.platform-option input[type="radio"]:checked + .platform-card {
+    border-color: var(--primary-color);
+    background: var(--primary-bg);
+}
+
+.platform-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.platform-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+.platform-name {
+    font-size: 0.9rem;
+    color: var(--text-color);
+}
+
+.info-box {
+    background: var(--info-bg);
+    border: 1px solid var(--info-border);
+    border-radius: 4px;
+    padding: 1rem;
+    margin-bottom: 1rem;
+}
+
+.info-box p {
+    margin: 0.5rem 0;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.info-box a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.info-box a:hover {
+    text-decoration: underline;
+}
+
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-color);
+    font-weight: bold;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 1rem;
+    background: var(--input-bg);
+    color: var(--text-color);
+}
+
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+}
+
+.form-group small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.form-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.submit-button {
+    padding: 0.75rem 2rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.submit-button:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.cancel-button {
+    padding: 0.75rem 2rem;
+    background: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    display: inline-block;
+    transition: all 0.3s ease;
+}
+
+.cancel-button:hover {
+    background: var(--secondary-hover);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --card-bg: #2a2a2a;
+        --border-color: #444;
+        --text-color: #e0e0e0;
+        --text-secondary: #999;
+        --primary-color: #4a9eff;
+        --primary-hover: #3a8eef;
+        --primary-bg: rgba(74, 158, 255, 0.1);
+        --secondary-color: #6c757d;
+        --secondary-hover: #5c656d;
+        --info-bg: #1a1a2a;
+        --info-border: #3a3a5a;
+        --input-bg: #1a1a1a;
+    }
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+    :root {
+        --card-bg: white;
+        --border-color: #dee2e6;
+        --text-color: #212529;
+        --text-secondary: #6c757d;
+        --primary-color: #007bff;
+        --primary-hover: #0056b3;
+        --primary-bg: rgba(0, 123, 255, 0.05);
+        --secondary-color: #6c757d;
+        --secondary-hover: #545b62;
+        --info-bg: #d1ecf1;
+        --info-border: #bee5eb;
+        --input-bg: white;
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .marketplace-add {
+        padding: 1rem;
+    }
+    
+    .marketplace-form {
+        padding: 1rem;
+    }
+    
+    .platform-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .submit-button,
+    .cancel-button {
+        width: 100%;
+        text-align: center;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const platformRadios = document.querySelectorAll('input[name="platform"]');
+    const sentosConfig = document.getElementById('sentos-config');
+    const otherConfig = document.getElementById('other-config');
+    
+    function updatePlatformConfig() {
+        const selectedPlatform = document.querySelector('input[name="platform"]:checked').value;
+        
+        if (selectedPlatform === 'sentos') {
+            sentosConfig.style.display = 'block';
+            otherConfig.style.display = 'none';
+        } else {
+            sentosConfig.style.display = 'none';
+            otherConfig.style.display = 'block';
+        }
+    }
+    
+    platformRadios.forEach(radio => {
+        radio.addEventListener('change', updatePlatformConfig);
+    });
+    
+    // Initialize
+    updatePlatformConfig();
+});
+</script>
+{% endblock %}

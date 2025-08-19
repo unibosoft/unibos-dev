@@ -1,0 +1,29 @@
+# python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+*.egg-info/
+
+# macos
+.DS_Store
+
+# ide
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# logs
+*.log
+
+# database
+*.db
+*.sqlite3
+
+# secrets
+.env
+config/secrets.json

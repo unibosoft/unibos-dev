@@ -1,0 +1,112 @@
+"""
+URL Configuration for UNIBOS Backend
+"""
+
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from drf_spectacular.views import (
+    SpectacularAPIView,
+    SpectacularRedocView,
+    SpectacularSwaggerView
+)
+from django.views.generic import TemplateView
+
+# API version prefix
+API_V1_PREFIX = 'api/v1/'
+
+urlpatterns = [
+    # Admin interface
+    path('admin/', admin.site.urls),
+    
+    # Health checks (disabled - module not installed)
+    # path('health/', include('health_check.urls')),
+    
+    # Prometheus metrics (disabled - module not installed)
+    # path('metrics/', include('django_prometheus.urls')),
+    
+    # API Documentation
+    path(f'{API_V1_PREFIX}schema/', SpectacularAPIView.as_view(), name='schema'),
+    path(f'{API_V1_PREFIX}schema/swagger/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
+    path(f'{API_V1_PREFIX}schema/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
+    
+    # API URLs
+    path(f'{API_V1_PREFIX}', include('apps.core.urls')),  # Core auth/profile
+    path(f'{API_V1_PREFIX}auth/', include('apps.authentication.urls')),
+    path(f'{API_V1_PREFIX}users/', include('apps.users.urls')),
+    path(f'{API_V1_PREFIX}currencies/', include('apps.currencies.urls')),
+    path(f'{API_V1_PREFIX}inflation/', include('apps.personal_inflation.urls')),
+    path(f'{API_V1_PREFIX}recaria/', include('apps.recaria.urls')),
+    path(f'{API_V1_PREFIX}birlikteyiz/', include('apps.birlikteyiz.urls')),
+    path(f'{API_V1_PREFIX}wimm/', include('apps.wimm.urls')),
+    path(f'{API_V1_PREFIX}wims/', include('apps.wims.urls')),
+    path(f'{API_V1_PREFIX}cctv/', include('apps.cctv.urls', namespace='cctv-api')),
+    
+    # CCTV Module (separate from API for web interface)
+    path('cctv/', include('apps.cctv.urls', namespace='cctv')),
+    
+    # Documents Module (Recaria OCR & Document Management)
+    path('documents/', include('apps.documents.urls', namespace='documents')),
+    
+    # Version Manager Module
+    path('version-manager/', include('apps.version_manager.urls', namespace='version_manager')),
+    
+    # Administration Module
+    path('administration/', include('apps.administration.urls', namespace='administration')),
+    
+    # Movies Module - Movie/Series Collection Management
+    path('movies/', include('apps.movies.urls', namespace='movies')),
+    
+    # Music Module - Music Collection with Spotify Integration
+    path('music/', include('apps.music.urls', namespace='music')),
+    
+    # RestoPOS Module - Restaurant POS System
+    path('restopos/', include('apps.restopos.urls', namespace='restopos')),
+    
+    # WebSocket URLs (handled by ASGI)
+    # ws/currencies/ - Real-time currency updates
+    # ws/recaria/ - Game real-time features
+    # ws/birlikteyiz/ - Emergency mesh network updates
+    
+    # Root API endpoint
+    path(f'{API_V1_PREFIX}', TemplateView.as_view(
+        template_name='api_root.html',
+        extra_context={
+            'api_version': 'v1',
+            'endpoints': [
+                'auth',
+                'users',
+                'currencies',
+                'inflation',
+                'recaria',
+                'birlikteyiz',
+            ]
+        }
+    ), name='api-root'),
+    
+    # Web UI - Terminal-style interface
+    path('', include('apps.web_ui.urls')),
+]
+
+# Serve media files in development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+    
+    # Django Debug Toolbar
+    import debug_toolbar
+    urlpatterns = [
+        path('__debug__/', include(debug_toolbar.urls)),
+    ] + urlpatterns
+
+# Custom error handlers
+handler400 = 'apps.common.views.bad_request'
+handler403 = 'apps.common.views.permission_denied'
+handler404 = 'apps.common.views.not_found'
+handler500 = 'apps.common.views.server_error'
+
+# Admin customization
+admin.site.site_header = "UNIBOS Administration"
+admin.site.site_title = "UNIBOS Admin Portal"
+admin.site.index_title = "Welcome to UNIBOS Administration"

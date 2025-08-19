@@ -1,0 +1,683 @@
+{% extends "web_ui/base.html" %}
+
+{% block title %}store - unibos{% endblock %}
+
+{% block content %}
+<div class="store-dashboard">
+    <!-- Page Header -->
+    <div class="dashboard-header">
+        <h1>store dashboard</h1>
+        <div class="header-actions">
+            <button onclick="window.location.href='{% url 'store:marketplace_add' %}'" class="action-button">
+                + add marketplace
+            </button>
+            <button onclick="window.location.href='{% url 'store:order_list' %}'" class="action-button">
+                📦 all orders
+            </button>
+            <button onclick="window.location.href='{% url 'store:product_list' %}'" class="action-button">
+                📋 all products
+            </button>
+        </div>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ today_orders_count }}</div>
+                <div class="stat-label">today's orders</div>
+                <div class="stat-revenue">₺{{ today_revenue|floatformat:2 }}</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📊</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ week_orders_count }}</div>
+                <div class="stat-label">this week</div>
+                <div class="stat-revenue">₺{{ week_revenue|floatformat:2 }}</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">📈</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ month_orders_count }}</div>
+                <div class="stat-label">this month</div>
+                <div class="stat-revenue">₺{{ month_revenue|floatformat:2 }}</div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-icon">⏳</div>
+            <div class="stat-content">
+                <div class="stat-value">{{ pending_orders_count }}</div>
+                <div class="stat-label">pending</div>
+                <div class="stat-sublabel">{{ processing_orders_count }} processing</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Connected Marketplaces -->
+    <div class="dashboard-section">
+        <h2>connected marketplaces</h2>
+        <div class="marketplace-grid">
+            {% if marketplaces %}
+                {% for marketplace in marketplaces %}
+                <div class="marketplace-card">
+                    <div class="marketplace-header">
+                        <span class="marketplace-platform">{{ marketplace.get_platform_display|lower }}</span>
+                        {% if marketplace.status == 'active' %}
+                            <span class="status-badge active">active</span>
+                        {% else %}
+                            <span class="status-badge inactive">{{ marketplace.status }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="marketplace-name">{{ marketplace.shop_name|lower }}</div>
+                    <div class="marketplace-stats">
+                        <div class="stat-row">
+                            <span>orders:</span>
+                            <span>{{ marketplace.total_orders|default:0 }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>products:</span>
+                            <span>{{ marketplace.total_products|default:0 }}</span>
+                        </div>
+                        <div class="stat-row">
+                            <span>revenue:</span>
+                            <span>₺{{ marketplace.total_revenue|floatformat:2|default:"0.00" }}</span>
+                        </div>
+                    </div>
+                    <div class="marketplace-actions">
+                        <button onclick="window.location.href='{% url 'store:marketplace_sync' marketplace.pk %}'" class="sync-button">
+                            🔄 sync
+                        </button>
+                    </div>
+                    {% if marketplace.last_sync %}
+                    <div class="last-sync">
+                        last sync: {{ marketplace.last_sync|date:"d.m.Y H:i" }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="empty-state">
+                    <div class="empty-icon">🛍️</div>
+                    <p>no marketplaces connected yet</p>
+                    <button onclick="window.location.href='{% url 'store:marketplace_add' %}'" class="action-button">
+                        + add marketplace
+                    </button>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Orders -->
+    <div class="dashboard-section">
+        <h2>recent orders</h2>
+        {% if recent_orders %}
+        <div class="orders-table">
+            <table>
+                <thead>
+                    <tr>
+                        <th>order #</th>
+                        <th>marketplace</th>
+                        <th>customer</th>
+                        <th>amount</th>
+                        <th>status</th>
+                        <th>date</th>
+                        <th>actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in recent_orders %}
+                    <tr>
+                        <td>{{ order.order_number }}</td>
+                        <td>{{ order.marketplace.shop_name|lower }}</td>
+                        <td>{{ order.customer_name|lower }}</td>
+                        <td>₺{{ order.total_amount|floatformat:2 }}</td>
+                        <td>
+                            <span class="status-badge status-{{ order.status }}">
+                                {{ order.get_status_display|lower }}
+                            </span>
+                        </td>
+                        <td>{{ order.order_date|date:"d.m.Y H:i" }}</td>
+                        <td>
+                            <a href="{% url 'store:order_detail' order.pk %}" class="view-link">view</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <div class="table-footer">
+                <a href="{% url 'store:order_list' %}" class="view-all-link">view all orders →</a>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>no orders yet</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Low Stock Alert -->
+    {% if low_stock_products %}
+    <div class="dashboard-section alert-section">
+        <h2>⚠️ low stock alert</h2>
+        <div class="low-stock-list">
+            {% for product in low_stock_products %}
+            <div class="low-stock-item">
+                <div class="product-info">
+                    <span class="product-title">{{ product.title|lower }}</span>
+                    <span class="product-sku">{{ product.sku }}</span>
+                </div>
+                <div class="stock-info">
+                    <span class="current-stock">{{ product.stock_quantity }}</span>
+                    <span class="stock-separator">/</span>
+                    <span class="threshold">{{ product.low_stock_threshold }}</span>
+                    <span class="stock-label">units</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Best Sellers -->
+    {% if best_sellers %}
+    <div class="dashboard-section">
+        <h2>🏆 best sellers</h2>
+        <div class="best-sellers-grid">
+            {% for product in best_sellers %}
+            <div class="best-seller-card">
+                <div class="rank">#{{ forloop.counter }}</div>
+                <div class="product-name">{{ product.title|lower }}</div>
+                <div class="sales-count">{{ product.total_sales }} sold</div>
+                <div class="revenue">₺{{ product.total_revenue|floatformat:2 }}</div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+.store-dashboard {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--border-color);
+}
+
+.dashboard-header h1 {
+    font-size: 2rem;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.header-actions {
+    display: flex;
+    gap: 1rem;
+}
+
+.action-button {
+    padding: 0.5rem 1rem;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.action-button:hover {
+    background: var(--primary-hover);
+    transform: translateY(-2px);
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.stat-icon {
+    font-size: 2.5rem;
+}
+
+.stat-content {
+    flex: 1;
+}
+
+.stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+.stat-label {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.stat-revenue {
+    font-size: 1.1rem;
+    color: var(--success-color);
+    margin-top: 0.5rem;
+}
+
+.stat-sublabel {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+}
+
+.dashboard-section {
+    margin-bottom: 3rem;
+}
+
+.dashboard-section h2 {
+    font-size: 1.3rem;
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.marketplace-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.marketplace-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1.5rem;
+    transition: all 0.3s ease;
+}
+
+.marketplace-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.marketplace-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.marketplace-platform {
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    text-transform: uppercase;
+}
+
+.status-badge.active {
+    background: var(--success-bg);
+    color: var(--success-color);
+}
+
+.status-badge.inactive {
+    background: var(--warning-bg);
+    color: var(--warning-color);
+}
+
+.status-pending {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.status-processing {
+    background: #cce5ff;
+    color: #004085;
+}
+
+.status-shipped {
+    background: #d4edda;
+    color: #155724;
+}
+
+.status-delivered {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.marketplace-name {
+    font-size: 1.1rem;
+    color: var(--text-color);
+    margin-bottom: 1rem;
+}
+
+.marketplace-stats {
+    margin-bottom: 1rem;
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.25rem 0;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+}
+
+.marketplace-actions {
+    margin-top: 1rem;
+}
+
+.sync-button {
+    width: 100%;
+    padding: 0.5rem;
+    background: var(--secondary-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: all 0.3s ease;
+}
+
+.sync-button:hover {
+    background: var(--secondary-hover);
+}
+
+.last-sync {
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    text-align: center;
+}
+
+.orders-table {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.orders-table table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.orders-table th {
+    background: var(--header-bg);
+    padding: 1rem;
+    text-align: left;
+    font-weight: bold;
+    color: var(--text-color);
+    border-bottom: 2px solid var(--border-color);
+}
+
+.orders-table td {
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+.orders-table tr:hover {
+    background: var(--hover-bg);
+}
+
+.view-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.view-link:hover {
+    text-decoration: underline;
+}
+
+.table-footer {
+    padding: 1rem;
+    text-align: center;
+    background: var(--header-bg);
+}
+
+.view-all-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--text-secondary);
+}
+
+.empty-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.alert-section {
+    background: #fff9e6;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    padding: 1.5rem;
+}
+
+.low-stock-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.low-stock-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: white;
+    border-radius: 4px;
+}
+
+.product-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.product-title {
+    font-weight: bold;
+    color: var(--text-color);
+}
+
+.product-sku {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.stock-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.current-stock {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #dc3545;
+}
+
+.stock-separator {
+    color: var(--text-secondary);
+}
+
+.threshold {
+    font-size: 1rem;
+    color: var(--text-secondary);
+}
+
+.stock-label {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+}
+
+.best-sellers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+}
+
+.best-seller-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+.best-seller-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.rank {
+    font-size: 1.5rem;
+    font-weight: bold;
+    color: var(--primary-color);
+    margin-bottom: 0.5rem;
+}
+
+.product-name {
+    font-size: 0.9rem;
+    color: var(--text-color);
+    margin-bottom: 0.5rem;
+}
+
+.sales-count {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.revenue {
+    font-size: 1rem;
+    font-weight: bold;
+    color: var(--success-color);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --card-bg: #2a2a2a;
+        --border-color: #444;
+        --text-color: #e0e0e0;
+        --text-secondary: #999;
+        --header-bg: #333;
+        --hover-bg: #3a3a3a;
+        --primary-color: #4a9eff;
+        --primary-hover: #3a8eef;
+        --secondary-color: #6c757d;
+        --secondary-hover: #5c656d;
+        --success-color: #28a745;
+        --success-bg: rgba(40, 167, 69, 0.1);
+        --warning-color: #ffc107;
+        --warning-bg: rgba(255, 193, 7, 0.1);
+    }
+    
+    .alert-section {
+        background: #3a3a2a;
+        border-color: #886600;
+    }
+    
+    .low-stock-item {
+        background: #2a2a2a;
+    }
+}
+
+/* Light mode */
+@media (prefers-color-scheme: light) {
+    :root {
+        --card-bg: white;
+        --border-color: #dee2e6;
+        --text-color: #212529;
+        --text-secondary: #6c757d;
+        --header-bg: #f8f9fa;
+        --hover-bg: #f1f3f5;
+        --primary-color: #007bff;
+        --primary-hover: #0056b3;
+        --secondary-color: #6c757d;
+        --secondary-hover: #545b62;
+        --success-color: #28a745;
+        --success-bg: rgba(40, 167, 69, 0.1);
+        --warning-color: #ffc107;
+        --warning-bg: rgba(255, 193, 7, 0.1);
+    }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+    
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+    }
+    
+    .action-button {
+        width: 100%;
+    }
+    
+    .stats-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .marketplace-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .orders-table {
+        overflow-x: auto;
+    }
+    
+    .best-sellers-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+{% endblock %}

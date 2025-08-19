@@ -1,0 +1,220 @@
+{% extends "administration/base_admin.html" %}
+
+{% block title %}User Management - UNIBOS Administration{% endblock %}
+
+{% block admin_content %}
+<div class="terminal-header">
+    <div class="terminal-title">User Management</div>
+    <div class="terminal-controls">
+        <button onclick="window.location.href='#'" class="terminal-button success">+ Add New User</button>
+    </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="terminal-section">
+    <form method="get" class="filter-form">
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <input type="text" name="search" placeholder="search users..." value="{{ request.GET.search }}" class="terminal-input" style="flex: 1;">
+            
+            <select name="dept" class="terminal-select">
+                <option value="">all departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}" {% if request.GET.dept == dept.id|stringformat:"s" %}selected{% endif %}>
+                    {{ dept.name }}
+                </option>
+                {% endfor %}
+            </select>
+            
+            <select name="role" class="terminal-select">
+                <option value="">all roles</option>
+                {% for role in roles %}
+                <option value="{{ role.id }}" {% if request.GET.role == role.id|stringformat:"s" %}selected{% endif %}>
+                    {{ role.name }}
+                </option>
+                {% endfor %}
+            </select>
+            
+            <button type="submit" class="terminal-button">🔍 Filter</button>
+            <a href="{% url 'administration:users' %}" class="terminal-button">Clear</a>
+        </div>
+    </form>
+</div>
+
+<!-- User Statistics -->
+<div class="stat-grid">
+    <div class="stat-card">
+        <div class="stat-number">{{ users.count }}</div>
+        <div class="stat-label">Total Users</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ users|dictsort:"last_login"|slice:":7"|length }}</div>
+        <div class="stat-label">Active This Week</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ users.filter.is_superuser|length|default:0 }}</div>
+        <div class="stat-label">Administrators</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-number">{{ users.filter.is_active|length|default:0 }}</div>
+        <div class="stat-label">Active Users</div>
+    </div>
+</div>
+
+<!-- Users Table -->
+<div class="terminal-section">
+    <div class="section-header">
+        <h3>User List</h3>
+        <div style="display: flex; gap: 10px;">
+            <button class="terminal-button" onclick="exportUsers()">📥 Export</button>
+            <button class="terminal-button" onclick="importUsers()">📤 Import</button>
+        </div>
+    </div>
+
+    <div class="terminal-table-container">
+        <table class="terminal-table">
+            <thead>
+                <tr>
+                    <th>Username</th>
+                    <th>Full Name</th>
+                    <th>Email</th>
+                    <th>Roles</th>
+                    <th>Departments</th>
+                    <th>Status</th>
+                    <th>Last Login</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for user in users %}
+                <tr>
+                    <td>
+                        <strong>{{ user.username }}</strong>
+                        {% if user.is_superuser %}
+                        <span class="badge badge-danger">Super Admin</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ user.get_full_name|default:"-" }}</td>
+                    <td>{{ user.email|default:"-" }}</td>
+                    <td>
+                        {% for user_role in user.user_roles.all %}
+                        <span class="badge badge-primary">{{ user_role.role.name }}</span>
+                        {% empty %}
+                        <span class="text-muted">No roles</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% for dept in user.departments.all %}
+                        <span class="badge badge-info">{{ dept.name }}</span>
+                        {% empty %}
+                        <span class="text-muted">-</span>
+                        {% endfor %}
+                    </td>
+                    <td>
+                        {% if user.is_active %}
+                        <span class="badge badge-success">Active</span>
+                        {% else %}
+                        <span class="badge badge-danger">Inactive</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if user.last_login %}
+                        {{ user.last_login|timesince }} ago
+                        {% else %}
+                        Never
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'administration:user_detail' user.id %}" class="action-link">View</a>
+                        <a href="{% url 'administration:user_detail' user.id %}" class="action-link">Edit</a>
+                        {% if not user.is_superuser and user != request.user %}
+                        <a href="#" onclick="toggleUserStatus({{ user.id }})" class="action-link">
+                            {% if user.is_active %}Deactivate{% else %}Activate{% endif %}
+                        </a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="8" class="text-center">No users found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="section">
+    <h2>quick actions</h2>
+    <div class="button-group">
+        <button class="btn-secondary" onclick="syncWithLDAP()">🔄 sync with ldap</button>
+        <button class="btn-secondary" onclick="sendBulkEmail()">📧 send bulk email</button>
+        <button class="btn-danger" onclick="bulkDeactivate()">⚠️ bulk deactivate</button>
+        <button class="btn-primary" onclick="bulkActivate()">✅ bulk activate</button>
+    </div>
+</div>
+
+<script>
+function toggleUserStatus(userId) {
+    if (confirm('Are you sure you want to change this user\'s status?')) {
+        // Implement toggle status via AJAX
+        fetch(`/administration/users/${userId}/toggle-status/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            }
+        }).then(response => {
+            if (response.ok) {
+                location.reload();
+            }
+        });
+    }
+}
+
+function exportUsers() {
+    console.log('Exporting users...');
+    window.location.href = '{% url "administration:users" %}?export=csv';
+}
+
+function importUsers() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = function(e) {
+        const file = e.target.files[0];
+        if (file) {
+            console.log('Importing:', file.name);
+            // Implement import functionality
+        }
+    };
+    input.click();
+}
+
+function syncWithLDAP() {
+    if (confirm('Sync users with LDAP directory?')) {
+        console.log('Syncing with LDAP...');
+        // Implement LDAP sync
+    }
+}
+
+function sendBulkEmail() {
+    console.log('Opening bulk email dialog...');
+    // Implement bulk email functionality
+}
+
+function bulkDeactivate() {
+    if (confirm('This will deactivate multiple users. Continue?')) {
+        console.log('Bulk deactivating...');
+        // Implement bulk deactivate
+    }
+}
+
+function bulkActivate() {
+    if (confirm('This will activate multiple users. Continue?')) {
+        console.log('Bulk activating...');
+        // Implement bulk activate
+    }
+}
+</script>
+{% endblock %}

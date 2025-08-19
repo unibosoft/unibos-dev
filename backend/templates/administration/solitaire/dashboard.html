@@ -1,0 +1,179 @@
+{% extends 'administration/base_admin.html' %}
+
+{% block admin_content %}
+<div class="section">
+    <!-- Statistics Overview -->
+    <div class="section-header">
+        <h2>🃏 solitaire dashboard</h2>
+        <div class="section-controls">
+            <a href="{% url 'administration:solitaire_players' %}" class="btn-secondary">view all players</a>
+            <a href="{% url 'administration:solitaire_sessions' %}" class="btn-secondary">view all sessions</a>
+        </div>
+    </div>
+    
+    <!-- Statistics Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_players }}</div>
+            <div class="stat-label">total players</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value positive">{{ active_players }}</div>
+            <div class="stat-label">active this week</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ total_games }}</div>
+            <div class="stat-label">games played</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value positive">{{ games_won }}</div>
+            <div class="stat-label">games won</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ win_rate }}%</div>
+            <div class="stat-label">win rate</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ active_sessions.count }}</div>
+            <div class="stat-label">active games</div>
+        </div>
+    </div>
+</div>
+
+<!-- Active Sessions -->
+{% if active_sessions %}
+<div class="section">
+    <div class="section-header">
+        <h2>🎮 active games</h2>
+    </div>
+    <div class="content-box">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>player</th>
+                    <th>ip address</th>
+                    <th>started</th>
+                    <th>score</th>
+                    <th>moves</th>
+                    <th>actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in active_sessions %}
+                <tr>
+                    <td>
+                        {% if session.player.user %}
+                            <span class="badge badge-user">{{ session.player.user.username }}</span>
+                        {% else %}
+                            <span class="badge badge-inactive">anonymous</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ session.player.ip_address }}</td>
+                    <td>{{ session.started_at|timesince }} ago</td>
+                    <td>{{ session.score }}</td>
+                    <td>{{ session.moves_count }}</td>
+                    <td>
+                        <a href="#" class="action-link">view details</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Recent Sessions -->
+<div class="section">
+    <div class="section-header">
+        <h2>📊 recent sessions</h2>
+    </div>
+    <div class="content-box">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>player</th>
+                    <th>ip address</th>
+                    <th>started</th>
+                    <th>duration</th>
+                    <th>score</th>
+                    <th>result</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for session in recent_sessions %}
+                <tr>
+                    <td>
+                        {% if session.player.user %}
+                            <span class="badge badge-user">{{ session.player.user.username }}</span>
+                        {% else %}
+                            <span class="badge badge-inactive">anonymous</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ session.player.ip_address }}</td>
+                    <td>{{ session.started_at|date:"Y-m-d H:i" }}</td>
+                    <td>
+                        {% if session.time_played %}
+                            {{ session.time_played|floatformat:0 }}s
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td>{{ session.score }}</td>
+                    <td>
+                        {% if session.is_won %}
+                            <span class="badge badge-approved">won</span>
+                        {% elif session.is_abandoned %}
+                            <span class="badge badge-rejected">abandoned</span>
+                        {% elif session.is_completed %}
+                            <span class="badge badge-inactive">lost</span>
+                        {% else %}
+                            <span class="badge badge-pending">in progress</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Top Players -->
+{% if top_players %}
+<div class="section">
+    <div class="section-header">
+        <h2>🏆 top players</h2>
+    </div>
+    <div class="content-box">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>rank</th>
+                    <th>player</th>
+                    <th>wins</th>
+                    <th>total score</th>
+                    <th>avg score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for player in top_players %}
+                <tr>
+                    <td>#{{ forloop.counter }}</td>
+                    <td>
+                        {% if player.player__user__username %}
+                            <span class="badge badge-user">{{ player.player__user__username }}</span>
+                        {% else %}
+                            <span class="badge badge-inactive">{{ player.player__display_name|default:"anonymous" }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ player.wins }}</td>
+                    <td>{{ player.total_score }}</td>
+                    <td>{{ player.avg_score|floatformat:0 }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

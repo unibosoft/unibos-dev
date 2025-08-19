@@ -1,0 +1,477 @@
+{% extends 'web_ui/base.html' %}
+
+{% block title %}documents - ocr & integration{% endblock %}
+
+{% block header_title %}unibos{% endblock %}
+{% block module_name %}documents - ocr & integration{% endblock %}
+
+{% block content %}
+<style>
+    .documents-container {
+        display: grid;
+        gap: 20px;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .stat-card {
+        background: var(--bg-dark);
+        border: 1px solid var(--dark-gray);
+        border-radius: 5px;
+        padding: 15px;
+        text-align: center;
+    }
+    
+    .stat-value {
+        font-size: 24px;
+        color: var(--orange);
+        font-weight: bold;
+    }
+    
+    .stat-label {
+        color: var(--gray);
+        font-size: 12px;
+        text-transform: lowercase;
+        margin-top: 5px;
+    }
+    
+    .upload-zone {
+        background: var(--bg-dark);
+        border: 2px dashed var(--orange);
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    
+    .upload-zone:hover {
+        border-color: var(--orange-bright);
+        background: rgba(255, 140, 0, 0.05);
+    }
+    
+    .upload-zone.dragover {
+        background: rgba(255, 140, 0, 0.1);
+        border-color: var(--orange-bright);
+    }
+    
+    .credit-card {
+        background: linear-gradient(135deg, #ff8c00, #ff6600);
+        border-radius: 10px;
+        padding: 20px;
+        color: #000;
+        position: relative;
+        min-height: 120px;
+    }
+    
+    .card-number {
+        font-size: 18px;
+        letter-spacing: 2px;
+        margin: 15px 0;
+    }
+    
+    .card-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+    }
+    
+    .utilization-bar {
+        background: rgba(0, 0, 0, 0.2);
+        height: 8px;
+        border-radius: 4px;
+        margin-top: 10px;
+        overflow: hidden;
+    }
+    
+    .utilization-fill {
+        background: #000;
+        height: 100%;
+        transition: width 0.3s;
+    }
+    
+    .subscription-item {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background: var(--bg-dark);
+        border: 1px solid var(--dark-gray);
+        border-radius: 5px;
+        margin-bottom: 10px;
+    }
+    
+    .subscription-icon {
+        font-size: 24px;
+        margin-right: 15px;
+    }
+    
+    .subscription-info {
+        flex: 1;
+    }
+    
+    .subscription-name {
+        color: var(--orange);
+        font-weight: bold;
+    }
+    
+    .subscription-amount {
+        color: var(--cyan);
+        font-weight: bold;
+        text-align: right;
+    }
+</style>
+
+<div class="content-box">
+    <h1 class="content-title">📄 documents & ocr integration</h1>
+    
+    <!-- Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ total_documents }}</div>
+            <div class="stat-label">total documents</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ processed_documents }}</div>
+            <div class="stat-label">processed</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ pending_documents }}</div>
+            <div class="stat-label">pending ocr</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">₺{{ monthly_subscriptions_total|floatformat:0 }}</div>
+            <div class="stat-label">monthly subscriptions</div>
+        </div>
+    </div>
+</div>
+
+<!-- Upload Section -->
+<div class="content-box">
+    <h2 class="content-title">📤 upload documents</h2>
+    
+    <div class="upload-zone" id="uploadZone">
+        <div style="font-size: 48px; margin-bottom: 20px;">📎</div>
+        <div style="color: var(--orange); font-size: 18px; margin-bottom: 10px;">
+            drag & drop files here
+        </div>
+        <div style="color: var(--gray); font-size: 14px;">
+            or click to browse
+        </div>
+        <div style="color: var(--gray); font-size: 12px; margin-top: 10px;">
+            supports: jpg, png, pdf (receipts, invoices, statements)
+        </div>
+        <input type="file" id="fileInput" style="display: none;" multiple accept="image/*,application/pdf">
+    </div>
+</div>
+
+<!-- Credit Cards -->
+{% if credit_cards %}
+<div class="content-box">
+    <h2 class="content-title">💳 credit cards</h2>
+    
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+        {% for card in credit_cards %}
+        <div class="credit-card">
+            <div style="font-weight: bold;">{{ card.bank_name }}</div>
+            <div class="card-number">•••• •••• •••• {{ card.last_four_digits }}</div>
+            <div class="card-info">
+                <div>
+                    <div style="font-size: 10px;">limit</div>
+                    <div style="font-weight: bold;">₺{{ card.credit_limit|floatformat:0 }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 10px;">available</div>
+                    <div style="font-weight: bold;">₺{{ card.available_credit|floatformat:0 }}</div>
+                </div>
+                <div>
+                    <div style="font-size: 10px;">utilization</div>
+                    <div style="font-weight: bold;">{{ card.utilization_rate|floatformat:0 }}%</div>
+                </div>
+            </div>
+            <div class="utilization-bar">
+                <div class="utilization-fill" style="width: {{ card.utilization_rate }}%;"></div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <button class="btn" onclick="window.location.href='{% url 'documents:credit_cards' %}'">
+            manage cards
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- Subscriptions -->
+{% if subscriptions %}
+<div class="content-box">
+    <h2 class="content-title">🔄 active subscriptions</h2>
+    
+    <div>
+        {% for sub in subscriptions|slice:":5" %}
+        <div class="subscription-item">
+            <div class="subscription-icon">
+                {% if 'netflix' in sub.service_name|lower %}📺
+                {% elif 'spotify' in sub.service_name|lower %}🎵
+                {% elif 'youtube' in sub.service_name|lower %}📹
+                {% elif 'amazon' in sub.service_name|lower %}📦
+                {% elif 'apple' in sub.service_name|lower %}🍎
+                {% else %}📱{% endif %}
+            </div>
+            <div class="subscription-info">
+                <div class="subscription-name">{{ sub.service_name }}</div>
+                <div style="color: var(--gray); font-size: 12px;">
+                    {{ sub.get_billing_cycle_display }} • next: {{ sub.next_billing_date|date:"d M" }}
+                </div>
+            </div>
+            <div class="subscription-amount">
+                ₺{{ sub.amount|floatformat:0 }}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <div style="margin-top: 20px;">
+        <button class="btn" onclick="window.location.href='{% url 'documents:subscriptions' %}'">
+            manage subscriptions
+        </button>
+    </div>
+</div>
+{% endif %}
+
+<!-- Documents with Filters and Pagination -->
+<div class="content-box">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+        <h2 class="content-title">📄 documents ({{ total_documents }} total)</h2>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <!-- Filters -->
+            <form method="get" style="display: flex; gap: 10px;">
+                <select name="type" onchange="this.form.submit()" 
+                        style="background: var(--bg-dark); color: var(--white); border: 1px solid var(--dark-gray); padding: 5px; border-radius: 3px;">
+                    <option value="">all types</option>
+                    {% for value, label in document_types %}
+                        <option value="{{ value }}" {% if current_type == value %}selected{% endif %}>
+                            {{ label|lower }}
+                        </option>
+                    {% endfor %}
+                </select>
+                
+                <select name="status" onchange="this.form.submit()"
+                        style="background: var(--bg-dark); color: var(--white); border: 1px solid var(--dark-gray); padding: 5px; border-radius: 3px;">
+                    <option value="">all status</option>
+                    {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if current_status == value %}selected{% endif %}>
+                            {{ label|lower }}
+                        </option>
+                    {% endfor %}
+                </select>
+                
+                <input type="text" name="search" placeholder="search..." value="{{ current_search }}"
+                       style="background: var(--bg-dark); color: var(--white); border: 1px solid var(--dark-gray); padding: 5px; border-radius: 3px; width: 150px;">
+                
+                <button type="submit" class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">🔍</button>
+                
+                {% if current_type or current_status or current_search %}
+                    <a href="{% url 'documents:dashboard' %}" class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">✗ clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    
+    {% if documents %}
+    <div style="overflow-x: auto;">
+        <table style="width: 100%;">
+            <thead>
+                <tr style="border-bottom: 1px solid var(--dark-gray);">
+                    <th style="text-align: left; padding: 10px; color: var(--orange);">type</th>
+                    <th style="text-align: left; padding: 10px; color: var(--orange);">filename</th>
+                    <th style="text-align: left; padding: 10px; color: var(--orange);">store</th>
+                    <th style="text-align: left; padding: 10px; color: var(--orange);">status</th>
+                    <th style="text-align: left; padding: 10px; color: var(--orange);">confidence</th>
+                    <th style="text-align: left; padding: 10px; color: var(--orange);">amount</th>
+                    <th style="text-align: left; padding: 10px; color: var(--orange);">uploaded</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for doc in documents %}
+                <tr style="border-bottom: 1px solid var(--dark-gray); cursor: pointer;" 
+                    onclick="window.location.href='{% url 'documents:document_detail' doc.id %}'">
+                    <td style="padding: 10px;">
+                        {% if doc.document_type == 'receipt' %}🧾
+                        {% elif doc.document_type == 'invoice' %}📑
+                        {% elif doc.document_type == 'bank_statement' %}🏦
+                        {% else %}📄{% endif %}
+                        {{ doc.get_document_type_display }}
+                    </td>
+                    <td style="padding: 10px;">
+                        <a href="{% url 'documents:document_detail' doc.id %}" style="color: var(--cyan); text-decoration: none;">
+                            {{ doc.original_filename|truncatechars:30 }}
+                        </a>
+                    </td>
+                    <td style="padding: 10px; color: var(--gray);">
+                        {% if doc.parsed_receipt %}
+                            {{ doc.parsed_receipt.store_name|default:"-" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </td>
+                    <td style="padding: 10px;">
+                        {% if doc.processing_status == 'completed' %}
+                            <span style="color: var(--green);">✓ processed</span>
+                        {% elif doc.processing_status == 'pending' %}
+                            <span style="color: var(--yellow);">⏳ pending</span>
+                        {% elif doc.processing_status == 'failed' %}
+                            <span style="color: var(--red);">✗ failed</span>
+                        {% else %}
+                            <span style="color: var(--gray);">{{ doc.get_processing_status_display }}</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 10px;">
+                        {% if doc.ocr_confidence %}
+                            <span style="color: {% if doc.ocr_confidence > 80 %}var(--green){% elif doc.ocr_confidence > 50 %}var(--yellow){% else %}var(--red){% endif %};">
+                                {{ doc.ocr_confidence|floatformat:0 }}%
+                            </span>
+                        {% else %}
+                            <span style="color: var(--gray);">-</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 10px;">
+                        {% if doc.parsed_receipt and doc.parsed_receipt.total_amount %}
+                            <span style="color: var(--orange); font-weight: bold;">
+                                ₺{{ doc.parsed_receipt.total_amount|floatformat:2 }}
+                            </span>
+                        {% else %}
+                            <span style="color: var(--gray);">-</span>
+                        {% endif %}
+                    </td>
+                    <td style="padding: 10px; color: var(--gray);">{{ doc.uploaded_at|date:"d M H:i" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div style="display: flex; justify-content: center; align-items: center; gap: 10px; margin-top: 20px;">
+        {% if page_obj.has_previous %}
+            <a href="?page=1{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+               class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">« first</a>
+            <a href="?page={{ page_obj.previous_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+               class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">‹ prev</a>
+        {% endif %}
+        
+        <span style="color: var(--orange);">
+            page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+        </span>
+        
+        {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+               class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">next ›</a>
+            <a href="?page={{ page_obj.paginator.num_pages }}{% if current_type %}&type={{ current_type }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}{% if current_search %}&search={{ current_search }}{% endif %}" 
+               class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;">last »</a>
+        {% endif %}
+    </div>
+    {% endif %}
+    
+    {% else %}
+    <div style="text-align: center; padding: 40px; color: var(--gray);">
+        <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
+        <div>no documents found</div>
+        {% if current_type or current_status or current_search %}
+            <div style="margin-top: 10px;">
+                <a href="{% url 'documents:dashboard' %}" style="color: var(--orange);">clear filters</a>
+            </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<!-- Quick Actions -->
+<div class="content-box">
+    <h2 class="content-title">⚡ quick actions</h2>
+    
+    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <button class="btn" onclick="window.location.href='{% url 'documents:upload' %}'">
+            📤 batch upload
+        </button>
+        <button class="btn" onclick="window.location.href='{% url 'documents:credit_cards' %}'">
+            💳 credit cards
+        </button>
+        <button class="btn" onclick="window.location.href='{% url 'documents:subscriptions' %}'">
+            🔄 subscriptions
+        </button>
+        <button class="btn btn-secondary" onclick="processAll()">
+            🔄 process pending
+        </button>
+    </div>
+</div>
+
+
+<script>
+// Upload functionality
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+
+uploadZone.addEventListener('click', () => {
+    fileInput.click();
+});
+
+uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+});
+
+uploadZone.addEventListener('dragleave', () => {
+    uploadZone.classList.remove('dragover');
+});
+
+uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    
+    const files = e.dataTransfer.files;
+    handleFiles(files);
+});
+
+fileInput.addEventListener('change', (e) => {
+    handleFiles(e.target.files);
+});
+
+function handleFiles(files) {
+    if (files.length === 0) return;
+    
+    const formData = new FormData();
+    for (let file of files) {
+        formData.append('files', file);
+    }
+    formData.append('document_type', 'receipt');
+    formData.append('batch_name', 'Quick Upload ' + new Date().toISOString());
+    
+    // Upload files
+    fetch('{% url "documents:upload" %}', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}'
+        }
+    })
+    .then(response => {
+        if (response.ok) {
+            window.location.reload();
+        }
+    });
+}
+
+function processAll() {
+    // Process all pending documents
+    alert('Processing all pending documents...');
+}
+</script>
+{% endblock %}

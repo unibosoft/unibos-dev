@@ -1,0 +1,77 @@
+{% extends "administration/base_admin.html" %}
+
+{% block title %}departments - unibos administration{% endblock %}
+
+{% block admin_content %}
+<div class="module-container">
+    <div class="module-header">
+        <h1>departments</h1>
+        <p>manage organizational departments and hierarchy</p>
+    </div>
+
+    <!-- Admin Navigation -->
+    <div class="admin-nav">
+        <a href="{% url 'administration:dashboard' %}" class="admin-nav-item">
+            <span class="nav-icon">📊</span>
+            <span>dashboard</span>
+        </a>
+        <a href="{% url 'administration:users' %}" class="admin-nav-item">
+            <span class="nav-icon">👥</span>
+            <span>users</span>
+        </a>
+        <a href="{% url 'administration:roles' %}" class="admin-nav-item">
+            <span class="nav-icon">🔐</span>
+            <span>roles & permissions</span>
+        </a>
+        <a href="{% url 'administration:departments' %}" class="admin-nav-item active">
+            <span class="nav-icon">🏢</span>
+            <span>departments</span>
+        </a>
+    </div>
+
+    <!-- Departments List -->
+    <div class="content-box">
+        <div class="section">
+            <h2>all departments</h2>
+            <div class="data-table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>name</th>
+                            <th>code</th>
+                            <th>parent</th>
+                            <th>manager</th>
+                            <th>members</th>
+                            <th>sub-departments</th>
+                            <th>status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for dept in departments %}
+                        <tr>
+                            <td>{{ dept.name|lower }}</td>
+                            <td>{{ dept.code }}</td>
+                            <td>{{ dept.parent.name|default:"-"|lower }}</td>
+                            <td>{{ dept.manager.username|default:"-" }}</td>
+                            <td>{{ dept.member_count|default:0 }}</td>
+                            <td>{{ dept.subdept_count|default:0 }}</td>
+                            <td>
+                                {% if dept.is_active %}
+                                <span class="badge badge-success">active</span>
+                                {% else %}
+                                <span class="badge badge-danger">inactive</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center">no departments found</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

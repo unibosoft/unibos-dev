@@ -1,0 +1,539 @@
+{% extends 'web_ui/base.html' %}
+
+{% block title %}document - {{ document.original_filename }}{% endblock %}
+
+{% block header_title %}unibos{% endblock %}
+{% block module_name %}documents{% endblock %}
+
+{% block content %}
+<style>
+    .document-viewer {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 20px;
+        height: calc(100vh - 200px);
+    }
+    
+    .document-preview {
+        background: var(--bg-dark);
+        border: 1px solid var(--dark-gray);
+        border-radius: 5px;
+        padding: 20px;
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .document-info {
+        background: var(--bg-dark);
+        border: 1px solid var(--dark-gray);
+        border-radius: 5px;
+        padding: 20px;
+        overflow-y: auto;
+    }
+    
+    .preview-container {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #000;
+        border-radius: 5px;
+        overflow: hidden;
+        margin-top: 10px;
+    }
+    
+    .preview-container img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+    }
+    
+    .preview-container iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+    }
+    
+    .info-section {
+        margin-bottom: 20px;
+    }
+    
+    .info-label {
+        color: var(--gray);
+        font-size: 12px;
+        text-transform: lowercase;
+        margin-bottom: 5px;
+    }
+    
+    .info-value {
+        color: var(--cyan);
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+    
+    .ocr-text {
+        background: #000;
+        border: 1px solid var(--dark-gray);
+        border-radius: 5px;
+        padding: 15px;
+        font-family: 'JetBrains Mono', monospace;
+        font-size: 12px;
+        color: var(--green);
+        white-space: pre-wrap;
+        word-wrap: break-word;
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    
+    .receipt-items {
+        margin-top: 20px;
+    }
+    
+    .receipt-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 8px;
+        border-bottom: 1px solid var(--dark-gray);
+    }
+    
+    .receipt-item:hover {
+        background: rgba(255, 140, 0, 0.1);
+    }
+    
+    .confidence-badge {
+        display: inline-block;
+        padding: 4px 8px;
+        border-radius: 4px;
+        font-size: 12px;
+        font-weight: bold;
+    }
+    
+    .confidence-high {
+        background: rgba(0, 255, 0, 0.2);
+        color: var(--green);
+    }
+    
+    .confidence-medium {
+        background: rgba(255, 255, 0, 0.2);
+        color: var(--yellow);
+    }
+    
+    .confidence-low {
+        background: rgba(255, 0, 0, 0.2);
+        color: #ff6666;
+    }
+    
+    .tabs {
+        display: none;
+    }
+    
+    @media (max-width: 1200px) {
+        .document-viewer {
+            grid-template-columns: 1fr 1fr;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .tab-button {
+            padding: 5px 10px;
+            background: var(--bg-dark);
+            border: 1px solid var(--dark-gray);
+            color: var(--gray);
+            cursor: pointer;
+            border-radius: 3px;
+        }
+        
+        .tab-button.active {
+            background: var(--orange);
+            color: #000;
+            border-color: var(--orange);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .document-viewer {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="content-box">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h1 class="content-title">📄 {{ document.original_filename }}</h1>
+        <div>
+            <button class="btn btn-secondary" onclick="window.history.back()">← back</button>
+            {% if document.file_path %}
+            <button class="btn" onclick="window.open('{{ document.file_path.url }}', '_blank')">
+                👁️ view full
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<div class="document-viewer">
+    <!-- Sol Kolon: Orijinal Fiş -->
+    <div class="document-preview">
+        <h2 style="color: var(--orange); font-size: 16px; margin-bottom: 10px;">📷 orijinal fiş</h2>
+        
+        <div class="preview-container">
+            {% if document.document_type == 'receipt' or document.document_type == 'invoice' %}
+                {% if document.file_path %}
+                    <img src="{{ document.file_path.url }}" 
+                         alt="{{ document.original_filename }}"
+                         style="max-width: 100%; max-height: 100%; object-fit: contain;"
+                         onerror="this.style.display='none'; document.getElementById('preview-error').style.display='block';">
+                    <div id="preview-error" style="display: none; color: var(--gray); text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
+                        <div>preview not available</div>
+                        <div style="margin-top: 10px;">
+                            <a href="{{ document.file_path.url }}" target="_blank" 
+                               style="color: var(--orange);">open in new tab</a>
+                        </div>
+                    </div>
+                {% else %}
+                    <div style="color: var(--gray); text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
+                        <div>no file available</div>
+                    </div>
+                {% endif %}
+            {% else %}
+                {% if document.file_path %}
+                    <iframe src="{{ document.file_path.url }}"></iframe>
+                {% else %}
+                    <div style="color: var(--gray); text-align: center;">
+                        <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
+                        <div>no file available</div>
+                    </div>
+                {% endif %}
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Orta Kolon: Ham OCR Metni -->
+    <div class="document-info">
+        <h2 style="color: var(--orange); font-size: 16px; margin-bottom: 20px;">📝 ham ocr metni</h2>
+        
+        {% if document.ocr_text %}
+        <div class="ocr-text" style="height: calc(100% - 40px);">
+            {{ formatted_ocr|default:document.ocr_text|linebreaksbr }}
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--gray);">
+            <div style="font-size: 48px; margin-bottom: 10px;">🔍</div>
+            <div>no ocr text available</div>
+            {% if document.processing_status == 'pending' %}
+                <div style="margin-top: 10px; color: var(--yellow);">processing...</div>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Sağ Kolon: İşlenmiş Veri -->
+    <div class="document-info">
+        <h2 style="color: var(--orange); font-size: 16px; margin-bottom: 20px;">📊 işlenmiş veri</h2>
+        
+        <!-- Document Metadata -->
+        <div class="info-section" style="background: rgba(255, 140, 0, 0.1); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+            <h3 style="color: var(--orange); font-size: 14px; margin-bottom: 10px;">📄 document info</h3>
+            
+            <div class="info-label">type</div>
+            <div class="info-value">{{ document.get_document_type_display }}</div>
+            
+            <div class="info-label">uploaded</div>
+            <div class="info-value">{{ document.uploaded_at|date:"d M Y H:i" }}</div>
+            
+            <div class="info-label">status</div>
+            <div class="info-value">
+                {% if document.processing_status == 'completed' %}
+                    <span style="color: var(--green);">✓ processed</span>
+                {% elif document.processing_status == 'pending' %}
+                    <span style="color: var(--yellow);">⏳ pending</span>
+                {% elif document.processing_status == 'failed' %}
+                    <span style="color: #ff6666;">✗ failed</span>
+                {% else %}
+                    {{ document.get_processing_status_display }}
+                {% endif %}
+            </div>
+            
+            {% if document.ocr_confidence %}
+            <div class="info-label">confidence</div>
+            <div class="info-value">
+                <span class="confidence-badge {% if document.ocr_confidence > 80 %}confidence-high{% elif document.ocr_confidence > 50 %}confidence-medium{% else %}confidence-low{% endif %}">
+                    {{ document.ocr_confidence|floatformat:0 }}%
+                </span>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Structured Data Display -->
+        {% if structured_data %}
+        
+        <!-- Store Information -->
+        {% if structured_data.store_info %}
+        <div class="info-section" style="background: rgba(0, 255, 255, 0.1); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+            <h3 style="color: var(--cyan); font-size: 14px; margin-bottom: 10px;">🏪 store information</h3>
+            
+            <div class="info-label">name</div>
+            <div class="info-value">{{ structured_data.store_info.name }}</div>
+            
+            {% if structured_data.store_info.address %}
+            <div class="info-label">address</div>
+            <div class="info-value" style="font-size: 12px;">{{ structured_data.store_info.address }}</div>
+            {% endif %}
+            
+            {% if structured_data.store_info.phone %}
+            <div class="info-label">phone</div>
+            <div class="info-value">{{ structured_data.store_info.phone }}</div>
+            {% endif %}
+            
+            {% if structured_data.store_info.tax_id %}
+            <div class="info-label">tax id</div>
+            <div class="info-value">{{ structured_data.store_info.tax_id }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Transaction Details -->
+        {% if structured_data.transaction %}
+        <div class="info-section" style="background: rgba(255, 255, 0, 0.1); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+            <h3 style="color: var(--yellow); font-size: 14px; margin-bottom: 10px;">💳 transaction</h3>
+            
+            {% if structured_data.transaction.date %}
+            <div class="info-label">date</div>
+            <div class="info-value">{{ structured_data.transaction.date|date:"d M Y H:i" }}</div>
+            {% endif %}
+            
+            {% if structured_data.transaction.receipt_no %}
+            <div class="info-label">receipt #</div>
+            <div class="info-value">{{ structured_data.transaction.receipt_no }}</div>
+            {% endif %}
+            
+            {% if structured_data.transaction.cashier %}
+            <div class="info-label">cashier</div>
+            <div class="info-value">{{ structured_data.transaction.cashier }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Financial Summary -->
+        {% if structured_data.financial %}
+        <div class="info-section" style="background: rgba(0, 255, 0, 0.1); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+            <h3 style="color: var(--green); font-size: 14px; margin-bottom: 10px;">💰 financial summary</h3>
+            
+            {% if structured_data.financial.subtotal %}
+            <div class="info-label">subtotal</div>
+            <div class="info-value">{{ structured_data.financial.currency }} {{ structured_data.financial.subtotal|floatformat:2 }}</div>
+            {% endif %}
+            
+            {% if structured_data.financial.tax %}
+            <div class="info-label">tax</div>
+            <div class="info-value">{{ structured_data.financial.currency }} {{ structured_data.financial.tax|floatformat:2 }}</div>
+            {% endif %}
+            
+            {% if structured_data.financial.discount %}
+            <div class="info-label">discount</div>
+            <div class="info-value" style="color: var(--green);">-{{ structured_data.financial.currency }} {{ structured_data.financial.discount|floatformat:2 }}</div>
+            {% endif %}
+            
+            {% if structured_data.financial.total %}
+            <div class="info-label">total</div>
+            <div class="info-value" style="font-size: 18px; color: var(--orange); font-weight: bold;">
+                {{ structured_data.financial.currency }} {{ structured_data.financial.total|floatformat:2 }}
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Payment Method -->
+        {% if structured_data.payment %}
+        <div class="info-section" style="background: rgba(255, 0, 255, 0.1); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+            <h3 style="color: var(--magenta); font-size: 14px; margin-bottom: 10px;">💳 payment</h3>
+            
+            <div class="info-label">method</div>
+            <div class="info-value">{{ structured_data.payment.method|default:"unknown" }}</div>
+            
+            {% if structured_data.payment.card_digits %}
+            <div class="info-label">card</div>
+            <div class="info-value">***{{ structured_data.payment.card_digits }}</div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <!-- Items Summary -->
+        {% if receipt_items %}
+        <div class="info-section" style="background: rgba(255, 140, 0, 0.1); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+            <h3 style="color: var(--orange); font-size: 14px; margin-bottom: 10px;">🛒 items ({{ receipt_items|length }})</h3>
+            
+            {% if category_breakdown %}
+            <div style="margin-bottom: 10px;">
+                {% for cat, data in category_breakdown.items %}
+                <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid var(--dark-gray);">
+                    <span style="color: var(--gray); font-size: 12px;">{{ cat }} ({{ data.count }})</span>
+                    <span style="color: var(--cyan); font-size: 12px;">₺{{ data.total|floatformat:2 }}</span>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <details>
+                <summary style="cursor: pointer; color: var(--orange); font-size: 12px; margin-bottom: 10px;">view all items</summary>
+                <div class="receipt-items" style="max-height: 300px; overflow-y: auto;">
+                    {% for item in receipt_items %}
+                    <div class="receipt-item">
+                        <div>
+                            <div style="color: var(--white);">{{ item.name }}</div>
+                            <div style="color: var(--gray); font-size: 11px;">
+                                {{ item.quantity }} {{ item.unit|default:"x" }} ₺{{ item.unit_price|floatformat:2 }}
+                                {% if item.category %}
+                                    <span style="color: var(--cyan);">| {{ item.category }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div style="color: var(--cyan); font-weight: bold;">
+                            ₺{{ item.total_price|floatformat:2 }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </details>
+        </div>
+        {% endif %}
+        
+        {% endif %}
+        
+        <!-- Cross-Module Integration Status -->
+        {% if integration_status %}
+        <div class="info-section" style="background: rgba(128, 0, 128, 0.1); padding: 10px; border-radius: 5px; margin-bottom: 15px;">
+            <h3 style="color: var(--purple); font-size: 14px; margin-bottom: 10px;">🔗 module integration</h3>
+            
+            <div style="display: grid; gap: 5px;">
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--gray); font-size: 12px;">💵 WIMM (finance)</span>
+                    <span style="color: {% if integration_status.wimm %}var(--green){% else %}var(--gray){% endif %};">
+                        {% if integration_status.wimm %}✓ integrated{% else %}– pending{% endif %}
+                    </span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--gray); font-size: 12px;">📈 inflation tracking</span>
+                    <span style="color: {% if integration_status.personal_inflation %}var(--green){% else %}var(--gray){% endif %};">
+                        {% if integration_status.personal_inflation %}✓ integrated{% else %}– pending{% endif %}
+                    </span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--gray); font-size: 12px;">📦 WIMS (inventory)</span>
+                    <span style="color: {% if integration_status.wims %}var(--green){% else %}var(--gray){% endif %};">
+                        {% if integration_status.wims %}✓ integrated{% else %}– pending{% endif %}
+                    </span>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <span style="color: var(--gray); font-size: 12px;">💱 currencies</span>
+                    <span style="color: {% if integration_status.currencies %}var(--green){% else %}var(--gray){% endif %};">
+                        {% if integration_status.currencies %}✓ detected{% else %}– n/a{% endif %}
+                    </span>
+                </div>
+            </div>
+            
+            <div style="margin-top: 10px;">
+                <button class="btn btn-secondary" onclick="integrateModules()" style="width: 100%; font-size: 12px;">
+                    🔄 re-integrate
+                </button>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Actions -->
+        <div class="info-section">
+            <h3 style="color: var(--orange); font-size: 14px; margin-bottom: 15px;">⚡ actions</h3>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="reprocessOCR()">
+                    🔄 reprocess ocr
+                </button>
+                <button class="btn btn-secondary" onclick="editDetails()">
+                    ✏️ edit details
+                </button>
+                <button class="btn btn-secondary" onclick="exportData()">
+                    📤 export
+                </button>
+                <button class="btn btn-secondary" onclick="deleteDocument()" style="color: var(--red);">
+                    🗑️ delete
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+function reprocessOCR() {
+    if (confirm('Reprocess OCR for this document?')) {
+        // TODO: Implement OCR reprocessing
+        alert('OCR reprocessing queued');
+    }
+}
+
+function editDetails() {
+    // TODO: Implement edit modal
+    alert('Edit functionality coming soon');
+}
+
+function deleteDocument() {
+    if (confirm('Are you sure you want to delete this document?')) {
+        // TODO: Implement delete
+        window.location.href = '{% url "documents:dashboard" %}';
+    }
+}
+
+function integrateModules() {
+    // TODO: Implement module re-integration
+    alert('Re-integrating with modules...');
+}
+
+function exportData() {
+    // TODO: Implement data export
+    alert('Export functionality coming soon');
+}
+
+// Responsive tabs for mobile
+function switchTab(tabName) {
+    const tabs = document.querySelectorAll('.tab-button');
+    const contents = document.querySelectorAll('.tab-content');
+    
+    tabs.forEach(tab => {
+        if (tab.dataset.tab === tabName) {
+            tab.classList.add('active');
+        } else {
+            tab.classList.remove('active');
+        }
+    });
+    
+    contents.forEach(content => {
+        if (content.dataset.content === tabName) {
+            content.classList.add('active');
+        } else {
+            content.classList.remove('active');
+        }
+    });
+}
+
+// Zoom functionality for image preview
+document.querySelector('.preview-container img')?.addEventListener('click', function() {
+    if (this.src && !this.src.includes('undefined')) {
+        window.open(this.src, '_blank');
+    }
+});
+</script>
+{% endblock %}

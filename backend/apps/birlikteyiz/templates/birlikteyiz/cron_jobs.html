@@ -1,0 +1,258 @@
+{% extends 'birlikteyiz/base_birlikteyiz.html' %}
+
+{% block title %}veri kaynakları - birlikteyiz - unibos{% endblock %}
+
+{% block birlikteyiz_content %}
+
+<!-- Data Sources Management -->
+<div class="section">
+    <div class="section-header">
+        <h2>veri kaynakları yönetimi</h2>
+        <div class="section-controls">
+            <button class="btn-primary" onclick="fetchAllData()">📥 tüm veriyi çek</button>
+            <button class="btn-secondary" onclick="refreshStatus()">🔄 durumu yenile</button>
+        </div>
+    </div>
+    
+    <!-- Data Sources Grid -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">kandilli</div>
+            <div class="stat-label">kandilli rasathanesi</div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--dark-gray);">
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>url:</span>
+                    <span style="color: var(--cyan);">koeri.boun.edu.tr</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>format:</span>
+                    <span>text/html</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>frekans:</span>
+                    <span>5 dakika</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-value">afad</div>
+            <div class="stat-label">afet ve acil durum yönetimi</div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--dark-gray);">
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>url:</span>
+                    <span style="color: var(--cyan);">deprem.afad.gov.tr</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>format:</span>
+                    <span>json api</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>frekans:</span>
+                    <span>5 dakika</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-value">iris</div>
+            <div class="stat-label">incorporated research institutions</div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--dark-gray);">
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>url:</span>
+                    <span style="color: var(--cyan);">service.iris.edu</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>format:</span>
+                    <span>fdsnws</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>frekans:</span>
+                    <span>5 dakika</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-value">usgs</div>
+            <div class="stat-label">abd jeoloji servisi</div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--dark-gray);">
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>url:</span>
+                    <span style="color: var(--cyan);">earthquake.usgs.gov</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>format:</span>
+                    <span>geojson</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>frekans:</span>
+                    <span>5 dakika</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="stat-card">
+            <div class="stat-value">gfz</div>
+            <div class="stat-label">alman jeofizik araştırma merkezi</div>
+            <div style="margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--dark-gray);">
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>url:</span>
+                    <span style="color: var(--cyan);">geofon.gfz-potsdam.de</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>format:</span>
+                    <span>fdsnws</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; font-size: 11px;">
+                    <span>frekans:</span>
+                    <span>5 dakika</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Cron Jobs Status -->
+<div class="section">
+    <div class="section-header">
+        <h2>zamanlanmış görevler</h2>
+    </div>
+    
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th>görev adı</th>
+                <th>komut</th>
+                <th>zamanlama</th>
+                <th>durum</th>
+                <th>son çalışma</th>
+                <th>sonraki çalışma</th>
+                <th>başarı oranı</th>
+                <th>işlemler</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for job in jobs %}
+            <tr>
+                <td>{{ job.name|lower }}</td>
+                <td style="font-family: monospace; font-size: 11px;">{{ job.command }}</td>
+                <td style="font-family: monospace; font-size: 11px;">{{ job.schedule }}</td>
+                <td>
+                    {% if job.is_active %}
+                        <span class="status-badge status-active">aktif</span>
+                    {% else %}
+                        <span class="status-badge status-inactive">pasif</span>
+                    {% endif %}
+                    {% if job.status == 'running' %}
+                        <span class="status-badge" style="background: rgba(255, 193, 7, 0.1); color: #ffc107; border: 1px solid #ffc107;">çalışıyor</span>
+                    {% elif job.status == 'success' %}
+                        <span class="status-badge status-active">başarılı</span>
+                    {% elif job.status == 'failed' %}
+                        <span class="status-badge status-error">hatalı</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if job.last_run %}
+                        {{ job.last_run|date:"d.m.Y H:i" }}
+                        <div style="font-size: 10px; color: var(--gray);">{{ job.last_run|timesince }} önce</div>
+                    {% else %}
+                        <span style="color: var(--gray);">henüz çalışmadı</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if job.next_run %}
+                        {{ job.next_run|date:"d.m.Y H:i" }}
+                        <div style="font-size: 10px; color: var(--gray);">{{ job.next_run|timeuntil }} içinde</div>
+                    {% else %}
+                        <span style="color: var(--gray);">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    {% if job.run_count > 0 %}
+                        <span style="color: {% if job.success_count > job.error_count %}var(--green){% else %}#ff4444{% endif %};">
+                            {{ job.success_count }}/{{ job.run_count }}
+                            ({% widthratio job.success_count job.run_count 100 %}%)
+                        </span>
+                    {% else %}
+                        <span style="color: var(--gray);">-</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <button class="btn-secondary" style="padding: 5px 10px; font-size: 11px;" 
+                            onclick="toggleJob({{ job.id }}, {% if job.is_active %}false{% else %}true{% endif %})">
+                        {% if job.is_active %}durdur{% else %}başlat{% endif %}
+                    </button>
+                    <button class="btn-primary" style="padding: 5px 10px; font-size: 11px;" 
+                            onclick="runJob({{ job.id }})">
+                        çalıştır
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" style="text-align: center; padding: 40px; color: var(--gray);">
+                    zamanlanmış görev bulunmuyor
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
+    {% if jobs %}
+    <div style="margin-top: 20px; padding: 15px; background: rgba(0, 255, 255, 0.05); border: 1px solid var(--cyan); border-radius: 5px;">
+        <div style="font-size: 11px; color: var(--cyan); margin-bottom: 10px;">son çalışma sonucu:</div>
+        {% for job in jobs %}
+            {% if job.last_result %}
+            <div style="font-family: monospace; font-size: 12px; color: var(--white); padding: 10px; background: var(--bg-black); border-radius: 3px; margin-bottom: 10px;">
+                <strong>{{ job.name }}:</strong> {{ job.last_result|linebreaksbr }}
+            </div>
+            {% endif %}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function fetchAllData() {
+    if (confirm('Tüm veri kaynaklarından veri çekmek istiyor musunuz? Bu işlem birkaç dakika sürebilir.')) {
+        fetch('{% url "birlikteyiz:manual_fetch" %}', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(data.message);
+                setTimeout(() => location.reload(), 3000);
+            } else {
+                alert('Hata: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Bağlantı hatası: ' + error);
+        });
+    }
+}
+
+function refreshStatus() {
+    location.reload();
+}
+
+function toggleJob(jobId, activate) {
+    // This would need an API endpoint to toggle job status
+    alert('Görev durumu değiştirme özelliği yakında eklenecek');
+}
+
+function runJob(jobId) {
+    // This would need an API endpoint to run a specific job
+    fetchAllData();
+}
+
+// Auto refresh every 30 seconds
+setInterval(refreshStatus, 30000);
+</script>
+
+{% endblock birlikteyiz_content %}
