@@ -1,0 +1,95 @@
+# ===== KULLANICI VERİLERİ =====
+data_db/
+data_db_backup*/
+
+# ===== ARŞİVLER =====
+archive/
+archive_backup*/
+
+# ===== PYTHON ORTAMI =====
+venv/
+.venv/
+env/
+.env/
+
+# ===== KARANTİNA =====
+quarantine/
+
+# ===== CLAUDE DOSYA HAVUZU =====
+berk_claude_file_pool_DONT_DELETE/
+
+# ===== PYTHON CACHE =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# ===== VERİTABANLARI =====
+*.sqlite3
+*.sqlite3.backup
+*.db
+*.db.backup
+
+# ===== LOG DOSYALARI =====
+*.log
+logs/
+
+# ===== DJANGO =====
+staticfiles/
+backend/staticfiles/
+backend/media/
+backend/documents/2025/
+
+# ===== ORTAM DOSYALARI =====
+.env
+.env.*
+!.env.example
+
+# ===== SİSTEM DOSYALARI =====
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ===== PID DOSYALARI =====
+*.pid
+.*.pid
+
+# ===== GEÇİCİ DOSYALAR =====
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# ===== CLAUDE =====
+.claude/
+CLAUDE_COMMUNICATION_LOG_*.md
+
+# ===== SCREENSHOT'LAR =====
+Screenshot*.png
+*.screenshot.png
+
+# ===== BACKUP'LAR =====
+*.backup
+*.bak
+backup/
+backups/
+
+# ===== NODE.JS =====
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ===== API KEYS ve SECRETS =====
+*.key
+*.pem
+*.cert
+.api_keys.json
+secrets/
+credentials/
+
+# ===== DOCS (opsiyonel - şimdilik dahil ediyoruz) =====
+# docs/
+
+# ===== PROJECTS (opsiyonel - şimdilik dahil ediyoruz) =====
+# projects/
