@@ -7,6 +7,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db.models import Count, Avg, Sum, Q, F
 from django.utils import timezone
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from datetime import timedelta
 from .models import (
     SolitaireGameSession, SolitairePlayer, SolitaireMoveHistory,
@@ -211,7 +212,160 @@ def live_game_view(request, session_id):
         ).order_by('-timestamp')[:20]
         
         # Parse game state for visualization
-        game_state = game_session.game_state or {}
+        import json
+        game_state = {}
+        
+        # Try to parse game_state if it exists
+        if game_session.game_state:
+            try:
+                # If it's a string, parse it as JSON
+                if isinstance(game_session.game_state, str):
+                    game_state = json.loads(game_session.game_state)
+                else:
+                    game_state = game_session.game_state
+            except (json.JSONDecodeError, TypeError):
+                # If parsing fails, use empty dict
+                game_state = {}
+        
+        # For games without game_state (abandoned, completed, or old), try to get from last deck or reconstruct
+        if not game_state:
+            try:
+                # Get the last deck state if available
+                from .models import SolitaireGameDeck
+                last_deck = SolitaireGameDeck.objects.filter(
+                    session=game_session
+                ).order_by('-created_at').first()
+                
+                if last_deck and last_deck.deck_state:
+                    game_state = last_deck.deck_state
+            except:
+                pass
+            
+            # If still no game state, try to reconstruct from moves
+            if not game_state and moves.exists():
+                # Try to get the final state from the last move's game state
+                last_move = moves.order_by('-move_number').first()
+                if last_move and hasattr(last_move, 'game_state_after'):
+                    try:
+                        if isinstance(last_move.game_state_after, str):
+                            game_state = json.loads(last_move.game_state_after)
+                        else:
+                            game_state = last_move.game_state_after
+                    except:
+                        pass
+            
+            # If still no game state, create a basic empty board
+            if not game_state:
+                game_state = {
+                    'stock': [],
+                    'waste': [],
+                    'foundations': {
+                        'spades': [],
+                        'hearts': [],
+                        'diamonds': [],
+                        'clubs': []
+                    },
+                    'tableau': [[] for _ in range(7)]
+                }
+        
+        # Parse string cards to objects if needed
+        def parse_card_string(card_str):
+            """Convert various card formats to proper card object"""
+            if isinstance(card_str, dict):
+                # Already a dict, ensure it has required fields
+                if 'rank' in card_str and 'suit' in card_str:
+                    return card_str
+                elif 'face_up' in card_str and not card_str['face_up']:
+                    return {'face_up': False}
+                return None
+            
+            if isinstance(card_str, str):
+                # Handle empty or face-down cards
+                if not card_str or card_str.lower() in ['face_down', 'hidden', '?']:
+                    return {'face_up': False}
+                
+                # Parse cards like "10 ♦" or "Q ♠"
+                if ' ' in card_str:
+                    parts = card_str.strip().split()
+                    if len(parts) == 2:
+                        rank = parts[0]
+                        suit_symbol = parts[1]
+                        
+                        # Map symbols to suit names
+                        suit_map = {
+                            '♠': 'spades',
+                            '♥': 'hearts', 
+                            '♦': 'diamonds',
+                            '♣': 'clubs'
+                        }
+                        
+                        return {
+                            'rank': rank,
+                            'suit': suit_map.get(suit_symbol, 'spades'),
+                            'face_up': True
+                        }
+                
+                # Try to parse compact format like "10D", "KS", "AH"
+                if len(card_str) >= 2:
+                    suit_char = card_str[-1].upper()
+                    rank_str = card_str[:-1].upper()
+                    
+                    suit_map = {
+                        'S': 'spades',
+                        'H': 'hearts',
+                        'D': 'diamonds',
+                        'C': 'clubs'
+                    }
+                    
+                    if suit_char in suit_map and rank_str:
+                        return {
+                            'rank': rank_str,
+                            'suit': suit_map[suit_char],
+                            'face_up': True
+                        }
+            
+            # Default to face down card if parsing fails
+            return {'face_up': False}
+        
+        # Convert string cards to proper format
+        if game_state and 'tableau' in game_state:
+            for i, pile in enumerate(game_state['tableau']):
+                if pile and isinstance(pile[0], str):
+                    game_state['tableau'][i] = [parse_card_string(card) for card in pile]
+        
+        if game_state and 'waste' in game_state and game_state['waste']:
+            if isinstance(game_state['waste'][0], str):
+                game_state['waste'] = [parse_card_string(card) for card in game_state['waste']]
+        
+        if game_state and 'stock' in game_state and game_state['stock']:
+            if isinstance(game_state['stock'][0], str):
+                game_state['stock'] = [parse_card_string(card) for card in game_state['stock']]
+        
+        # Ensure game_state has the right structure for foundations
+        if game_state and 'foundations' in game_state:
+            # If foundations is a list, convert it to dict
+            if isinstance(game_state['foundations'], list):
+                foundations_dict = {
+                    'spades': [],
+                    'hearts': [],
+                    'diamonds': [],
+                    'clubs': []
+                }
+                for foundation in game_state['foundations']:
+                    if foundation and len(foundation) > 0:
+                        # Get the suit of the top card
+                        top_card = foundation[-1]
+                        if 'suit' in top_card:
+                            foundations_dict[top_card['suit']] = foundation
+                game_state['foundations'] = foundations_dict
+            
+            # Parse string cards in foundations
+            if isinstance(game_state['foundations'], dict):
+                for suit in ['spades', 'hearts', 'diamonds', 'clubs']:
+                    if suit in game_state['foundations'] and game_state['foundations'][suit]:
+                        pile = game_state['foundations'][suit]
+                        if pile and isinstance(pile[0], str):
+                            game_state['foundations'][suit] = [parse_card_string(card) for card in pile]
         
         # Calculate performance metrics
         undo_count = moves.filter(is_undo=True).count()
@@ -228,6 +382,11 @@ def live_game_view(request, session_id):
         score_moves = moves.filter(score_change__gt=0).count()
         efficiency = (score_moves / total_moves * 100) if total_moves > 0 else 0
         
+        # Debug: Log move count
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"Session {session_id}: Found {moves.count()} moves")
+        
         context = {
             'session': game_session,
             'move_history': moves,
@@ -238,6 +397,7 @@ def live_game_view(request, session_id):
             'auto_moves': auto_moves,
             'avg_move_time': avg_move_time,
             'efficiency': efficiency,
+            'move_count': moves.count(),  # Add explicit move count
         }
         
         return render(request, 'admin/live_game_view.html', context)
@@ -411,3 +571,73 @@ def get_session_moves(request, session_id):
         return JsonResponse({'moves': moves})
     except SolitaireGameSession.DoesNotExist:
         return JsonResponse({'error': 'Session not found'}, status=404)
+
+
+@staff_member_required
+@csrf_exempt
+def bulk_delete_sessions(request):
+    """Bulk delete selected game sessions"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            session_ids = data.get('session_ids', [])
+            
+            if not session_ids:
+                return JsonResponse({'error': 'No sessions selected'}, status=400)
+            
+            # Delete related data first
+            deleted_moves = SolitaireMoveHistory.objects.filter(
+                session__session_id__in=session_ids
+            ).delete()[0]
+            
+            deleted_activities = SolitaireActivity.objects.filter(
+                session__session_id__in=session_ids
+            ).delete()[0]
+            
+            # Delete sessions
+            deleted_sessions = SolitaireGameSession.objects.filter(
+                session_id__in=session_ids
+            ).delete()[0]
+            
+            return JsonResponse({
+                'success': True,
+                'deleted': {
+                    'sessions': deleted_sessions,
+                    'moves': deleted_moves,
+                    'activities': deleted_activities
+                }
+            })
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)
+
+
+@staff_member_required
+@csrf_exempt
+def delete_session(request, session_id):
+    """Delete a single game session"""
+    if request.method == 'DELETE':
+        try:
+            session = SolitaireGameSession.objects.get(session_id=session_id)
+            
+            # Delete related data
+            deleted_moves = SolitaireMoveHistory.objects.filter(session=session).delete()[0]
+            deleted_activities = SolitaireActivity.objects.filter(session=session).delete()[0]
+            
+            # Delete session
+            session.delete()
+            
+            return JsonResponse({
+                'success': True,
+                'deleted': {
+                    'moves': deleted_moves,
+                    'activities': deleted_activities
+                }
+            })
+        except SolitaireGameSession.DoesNotExist:
+            return JsonResponse({'error': 'Session not found'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    
+    return JsonResponse({'error': 'Method not allowed'}, status=405)

@@ -58,11 +58,17 @@
 <div class="section">
     <div class="section-header">
         <h2>🎮 active games <span class="active-games-count badge badge-pending" style="margin-left: 10px;">{{ active_count }}</span></h2>
+        <button id="deleteActiveSelected" class="btn-danger" style="margin-left: auto; display: none;">
+            delete selected
+        </button>
     </div>
     <div class="content-box">
         <table class="data-table active-games">
             <thead>
                 <tr>
+                    <th width="30">
+                        <input type="checkbox" id="selectAllActive" />
+                    </th>
                     <th>player</th>
                     <th>ip address</th>
                     <th>started</th>
@@ -75,6 +81,9 @@
                 {% for session in active_sessions %}
                 <tr>
                     <td>
+                        <input type="checkbox" class="session-checkbox active-checkbox" data-session-id="{{ session.session_id }}" />
+                    </td>
+                    <td>
                         {% if session.player.user %}
                             <span class="badge badge-user">{{ session.player.user.username }}</span>
                         {% else %}
@@ -86,7 +95,7 @@
                     <td>{{ session.score }}</td>
                     <td>{{ session.moves_count }}</td>
                     <td>
-                        <a href="#" class="action-link">view details</a>
+                        <a href="{% url 'administration:live_game' session.session_id %}" class="action-link">view details</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -99,22 +108,35 @@
 <div class="section">
     <div class="section-header">
         <h2>📊 recent sessions</h2>
+        <button id="deleteRecentSelected" class="btn-danger" style="margin-left: auto; display: none;">
+            delete selected
+        </button>
+        <button id="deleteAllSessions" class="btn-danger" style="margin-left: 10px;">
+            delete all sessions
+        </button>
     </div>
     <div class="content-box">
         <table class="data-table">
             <thead>
                 <tr>
+                    <th width="30">
+                        <input type="checkbox" id="selectAllRecent" />
+                    </th>
                     <th>player</th>
                     <th>ip address</th>
                     <th>started</th>
                     <th>duration</th>
                     <th>score</th>
                     <th>result</th>
+                    <th>actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for session in recent_sessions %}
                 <tr>
+                    <td>
+                        <input type="checkbox" class="session-checkbox recent-checkbox" data-session-id="{{ session.session_id }}" />
+                    </td>
                     <td>
                         {% if session.player.user %}
                             <span class="badge badge-user">{{ session.player.user.username }}</span>
@@ -142,6 +164,9 @@
                         {% else %}
                             <span class="badge badge-pending">in progress</span>
                         {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'administration:live_game' session.session_id %}" class="action-link">view details</a>
                     </td>
                 </tr>
                 {% endfor %}
@@ -329,4 +354,230 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 {% endif %}
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <h3>confirm deletion</h3>
+        <p id="deleteMessage"></p>
+        <div class="modal-actions">
+            <button id="confirmDelete" class="btn-danger">delete</button>
+            <button id="cancelDelete" class="btn-secondary">cancel</button>
+        </div>
+    </div>
+</div>
+
+<style>
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.7);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal-content {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 30px;
+    max-width: 400px;
+    width: 90%;
+}
+
+.modal-content h3 {
+    color: var(--orange);
+    margin-bottom: 15px;
+}
+
+.modal-content p {
+    color: #ccc;
+    margin-bottom: 20px;
+}
+
+.modal-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+.btn-danger {
+    background: #d32f2f;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.btn-danger:hover {
+    background: #b71c1c;
+}
+
+.btn-secondary {
+    background: #666;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Select all checkboxes
+    const selectAllActive = document.getElementById('selectAllActive');
+    const selectAllRecent = document.getElementById('selectAllRecent');
+    const deleteActiveBtn = document.getElementById('deleteActiveSelected');
+    const deleteRecentBtn = document.getElementById('deleteRecentSelected');
+    const deleteAllBtn = document.getElementById('deleteAllSessions');
+    const modal = document.getElementById('deleteModal');
+    const confirmBtn = document.getElementById('confirmDelete');
+    const cancelBtn = document.getElementById('cancelDelete');
+    const deleteMessage = document.getElementById('deleteMessage');
+    
+    let pendingAction = null;
+    
+    // Toggle select all for active games
+    if (selectAllActive) {
+        selectAllActive.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.active-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+            toggleDeleteButton();
+        });
+    }
+    
+    // Toggle select all for recent sessions
+    if (selectAllRecent) {
+        selectAllRecent.addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('.recent-checkbox');
+            checkboxes.forEach(cb => cb.checked = this.checked);
+            toggleDeleteButton();
+        });
+    }
+    
+    // Toggle delete button visibility
+    function toggleDeleteButton() {
+        const activeChecked = document.querySelectorAll('.active-checkbox:checked').length;
+        const recentChecked = document.querySelectorAll('.recent-checkbox:checked').length;
+        
+        if (deleteActiveBtn) {
+            deleteActiveBtn.style.display = activeChecked > 0 ? 'block' : 'none';
+        }
+        if (deleteRecentBtn) {
+            deleteRecentBtn.style.display = recentChecked > 0 ? 'block' : 'none';
+        }
+    }
+    
+    // Listen to individual checkbox changes
+    document.querySelectorAll('.session-checkbox').forEach(cb => {
+        cb.addEventListener('change', toggleDeleteButton);
+    });
+    
+    // Delete selected active sessions
+    if (deleteActiveBtn) {
+        deleteActiveBtn.addEventListener('click', function() {
+            const selected = Array.from(document.querySelectorAll('.active-checkbox:checked'))
+                .map(cb => cb.dataset.sessionId);
+            
+            if (selected.length > 0) {
+                deleteMessage.textContent = `Are you sure you want to delete ${selected.length} active game(s)?`;
+                pendingAction = () => deleteSessions(selected);
+                modal.style.display = 'flex';
+            }
+        });
+    }
+    
+    // Delete selected recent sessions
+    if (deleteRecentBtn) {
+        deleteRecentBtn.addEventListener('click', function() {
+            const selected = Array.from(document.querySelectorAll('.recent-checkbox:checked'))
+                .map(cb => cb.dataset.sessionId);
+            
+            if (selected.length > 0) {
+                deleteMessage.textContent = `Are you sure you want to delete ${selected.length} session(s)?`;
+                pendingAction = () => deleteSessions(selected);
+                modal.style.display = 'flex';
+            }
+        });
+    }
+    
+    // Delete all sessions
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener('click', function() {
+            const allSessions = Array.from(document.querySelectorAll('.session-checkbox'))
+                .map(cb => cb.dataset.sessionId);
+            
+            if (allSessions.length > 0) {
+                deleteMessage.textContent = `Are you sure you want to delete ALL ${allSessions.length} sessions? This cannot be undone!`;
+                pendingAction = () => deleteSessions(allSessions);
+                modal.style.display = 'flex';
+            } else {
+                alert('No sessions to delete');
+            }
+        });
+    }
+    
+    // Confirm deletion
+    confirmBtn.addEventListener('click', function() {
+        if (pendingAction) {
+            pendingAction();
+            pendingAction = null;
+        }
+        modal.style.display = 'none';
+    });
+    
+    // Cancel deletion
+    cancelBtn.addEventListener('click', function() {
+        pendingAction = null;
+        modal.style.display = 'none';
+    });
+    
+    // Delete sessions function
+    function deleteSessions(sessionIds) {
+        fetch('/administration/solitaire/realtime/api/bulk-delete/', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken')
+            },
+            body: JSON.stringify({ session_ids: sessionIds })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                alert(`Deleted ${data.deleted.sessions} session(s), ${data.deleted.moves} move(s), ${data.deleted.activities} activity records`);
+                location.reload();
+            } else {
+                alert('Error: ' + data.error);
+            }
+        })
+        .catch(error => {
+            alert('Error deleting sessions: ' + error);
+        });
+    }
+    
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+
 {% endblock %}

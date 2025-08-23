@@ -61,6 +61,8 @@
                 <div class="stat-value">
                     {% if session.is_completed %}
                         {{ session.ended_at|date:"H:i:s" }}
+                    {% elif session.is_abandoned %}
+                        <span style="color: #ff6b35;">abandoned</span>
                     {% else %}
                         <span id="live-status">playing...</span>
                     {% endif %}
@@ -154,7 +156,7 @@
                 ">
                     <!-- Stock and Waste - TOP LEFT -->
                     <div class="card-slot stock-viz" style="position: absolute; top: 20px; left: 20px;">
-                        {% if game_state.stock %}
+                        {% if game_state and game_state.stock %}
                             {% for card in game_state.stock|slice:":3" %}
                             <div class="card face-down" style="
                                 position: absolute;
@@ -178,7 +180,7 @@
                     </div>
                     
                     <div class="card-slot waste-viz" style="position: absolute; top: 20px; left: 152px;">
-                        {% if game_state.waste %}
+                        {% if game_state and game_state.waste %}
                             {% for card in game_state.waste|slice:"-3:" %}
                             <div class="card face-up {% if card.suit == 'hearts' or card.suit == 'diamonds' %}red{% else %}black{% endif %}" 
                                  style="
@@ -218,6 +220,7 @@
                     </div>
                     
                     <!-- Foundations - TOP RIGHT -->
+                    {% if game_state and game_state.foundations %}
                     {% for foundation_name, foundation_cards in game_state.foundations.items %}
                     {% if forloop.counter0 == 0 %}
                         <div class="card-slot foundation-viz-0" style="position: absolute; top: 20px; right: 416px;">
@@ -269,8 +272,32 @@
                         {% endif %}
                     </div>
                     {% endfor %}
+                    {% else %}
+                    <!-- Empty foundations when no game state -->
+                    <div class="card-slot foundation-viz-0" style="position: absolute; top: 20px; right: 416px;">
+                        <div class="card-slot-empty-viz foundation-empty">
+                            <span style="font-size: 36px; opacity: 0.2;">♠</span>
+                        </div>
+                    </div>
+                    <div class="card-slot foundation-viz-1" style="position: absolute; top: 20px; right: 284px;">
+                        <div class="card-slot-empty-viz foundation-empty">
+                            <span style="font-size: 36px; opacity: 0.2;">♥</span>
+                        </div>
+                    </div>
+                    <div class="card-slot foundation-viz-2" style="position: absolute; top: 20px; right: 152px;">
+                        <div class="card-slot-empty-viz foundation-empty">
+                            <span style="font-size: 36px; opacity: 0.2;">♦</span>
+                        </div>
+                    </div>
+                    <div class="card-slot foundation-viz-3" style="position: absolute; top: 20px; right: 20px;">
+                        <div class="card-slot-empty-viz foundation-empty">
+                            <span style="font-size: 36px; opacity: 0.2;">♣</span>
+                        </div>
+                    </div>
+                    {% endif %}
                     
                     <!-- Tableau - BELOW -->
+                    {% if game_state and game_state.tableau %}
                     {% for pile in game_state.tableau %}
                     <div class="tableau-pile-viz" style="
                         position: absolute; 
@@ -323,7 +350,60 @@
                         {% endif %}
                     </div>
                     {% endfor %}
+                    {% else %}
+                    <!-- Empty tableau when no game state -->
+                    <div class="tableau-pile-viz" style="position: absolute; top: 196px; left: 20px; width: 110px; height: 380px;">
+                        <div class="card-slot-empty-viz tableau-empty"></div>
+                    </div>
+                    <div class="tableau-pile-viz" style="position: absolute; top: 196px; left: 146px; width: 110px; height: 380px;">
+                        <div class="card-slot-empty-viz tableau-empty"></div>
+                    </div>
+                    <div class="tableau-pile-viz" style="position: absolute; top: 196px; left: 272px; width: 110px; height: 380px;">
+                        <div class="card-slot-empty-viz tableau-empty"></div>
+                    </div>
+                    <div class="tableau-pile-viz" style="position: absolute; top: 196px; left: 398px; width: 110px; height: 380px;">
+                        <div class="card-slot-empty-viz tableau-empty"></div>
+                    </div>
+                    <div class="tableau-pile-viz" style="position: absolute; top: 196px; left: 524px; width: 110px; height: 380px;">
+                        <div class="card-slot-empty-viz tableau-empty"></div>
+                    </div>
+                    <div class="tableau-pile-viz" style="position: absolute; top: 196px; left: 650px; width: 110px; height: 380px;">
+                        <div class="card-slot-empty-viz tableau-empty"></div>
+                    </div>
+                    <div class="tableau-pile-viz" style="position: absolute; top: 196px; left: 776px; width: 110px; height: 380px;">
+                        <div class="card-slot-empty-viz tableau-empty"></div>
+                    </div>
+                    {% endif %}
                 </div>
+                
+                <!-- Show game status indicator -->
+                {% if session.is_abandoned %}
+                <div class="abandoned-indicator">
+                    <span class="badge badge-rejected">game abandoned</span>
+                    <div class="time">
+                        {% if session.ended_at %}
+                            Abandoned at {{ session.ended_at|date:"H:i:s" }}
+                        {% else %}
+                            Game was abandoned
+                        {% endif %}
+                    </div>
+                </div>
+                {% elif session.is_completed %}
+                <div class="abandoned-indicator">
+                    {% if session.is_won %}
+                        <span class="badge badge-approved">game won! 🎉</span>
+                    {% else %}
+                        <span class="badge badge-inactive">game lost</span>
+                    {% endif %}
+                    <div class="time">
+                        {% if session.ended_at %}
+                            Ended at {{ session.ended_at|date:"H:i:s" }}
+                        {% else %}
+                            Game completed
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
         
@@ -333,8 +413,8 @@
             <div>
                 <h4 style="color: var(--yellow); margin-bottom: 10px;">stock & waste</h4>
                 <div style="background: rgba(0,0,0,0.3); padding: 10px; border: 1px solid var(--border);">
-                    <div>stock: {{ game_state.stock|length }} cards</div>
-                    <div>waste: {{ game_state.waste|length }} cards</div>
+                    <div>stock: {% if game_state.stock %}{{ game_state.stock|length }}{% else %}0{% endif %} cards</div>
+                    <div>waste: {% if game_state.waste %}{{ game_state.waste|length }}{% else %}0{% endif %} cards</div>
                 </div>
             </div>
             
@@ -342,10 +422,10 @@
             <div>
                 <h4 style="color: var(--yellow); margin-bottom: 10px;">foundations</h4>
                 <div style="background: rgba(0,0,0,0.3); padding: 10px; border: 1px solid var(--border);">
-                    <div>♠ spades: {{ game_state.foundations.spades|length }} cards</div>
-                    <div>♥ hearts: {{ game_state.foundations.hearts|length }} cards</div>
-                    <div>♦ diamonds: {{ game_state.foundations.diamonds|length }} cards</div>
-                    <div>♣ clubs: {{ game_state.foundations.clubs|length }} cards</div>
+                    <div>♠ spades: {% if game_state.foundations.spades %}{{ game_state.foundations.spades|length }}{% else %}0{% endif %} cards</div>
+                    <div>♥ hearts: {% if game_state.foundations.hearts %}{{ game_state.foundations.hearts|length }}{% else %}0{% endif %} cards</div>
+                    <div>♦ diamonds: {% if game_state.foundations.diamonds %}{{ game_state.foundations.diamonds|length }}{% else %}0{% endif %} cards</div>
+                    <div>♣ clubs: {% if game_state.foundations.clubs %}{{ game_state.foundations.clubs|length }}{% else %}0{% endif %} cards</div>
                 </div>
             </div>
             
@@ -353,6 +433,7 @@
             <div style="grid-column: span 2;">
                 <h4 style="color: var(--yellow); margin-bottom: 10px;">tableau</h4>
                 <div style="background: rgba(0,0,0,0.3); padding: 10px; border: 1px solid var(--border); display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;">
+                    {% if game_state.tableau %}
                     {% for pile in game_state.tableau %}
                     <div>
                         <strong>pile {{ forloop.counter }}</strong><br>
@@ -360,8 +441,7 @@
                         {% for card in pile %}
                             {% if card.face_up %}
                                 <span style="color: {% if card.suit == 'hearts' or card.suit == 'diamonds' %}#f44336{% else %}#fff{% endif %};">
-                                    {{ card.rank }}
-                                    {% if card.suit == 'spades' %}♠{% elif card.suit == 'hearts' %}♥{% elif card.suit == 'diamonds' %}♦{% else %}♣{% endif %}
+                                    {{ card.rank|default:card }}{% if card.suit %}{% if card.suit == 'spades' %}♠{% elif card.suit == 'hearts' %}♥{% elif card.suit == 'diamonds' %}♦{% else %}♣{% endif %}{% endif %}
                                 </span>
                             {% else %}
                                 <span style="color: #666;">▓</span>
@@ -370,6 +450,44 @@
                         {% endfor %}
                     </div>
                     {% endfor %}
+                    {% else %}
+                    <!-- Empty tableau display -->
+                    <div>
+                        <strong>pile 1</strong><br>
+                        0 cards<br>
+                        <span style="color: #666;">empty</span>
+                    </div>
+                    <div>
+                        <strong>pile 2</strong><br>
+                        0 cards<br>
+                        <span style="color: #666;">empty</span>
+                    </div>
+                    <div>
+                        <strong>pile 3</strong><br>
+                        0 cards<br>
+                        <span style="color: #666;">empty</span>
+                    </div>
+                    <div>
+                        <strong>pile 4</strong><br>
+                        0 cards<br>
+                        <span style="color: #666;">empty</span>
+                    </div>
+                    <div>
+                        <strong>pile 5</strong><br>
+                        0 cards<br>
+                        <span style="color: #666;">empty</span>
+                    </div>
+                    <div>
+                        <strong>pile 6</strong><br>
+                        0 cards<br>
+                        <span style="color: #666;">empty</span>
+                    </div>
+                    <div>
+                        <strong>pile 7</strong><br>
+                        0 cards<br>
+                        <span style="color: #666;">empty</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -399,10 +517,12 @@
     </div>
 </div>
 
-<!-- Auto-refresh for live data -->
-{% if not session.is_completed %}
+<!-- Auto-refresh for live data (only if game is truly active) -->
+{% if not session.is_completed and not session.is_abandoned %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    let gameAbandoned = false;
+    
     function updateLiveData() {
         fetch(`/administration/solitaire/realtime/api/live-data/`)
             .then(response => response.json())
@@ -418,9 +538,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     // Could also fetch move history updates
                     fetchMoveHistory();
-                } else {
-                    // Game might have ended
-                    document.getElementById('live-status').textContent = 'completed';
+                } else if (!gameAbandoned) {
+                    // Game has been abandoned or completed - check which one
+                    gameAbandoned = true;
+                    
+                    // Update status indicator
+                    const statusEl = document.getElementById('live-status');
+                    if (statusEl) {
+                        statusEl.textContent = 'abandoned';
+                        statusEl.style.color = '#ff6b35';
+                    }
+                    
+                    // Add abandoned overlay to game board
+                    const gameBoard = document.getElementById('game-board');
+                    if (gameBoard && !gameBoard.querySelector('.abandoned-overlay')) {
+                        const overlay = document.createElement('div');
+                        overlay.className = 'abandoned-overlay';
+                        overlay.innerHTML = `
+                            <div class="abandoned-message">
+                                <span class="badge badge-rejected">game abandoned</span>
+                                <p>This game was abandoned at ${new Date().toLocaleTimeString('tr-TR')}</p>
+                            </div>
+                        `;
+                        gameBoard.appendChild(overlay);
+                    }
+                    
+                    // Update the status badge in header
+                    const headerBadge = document.querySelector('.section-controls .badge');
+                    if (headerBadge) {
+                        headerBadge.className = 'badge badge-rejected';
+                        headerBadge.textContent = 'abandoned';
+                    }
+                    
                     clearInterval(updateInterval);
                 }
             })
@@ -721,6 +870,98 @@ document.addEventListener('DOMContentLoaded', function() {
     #game-board.updating {
         opacity: 0.8;
         transition: opacity 0.3s;
+    }
+    
+    /* Abandoned game overlay */
+    .abandoned-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 999;
+        border-radius: 8px;
+        backdrop-filter: blur(2px);
+    }
+    
+    .abandoned-message {
+        text-align: center;
+        padding: 30px;
+        background: rgba(26, 26, 26, 0.95);
+        border-radius: 8px;
+        border: 2px solid #ff6b35;
+    }
+    
+    .abandoned-message .badge {
+        font-size: 16px;
+        padding: 8px 20px;
+        margin-bottom: 10px;
+    }
+    
+    .abandoned-message p {
+        color: #999;
+        font-size: 13px;
+        margin: 10px 0 0 0;
+    }
+    
+    /* Ensure game board stays intact when abandoned */
+    .game-area-viz {
+        position: relative;
+    }
+    
+    /* Keep cards visible under overlay */
+    .abandoned-overlay ~ * {
+        pointer-events: none;
+    }
+</style>
+{% endif %}
+
+<!-- Additional styles for completed/abandoned games -->
+{% if session.is_abandoned or session.is_completed %}
+<style>
+    /* Show game state for completed/abandoned games */
+    .game-area-viz {
+        position: relative;
+    }
+    
+    .game-area-viz::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, {% if session.is_won %}0.3{% else %}0.5{% endif %});
+        border-radius: 8px;
+        pointer-events: none;
+    }
+    
+    .abandoned-indicator {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 1000;
+        background: rgba(26, 26, 26, 0.95);
+        padding: 20px 40px;
+        border-radius: 8px;
+        border: 2px solid {% if session.is_won %}#4CAF50{% elif session.is_abandoned %}#ff6b35{% else %}#666{% endif %};
+        text-align: center;
+    }
+    
+    .abandoned-indicator .badge {
+        font-size: 16px;
+        padding: 8px 20px;
+    }
+    
+    .abandoned-indicator .time {
+        color: #999;
+        font-size: 12px;
+        margin-top: 10px;
     }
 </style>
 {% endif %}
