@@ -14,6 +14,9 @@ from .models import (
     SolitaireStatistics, SolitaireActivity
 )
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 @staff_member_required
@@ -206,6 +209,11 @@ def live_game_view(request, session_id):
             session=game_session
         ).order_by('move_number')
         
+        # Get last move time
+        last_move = moves.last()
+        # Use timestamp field instead of created_at
+        last_move_time = last_move.timestamp if last_move and hasattr(last_move, 'timestamp') else None
+        
         # Get recent activities
         activities = SolitaireActivity.objects.filter(
             session=game_session
@@ -280,36 +288,54 @@ def live_game_view(request, session_id):
             if isinstance(card_str, dict):
                 # Already a dict, ensure it has required fields
                 if 'rank' in card_str and 'suit' in card_str:
+                    # Ensure face_up is set
+                    if 'face_up' not in card_str:
+                        card_str['face_up'] = True
                     return card_str
                 elif 'face_up' in card_str and not card_str['face_up']:
                     return {'face_up': False}
-                return None
+                # Dict without proper fields - convert to string and reparse
+                card_str = str(card_str)
             
             if isinstance(card_str, str):
                 # Handle empty or face-down cards
                 if not card_str or card_str.lower() in ['face_down', 'hidden', '?']:
                     return {'face_up': False}
                 
-                # Parse cards like "10 ♦" or "Q ♠"
+                # Parse cards like "10 ♦" (with space) or "10♦" (without space)
+                # Check for suit symbols
+                suit_map = {
+                    '♠': 'spades',
+                    '♥': 'hearts', 
+                    '♦': 'diamonds',
+                    '♣': 'clubs'
+                }
+                
+                # First try with space - handle multiple spaces
                 if ' ' in card_str:
-                    parts = card_str.strip().split()
-                    if len(parts) == 2:
+                    # Split and filter out empty strings
+                    parts = [p for p in card_str.strip().split() if p]
+                    if len(parts) >= 2:
                         rank = parts[0]
-                        suit_symbol = parts[1]
+                        suit_symbol = parts[-1]  # Take last part as suit
                         
-                        # Map symbols to suit names
-                        suit_map = {
-                            '♠': 'spades',
-                            '♥': 'hearts', 
-                            '♦': 'diamonds',
-                            '♣': 'clubs'
-                        }
-                        
-                        return {
-                            'rank': rank,
-                            'suit': suit_map.get(suit_symbol, 'spades'),
-                            'face_up': True
-                        }
+                        if suit_symbol in suit_map:
+                            return {
+                                'rank': rank,
+                                'suit': suit_map[suit_symbol],
+                                'face_up': True
+                            }
+                
+                # Try without space (e.g., "2♠", "Q♦")
+                for symbol, suit in suit_map.items():
+                    if symbol in card_str:
+                        rank = card_str.replace(symbol, '').strip()
+                        if rank:
+                            return {
+                                'rank': rank,
+                                'suit': suit,
+                                'face_up': True
+                            }
                 
                 # Try to parse compact format like "10D", "KS", "AH"
                 if len(card_str) >= 2:
@@ -336,16 +362,57 @@ def live_game_view(request, session_id):
         # Convert string cards to proper format
         if game_state and 'tableau' in game_state:
             for i, pile in enumerate(game_state['tableau']):
-                if pile and isinstance(pile[0], str):
-                    game_state['tableau'][i] = [parse_card_string(card) for card in pile]
+                if pile:
+                    # Parse all cards in the pile regardless of first card's type
+                    parsed_pile = []
+                    for card in pile:
+                        if isinstance(card, str):
+                            parsed_pile.append(parse_card_string(card))
+                        elif isinstance(card, dict):
+                            # Check if dict has proper structure
+                            if 'rank' in card and 'suit' in card:
+                                parsed_pile.append(card)
+                            elif 'face_up' in card:
+                                parsed_pile.append(card)
+                            else:
+                                # Try to parse if it's a malformed dict
+                                parsed_pile.append(parse_card_string(str(card)))
+                        else:
+                            parsed_pile.append(parse_card_string(str(card)))
+                    game_state['tableau'][i] = parsed_pile
         
         if game_state and 'waste' in game_state and game_state['waste']:
-            if isinstance(game_state['waste'][0], str):
-                game_state['waste'] = [parse_card_string(card) for card in game_state['waste']]
+            # Parse all waste cards regardless of first card's type
+            parsed_waste = []
+            for card in game_state['waste']:
+                if isinstance(card, str):
+                    parsed_waste.append(parse_card_string(card))
+                elif isinstance(card, dict):
+                    # Check if dict has proper structure
+                    if 'rank' in card and 'suit' in card:
+                        # Ensure face_up is set
+                        if 'face_up' not in card:
+                            card['face_up'] = True
+                        parsed_waste.append(card)
+                    else:
+                        # Try to parse if it's a malformed dict
+                        parsed_waste.append(parse_card_string(str(card)))
+                else:
+                    parsed_waste.append(parse_card_string(str(card)))
+            game_state['waste'] = parsed_waste
         
         if game_state and 'stock' in game_state and game_state['stock']:
-            if isinstance(game_state['stock'][0], str):
-                game_state['stock'] = [parse_card_string(card) for card in game_state['stock']]
+            # Parse all stock cards regardless of first card's type
+            parsed_stock = []
+            for card in game_state['stock']:
+                if isinstance(card, str):
+                    parsed_stock.append(parse_card_string(card))
+                elif isinstance(card, dict):
+                    # Stock cards are face down
+                    parsed_stock.append({'face_up': False})
+                else:
+                    parsed_stock.append({'face_up': False})
+            game_state['stock'] = parsed_stock
         
         # Ensure game_state has the right structure for foundations
         if game_state and 'foundations' in game_state:
@@ -404,6 +471,7 @@ def live_game_view(request, session_id):
             'avg_move_time': avg_move_time,
             'efficiency': efficiency,
             'move_count': moves.count(),  # Add explicit move count
+            'last_move_time': last_move_time,
         }
         
         return render(request, 'admin/live_game_view.html', context)

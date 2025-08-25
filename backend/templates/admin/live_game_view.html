@@ -33,6 +33,9 @@
             <div class="stat-card">
                 <div class="stat-value">{{ session.started_at|date:"H:i:s" }}</div>
                 <div class="stat-label">started at</div>
+                <div style="font-size: 10px; color: #666; margin-top: 3px;">
+                    {{ session.started_at|timesince }} ago
+                </div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">{{ session.player.user_agent|truncatechars:30 }}</div>
@@ -56,6 +59,17 @@
             <div class="stat-card">
                 <div class="stat-value" id="live-time">{{ session.time_played|floatformat:0 }}s</div>
                 <div class="stat-label">time played</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">
+                    {% if last_move_time %}
+                        {{ last_move_time|date:"H:i:s" }}
+                        <div style="font-size: 10px; color: #666;">{{ last_move_time|timesince }} ago</div>
+                    {% else %}
+                        <span style="color: #666;">no moves yet</span>
+                    {% endif %}
+                </div>
+                <div class="stat-label">last move</div>
             </div>
             <div class="stat-card">
                 <div class="stat-value">
@@ -308,6 +322,8 @@
                     ">
                         {% if pile %}
                             {% for card in pile %}
+                            {% if card.rank and card.suit %}
+                            <!-- Card is proper dict with rank and suit -->
                             <div class="card {% if card.face_up %}face-up{% else %}face-down{% endif %} 
                                         {% if card.face_up %}
                                             {% if card.suit == 'hearts' or card.suit == 'diamonds' %}red{% else %}black{% endif %}
@@ -324,7 +340,8 @@
                                             {% if card.suit == 'spades' %}♠
                                             {% elif card.suit == 'hearts' %}♥
                                             {% elif card.suit == 'diamonds' %}♦
-                                            {% else %}♣{% endif %}
+                                            {% elif card.suit == 'clubs' %}♣
+                                            {% else %}{% endif %}
                                         </span>
                                     </div>
                                     <div class="card-corner bottom-right">
@@ -333,17 +350,34 @@
                                             {% if card.suit == 'spades' %}♠
                                             {% elif card.suit == 'hearts' %}♥
                                             {% elif card.suit == 'diamonds' %}♦
-                                            {% else %}♣{% endif %}
+                                            {% elif card.suit == 'clubs' %}♣
+                                            {% else %}{% endif %}
                                         </span>
                                     </div>
                                     <div class="card-center">
                                         {% if card.suit == 'spades' %}♠
                                         {% elif card.suit == 'hearts' %}♥
                                         {% elif card.suit == 'diamonds' %}♦
-                                        {% else %}♣{% endif %}
+                                        {% elif card.suit == 'clubs' %}♣
+                                        {% else %}{% endif %}
                                     </div>
                                 {% endif %}
                             </div>
+                            {% elif card.face_up == False %}
+                            <!-- Face down card -->
+                            <div class="card face-down" style="
+                                position: absolute;
+                                top: {% widthratio forloop.counter0 1 28 %}px;
+                                z-index: {{ forloop.counter }};
+                            "></div>
+                            {% else %}
+                            <!-- Fallback: card is string or malformed, show as face down -->
+                            <div class="card face-down" style="
+                                position: absolute;
+                                top: {% widthratio forloop.counter0 1 28 %}px;
+                                z-index: {{ forloop.counter }};
+                            "></div>
+                            {% endif %}
                             {% endfor %}
                         {% else %}
                             <div class="card-slot-empty-viz tableau-empty"></div>
@@ -435,19 +469,23 @@
                 <div style="background: rgba(0,0,0,0.3); padding: 10px; border: 1px solid var(--border); display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px;">
                     {% if game_state.tableau %}
                     {% for pile in game_state.tableau %}
-                    <div>
+                    <div style="min-height: 100px;">
                         <strong>pile {{ forloop.counter }}</strong><br>
-                        {{ pile|length }} cards<br>
+                        <span style="color: #888; font-size: 0.9em;">{{ pile|length }} cards</span><br>
+                        <div style="margin-top: 5px;">
                         {% for card in pile %}
                             {% if card.face_up %}
-                                <span style="color: {% if card.suit == 'hearts' or card.suit == 'diamonds' %}#f44336{% else %}#fff{% endif %};">
-                                    {{ card.rank|default:card }}{% if card.suit %}{% if card.suit == 'spades' %}♠{% elif card.suit == 'hearts' %}♥{% elif card.suit == 'diamonds' %}♦{% else %}♣{% endif %}{% endif %}
-                                </span>
+                                <div style="display: inline-block; background: white; border: 1px solid #ccc; border-radius: 3px; padding: 2px 4px; margin: 1px; font-size: 14px;">
+                                    <span style="color: {% if card.suit == 'hearts' or card.suit == 'diamonds' %}#d84040{% else %}#4a4a4a{% endif %}; font-weight: 500;">
+                                        {{ card.rank }}{% if card.suit %}{% if card.suit == 'spades' %}♠{% elif card.suit == 'hearts' %}♥{% elif card.suit == 'diamonds' %}♦{% else %}♣{% endif %}{% endif %}
+                                    </span>
+                                </div>
                             {% else %}
-                                <span style="color: #666;">▓</span>
+                                <div style="display: inline-block; background: #2c4a7c; border: 1px solid #1e3250; border-radius: 3px; padding: 2px 6px; margin: 1px; font-size: 14px; color: #5a7fb5;">▓</div>
                             {% endif %}
-                            {% if not forloop.last %}<br>{% endif %}
+                            {% if not forloop.last %}<br style="line-height: 4px;">{% endif %}
                         {% endfor %}
+                        </div>
                     </div>
                     {% endfor %}
                     {% else %}

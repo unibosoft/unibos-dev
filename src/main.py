@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-🪐 unibos v511 - unicorn bodrum operating system
+🪐 unibos v512 - unicorn bodrum operating system
 Simplified Web Forge + Lowercase UI + Single Server Architecture
 
 Author: berk hatırlı - bitez, bodrum, muğla, türkiye
-Version: v511_20250823_1049
+Version: v512_20250825_2159
 Purpose: Professional terminal UI with multi-module support"""
 
 import os
@@ -128,9 +128,9 @@ except ImportError:
 
 # Version information
 VERSION_INFO = {
-    "version": "v511",
-    "build": "20250823_1049", 
-    "build_date": "2025-08-23 10:49:58 +03:00",
+    "version": "v512",
+    "build": "20250825_2159", 
+    "build_date": "2025-08-25 21:59:21 +03:00",
     "author": "berk hatırlı",
     "location": "bitez, bodrum, muğla, türkiye, dünya, güneş sistemi, samanyolu, yerel galaksi grubu, evren"
 }
@@ -201,6 +201,7 @@ class MenuState:
         self.previous_tool_index = -1  # Track previous tool selection
         self.web_forge_index = 0  # Track selected option in web forge
         self.version_manager_index = 0  # Track selected option in version manager
+        self.administration_index = 0  # Track selected option in administration
         self.last_drawn_submenu = None  # Track last drawn submenu
         self.dev_tools_start_y = 0  # Position for dev tools section
         # Sub-navigation tracking for breadcrumbs
@@ -651,6 +652,21 @@ def update_sidebar_selection_fast():
 
 def draw_sidebar():
     """Draw left sidebar with modules - SIMPLIFIED VERSION"""
+    # Ensure menu items are initialized before drawing
+    if not hasattr(menu_state, 'modules') or not menu_state.modules:
+        initialize_menu_items()
+    if not hasattr(menu_state, 'tools') or not menu_state.tools:
+        initialize_menu_items()
+    if not hasattr(menu_state, 'dev_tools') or not menu_state.dev_tools:
+        initialize_menu_items()
+    
+    # CRITICAL: Reset sidebar state when not in submenu
+    if menu_state.in_submenu is None:
+        # Force clear any cached state
+        menu_state.last_sidebar_cache_key = None
+        if hasattr(menu_state, '_sidebar_highlight_cache'):
+            delattr(menu_state, '_sidebar_highlight_cache')
+    
     # Always use simple drawing for consistency
     draw_sidebar_simple(menu_state, Colors, sidebar_width=25)
 
@@ -680,6 +696,8 @@ def draw_footer(only_time=False):
     elif menu_state.in_submenu == 'web_forge':
         nav_text = "↑↓ navigate | enter select | ← back | q quit"
     elif menu_state.in_submenu == 'version_manager':
+        nav_text = "↑↓ navigate | enter select | ← back | q quit"
+    elif menu_state.in_submenu == 'administration':
         nav_text = "↑↓ navigate | enter select | ← back | q quit"
     elif menu_state.in_submenu:
         nav_text = "← back/esc to return | enter to launch"
@@ -740,8 +758,9 @@ def initialize_menu_items():
         ("castle_guard", f"🔒 castle guard", "fortress security", True, lambda: handle_tool_launch('castle_guard')),
         ("forge_smithy", f"🔧 forge smithy", "setup forge tools", True, lambda: handle_tool_launch('forge_smithy')),
         ("anvil_repair", f"🛠️  anvil repair", "mend & fix issues", True, lambda: handle_tool_launch('anvil_repair')),
-        ("code_forge", f"📦 code forge", "version chronicles", True, show_git_menu),
+        ("code_forge", f"📦 code forge", "version chronicles", True, lambda: handle_tool_launch('code_forge')),
         ("web_ui", f"🌐 web ui", "web interface manager", True, lambda: handle_tool_launch('web_ui')),
+        ("administration", f"🔐 administration", "system administration", True, lambda: handle_tool_launch('administration')),
     ]
     
     # Sync tools with centralized context
@@ -756,7 +775,7 @@ def initialize_menu_items():
     
     # Dev tools - new section
     menu_state.dev_tools = [
-        ("ai_builder", f"🤖 ai builder", "ai-powered development", True, ai_builder_tools),
+        ("ai_builder", f"🤖 ai builder", "ai-powered development", True, lambda: handle_dev_tool_launch('ai_builder')),
         ("database_setup", "🗄️  database setup", "postgresql installer", True, database_setup_wizard),
         ("sd_card", f"💾 {t('sd_card')}", t('sd_operations'), True, None),
         ("version_manager", "📊 version manager", "archive & git tools", True, version_manager_menu),
@@ -1402,6 +1421,12 @@ def draw_security_tools_screen(x, width, height):
 def draw_main_screen():
     """Draw the complete main screen with NEW ARCHITECTURE"""
     global ui_controller
+    
+    # CRITICAL: Ensure we're in main menu state
+    # This prevents any lingering submenu highlights
+    if menu_state.in_submenu is None:
+        # We're in main menu, ensure proper state
+        pass
     
     # Initialize menu items FIRST before any UI setup
     if not hasattr(menu_state, 'modules') or not menu_state.modules:
@@ -2257,27 +2282,65 @@ def handle_claude_exit():
 
 def handle_tool_launch(tool_key):
     """Handle tool launch from sidebar"""
-    menu_state.in_submenu = tool_key
     
     if tool_key == 'system_scrolls':
+        menu_state.in_submenu = tool_key
         show_system_scrolls()
     elif tool_key == 'castle_guard':
+        menu_state.in_submenu = tool_key
         show_castle_guard()
     elif tool_key == 'forge_smithy':
+        menu_state.in_submenu = tool_key
         show_forge_smithy()
     elif tool_key == 'anvil_repair':
+        menu_state.in_submenu = tool_key
         show_anvil_repair()
     elif tool_key == 'web_ui':
         # Launch web ui menu (formerly web forge)
         menu_state.in_submenu = 'web_forge'  # Keep internal state as web_forge for compatibility
         menu_state.web_forge_index = 0
-        web_forge_menu()
+        web_forge_menu()  # Actually launch the menu
+    elif tool_key == 'code_forge':
+        # Code forge handles its own submenu state
+        from code_forge_menu import code_forge_menu
+        code_forge_menu()
+        # CRITICAL: Ensure state is cleared after menu exits
+        menu_state.in_submenu = None
+    elif tool_key == 'administration':
+        # Administration handles its own submenu state
+        from administration_menu import administration_menu
+        administration_menu()
+        # CRITICAL: Ensure state is cleared after menu exits
+        menu_state.in_submenu = None
+    else:
+        # Generic tool display
+        show_tool_screen(tool_key)
+
+def handle_dev_tool_launch(tool_key):
+    """Handle dev tool launch from sidebar"""
+    
+    if tool_key == 'ai_builder':
+        # AI builder handles its own submenu state
+        from ai_builder_menu import ai_builder_menu
+        ai_builder_menu()
+        # CRITICAL: Ensure state is cleared after menu exits
+        menu_state.in_submenu = None
+    elif tool_key == 'version_manager':
+        menu_state.in_submenu = tool_key
+        version_manager_menu()
+    elif tool_key == 'database_setup':
+        menu_state.in_submenu = tool_key
+        database_setup_wizard()
     else:
         # Generic tool display
         show_tool_screen(tool_key)
 
 def show_tool_screen(tool_key):
-    """Generic tool screen display"""
+    """Generic tool screen display with proper sidebar dimming"""
+    # Force sidebar redraw to ensure dimmed state
+    menu_state.last_sidebar_cache_key = None
+    draw_sidebar()
+    
     cols, lines = get_terminal_size()
     content_x = 27  # After sidebar
     content_width = cols - content_x - 1
@@ -2294,10 +2357,11 @@ def show_tool_screen(tool_key):
     
     name, desc = tool_info
     
-    # Clear content area
-    for y in range(2, lines - 1):  # Changed from 3 to 2 for single-line header
+    # Clear content area properly
+    for y in range(2, lines - 1):
         move_cursor(content_x, y)
-        print(' ' * content_width, end='', flush=True)
+        sys.stdout.write('\033[K')  # Clear to end of line
+    sys.stdout.flush()
     
     # Draw content box
     draw_box(content_x, 3, content_width - 1, lines - 4, name, Colors.BLUE)
@@ -2546,7 +2610,11 @@ def handle_tool_selection():
             time.sleep(1)
 
 def show_module_screen(module_key):
-    """Generic module screen display (like web forge)"""
+    """Generic module screen display with proper sidebar dimming"""
+    # Force sidebar redraw to ensure dimmed state
+    menu_state.last_sidebar_cache_key = None
+    draw_sidebar()
+    
     cols, lines = get_terminal_size()
     content_x = 27  # After sidebar
     content_width = cols - content_x - 1
@@ -2563,10 +2631,11 @@ def show_module_screen(module_key):
     
     name, desc = module_info
     
-    # Clear content area
-    for y in range(2, lines - 1):  # Changed from 3 to 2 for single-line header
+    # Clear content area properly
+    for y in range(2, lines - 1):
         move_cursor(content_x, y)
-        print(' ' * content_width, end='', flush=True)
+        sys.stdout.write('\033[K')  # Clear to end of line
+    sys.stdout.flush()
     
     # Draw content box
     draw_box(content_x, 3, content_width - 1, lines - 4, name, Colors.CYAN)
@@ -2682,14 +2751,26 @@ def show_module_screen(module_key):
     move_cursor(content_x + 3, lines - 5)
     print(f"{Colors.DIM}press enter to launch{Colors.RESET}")
     
+    # Import select for ESC key detection (do it once, outside the loop)
+    import select
+    
     # Wait for key
     while True:
         key = get_single_key(timeout=0.1)
-        if key == '\x1b' or key == '\x1b[D':  # ESC, Left Arrow
+        if key == '\x1b[D' or key in ['q', 'Q']:  # Left Arrow or q to exit
+            # Exit module properly
             menu_state.in_submenu = None
+            menu_state.last_sidebar_cache_key = None  # Force sidebar refresh
             draw_main_screen()
             break
-        elif key == '\r':  # Enter
+        elif key == '\x1b':  # ESC alone
+            # Check if standalone ESC
+            if not select.select([sys.stdin], [], [], 0.0)[0]:
+                menu_state.in_submenu = None
+                menu_state.last_sidebar_cache_key = None
+                draw_main_screen()
+                break
+        elif key == '\r' or key == '\x1b[C':  # Enter or Right Arrow to launch
             # Launch the actual module
             if module_key == 'recaria':
                 show_recaria_submenu()
@@ -2763,17 +2844,21 @@ def launch_currencies():
     draw_main_screen()
 
 def handle_documents_module():
-    """Handle documents module with submenu in content area"""
+    """Handle documents module with submenu in content area - exactly like version_manager"""
     menu_state.in_submenu = 'documents'
     menu_state.documents_index = 0  # Initialize selection index
     
+    # Clear screen and redraw everything to start fresh
+    clear_screen()
+    draw_header()
+    
     # Force sidebar redraw to ensure dimmed state
-    if hasattr(menu_state, 'last_sidebar_cache_key'):
-        menu_state.last_sidebar_cache_key = None
+    menu_state.last_sidebar_cache_key = None
     draw_sidebar()
     
     # Draw documents menu in content area
     draw_documents_menu()
+    draw_footer()
     
     # Hide cursor
     hide_cursor()
@@ -2939,9 +3024,19 @@ def show_documents_temp_message(msg):
     time.sleep(1.5)
 
 def handle_module_launch(module_key):
-    """Handle module launch"""
+    """Handle module launch with proper submenu handling"""
     menu_state.in_submenu = module_key
-    show_module_screen(module_key)
+    
+    # Special handling for modules with their own submenus
+    if module_key == 'recaria':
+        # Recaria has its own submenu system
+        show_module_screen(module_key)  # Show intro screen first
+    elif module_key == 'documents':
+        # Documents has its own submenu
+        handle_documents_module()
+    else:
+        # All other modules show generic screen
+        show_module_screen(module_key)
 
 
 def update_module_selection(index):
@@ -3284,8 +3379,17 @@ def main_loop():
             draw_main_screen()
 
 def database_setup_wizard():
-    """Launch database setup wizard in content area"""
+    """Launch database setup wizard in content area - exactly like version_manager"""
     menu_state.in_submenu = 'database_setup'
+    
+    # Clear screen and redraw everything to start fresh
+    clear_screen()
+    draw_header()
+    
+    # Force sidebar redraw to ensure dimmed state is applied
+    menu_state.last_sidebar_cache_key = None
+    draw_sidebar()
+    
     draw_database_setup_menu()
     
 def draw_database_setup_menu():
@@ -3856,9 +3960,13 @@ def install_redis():
     time.sleep(3)  # Auto return after 3 seconds
 
 def web_forge_menu():
-    """Enhanced web forge with environment checks and setup wizard"""
+    """Enhanced web forge with environment checks and setup wizard - exactly like version_manager"""
     menu_state.in_submenu = 'web_forge'
     menu_state.web_forge_index = 0
+    
+    # Clear screen and redraw everything to start fresh
+    clear_screen()
+    draw_header()
     
     # Force sidebar redraw to ensure dimmed state is applied
     menu_state.last_sidebar_cache_key = None  # Clear cache to force redraw
@@ -3878,6 +3986,7 @@ def web_forge_menu():
     
     # Draw web forge menu in main content area
     draw_web_forge_menu()
+    draw_footer()
     
     # Hide cursor for better visual experience
     hide_cursor()
@@ -3889,6 +3998,10 @@ def web_forge_menu():
     last_full_redraw = time.time()
     redraw_interval = 30.0  # Full redraw every 30 seconds to prevent artifacts
     
+    # Track status updates separately - update every 5 seconds
+    last_status_update = time.time()
+    status_update_interval = 5.0
+    
     # Track navigation count for stability check
     navigation_count = 0
     
@@ -3899,21 +4012,16 @@ def web_forge_menu():
         # No periodic redraws needed if we handle updates properly
         current_time = time.time()
         
+        # Update status independently every 5 seconds
+        if current_time - last_status_update >= status_update_interval:
+            draw_web_forge_menu(update_status_only=True)
+            last_status_update = current_time
+        
         # Handle input with timeout for clock updates
         key = get_single_key(timeout=0.1)
         
         # Handle navigation keys
         if key in ['\x1b[A', 'w', 'W', 'k', 'K']:  # Up arrow, w, k
-            # Flush input buffer BEFORE and AFTER to prevent ANSI escape sequences
-            if TERMIOS_AVAILABLE:
-                try:
-                    import termios
-                    # Flush before
-                    termios.tcflush(sys.stdin, termios.TCIOFLUSH)
-                    time.sleep(0.001)
-                except:
-                    pass
-            
             # Get actual selectable options count
             selectable_options = [opt for opt in get_web_forge_options() if opt[0] not in ['header', 'separator']]
             num_options = len(selectable_options)
@@ -3921,27 +4029,10 @@ def web_forge_menu():
             old_index = menu_state.web_forge_index
             menu_state.web_forge_index = (menu_state.web_forge_index - 1) % num_options
             
-            # Redraw menu like version manager does
-            draw_web_forge_menu()
-            
-            # Flush after
-            if TERMIOS_AVAILABLE:
-                try:
-                    termios.tcflush(sys.stdin, termios.TCIOFLUSH)
-                except:
-                    pass
+            # Use fast selection update instead of full redraw
+            update_web_forge_selection_only(old_index, menu_state.web_forge_index)
             
         elif key in ['\x1b[B', 's', 'S', 'j', 'J']:  # Down arrow, s, j
-            # Flush input buffer BEFORE and AFTER to prevent ANSI escape sequences
-            if TERMIOS_AVAILABLE:
-                try:
-                    import termios
-                    # Flush before
-                    termios.tcflush(sys.stdin, termios.TCIOFLUSH)
-                    time.sleep(0.001)
-                except:
-                    pass
-            
             # Get actual selectable options count
             selectable_options = [opt for opt in get_web_forge_options() if opt[0] not in ['header', 'separator']]
             num_options = len(selectable_options)
@@ -3949,15 +4040,8 @@ def web_forge_menu():
             old_index = menu_state.web_forge_index
             menu_state.web_forge_index = (menu_state.web_forge_index + 1) % num_options
             
-            # Redraw menu like version manager does
-            draw_web_forge_menu()
-            
-            # Flush after
-            if TERMIOS_AVAILABLE:
-                try:
-                    termios.tcflush(sys.stdin, termios.TCIOFLUSH)
-                except:
-                    pass
+            # Use fast selection update instead of full redraw
+            update_web_forge_selection_only(old_index, menu_state.web_forge_index)
             
         elif key in ['\x1b', '\x1b[D', 'q', 'Q']:  # ESC, Left Arrow, or q to exit
             # Exit Web Forge menu with COMPLETE cleanup
@@ -3967,6 +4051,9 @@ def web_forge_menu():
             menu_state.last_sidebar_cache_key = None
             if hasattr(menu_state, 'last_content_cache_key'):
                 menu_state.last_content_cache_key = None
+            # Clear web forge status cache for fresh status on re-entry
+            if hasattr(menu_state, 'web_forge_status_cache'):
+                delattr(menu_state, 'web_forge_status_cache')
             
             # CRITICAL FIX: Complete terminal reset and redraw
             # Step 1: Clear screen completely
@@ -4078,9 +4165,9 @@ def web_forge_menu():
                         pass
                 
                 menu_state.in_submenu = None
-                # Ensure dev tools section is selected
-                menu_state.current_section = 2  # dev tools section
-                menu_state.selected_index = 2  # web forge is at index 2
+                # Ensure tools section is selected (web_ui is in tools, not dev_tools)
+                menu_state.current_section = 1  # tools section
+                menu_state.selected_index = 5  # web_ui is at index 5
                 # Force full screen redraw to prevent artifacts
                 clear_screen()
                 draw_main_screen()
@@ -4299,7 +4386,7 @@ def version_manager_menu():
                 # Exit version manager menu
                 menu_state.in_submenu = None
                 menu_state.current_section = 2  # dev tools section
-                menu_state.selected_index = 4  # version manager is at index 4
+                menu_state.selected_index = 3  # version manager is at index 3
                 clear_screen()
                 draw_main_screen()
                 break
@@ -5629,23 +5716,97 @@ def get_web_forge_options():
         ("install_redis", "🔴 install redis", "brew install redis"),
     ]
 
-def draw_web_forge_menu():
+def update_web_forge_selection_only(old_index, new_index):
+    """Update only the selection without redrawing entire menu"""
+    cols, lines = get_terminal_size()
+    content_x = 27
+    
+    # Get options to find positions
+    options = get_web_forge_options()
+    start_y = 7
+    y_pos = start_y
+    actual_index = 0
+    
+    for i, (key, title, desc) in enumerate(options):
+        if key == "separator":
+            y_pos += 1
+            continue
+        elif key == "header":
+            if y_pos > start_y:
+                y_pos += 1
+            y_pos += 1
+            continue
+            
+        # Found a selectable item
+        if actual_index == old_index:
+            # Clear old selection
+            move_cursor(content_x + 5, y_pos)
+            if 'Start' in title or '▶' in title:
+                color = Colors.GREEN
+            elif 'Stop' in title or '◼' in title or '🛑' in title:
+                color = Colors.RED
+            elif 'Restart' in title or '↻' in title or '🔄' in title:
+                color = Colors.YELLOW
+            elif 'Back' in title or '←' in title:
+                color = Colors.BLUE
+            else:
+                color = Colors.WHITE
+            clean_title = title[:30]
+            formatted_title = f"  {clean_title:<35}"
+            sys.stdout.write(f"{color}{formatted_title}{Colors.RESET}")
+            sys.stdout.flush()
+            
+        if actual_index == new_index:
+            # Draw new selection
+            move_cursor(content_x + 5, y_pos)
+            clean_title = title[:30]
+            sys.stdout.write(f"{Colors.BG_ORANGE}{Colors.BLACK}{Colors.BOLD}▶ {clean_title:<35}{Colors.RESET}")
+            sys.stdout.flush()
+            
+        y_pos += 1
+        actual_index += 1
+
+def draw_web_forge_menu(update_status_only=False):
     """Enhanced web forge menu - STABLE VERSION with complete rendering"""
     global ui_controller
     
+    # Cache status values to avoid repeated subprocess calls
+    if not hasattr(menu_state, 'web_forge_status_cache'):
+        menu_state.web_forge_status_cache = {
+            'env_status': None,
+            'backend_running': False,
+            'backend_pid': None,
+            'pg_running': False,
+            'redis_running': False,
+            'last_check': 0
+        }
+    
     if ui_controller and UI_ARCHITECTURE_AVAILABLE:
-        # Get status information
-        env_status = check_environment_quick()
-        backend_running, backend_pid = check_backend_running()
+        # Only check status if updating status or cache is empty
+        if update_status_only or menu_state.web_forge_status_cache['env_status'] is None:
+            env_status = check_environment_quick()
+            backend_running, backend_pid = check_backend_running()
+            menu_state.web_forge_status_cache.update({
+                'env_status': env_status,
+                'backend_running': backend_running,
+                'backend_pid': backend_pid,
+                'last_check': time.time()
+            })
+        else:
+            # Use cached values during navigation
+            env_status = menu_state.web_forge_status_cache['env_status']
+            backend_running = menu_state.web_forge_status_cache['backend_running']
+            backend_pid = menu_state.web_forge_status_cache['backend_pid']
         
         # Get menu options
         options = get_web_forge_options()
         
-        # Clear content area properly
-        ui_controller.content.clear()
-        
-        # Small delay to ensure clear is processed
-        time.sleep(0.001)
+        if not update_status_only:
+            # Clear content area properly only when doing full redraw
+            ui_controller.content.clear()
+            
+            # Small delay to ensure clear is processed - REMOVED to prevent flicker
+            # time.sleep(0.001)
         
         # Render using new architecture - NO COLORED BOXES!
         ui_controller.content.render_web_forge_menu(
@@ -5653,7 +5814,8 @@ def draw_web_forge_menu():
             selected_index=menu_state.web_forge_index,
             env_status=env_status,
             backend_status=(backend_running, backend_pid),
-            frontend_status=(False, None)  # Frontend removed, pass dummy values
+            frontend_status=(False, None),  # Frontend removed, pass dummy values
+            update_status_only=update_status_only
         )
         return
     
@@ -5663,29 +5825,66 @@ def draw_web_forge_menu():
     content_width = cols - content_x - 1  # Full width with minimal margin
     content_height = lines - 4
     
-    # Clear content area like version manager does - using ANSI escape sequences
-    for y in range(2, lines - 2):  # Adjusted for single-line header
-        move_cursor(content_x, y)
-        sys.stdout.write('\033[K')  # Clear to end of line only
-    sys.stdout.flush()
+    if not update_status_only:
+        # Clear content area only when doing full redraw
+        for y in range(2, lines - 2):  # Adjusted for single-line header
+            move_cursor(content_x, y)
+            sys.stdout.write('\033[K')  # Clear to end of line only
+        sys.stdout.flush()
     
     # Store terminal size for verification
     menu_state.web_forge_terminal_size = (cols, lines)
     
-    # NO BOXES - just render the menu directly
-    # Title without box
-    move_cursor(content_x + 2, 3)  # Changed from 4 to 3 for single-line header
-    print(f"{Colors.BOLD}{Colors.BLUE}web ui{Colors.RESET}")
+    if not update_status_only:
+        # Title without box - only draw on full redraw
+        move_cursor(content_x + 2, 3)  # Changed from 4 to 3 for single-line header
+        print(f"{Colors.BOLD}{Colors.BLUE}web ui{Colors.RESET}")
     
-    # Quick environment status check
-    env_status = check_environment_quick()
+    # Only check statuses when explicitly updating status or on first draw
+    if update_status_only or menu_state.web_forge_status_cache['env_status'] is None:
+        # Quick environment status check
+        env_status = check_environment_quick()
+        
+        # Show server status
+        backend_running, backend_pid = check_backend_running()
+        
+        # PostgreSQL status check - more reliable method
+        try:
+            # Try using brew services first (macOS)
+            brew_result = subprocess.run(['brew', 'services', 'list'], capture_output=True, text=True)
+            if 'postgresql' in brew_result.stdout:
+                pg_running = 'started' in brew_result.stdout.lower() and 'postgresql' in brew_result.stdout
+            else:
+                # Fallback to pg_isready which is more reliable
+                pg_result = subprocess.run(['pg_isready'], capture_output=True, text=True)
+                pg_running = pg_result.returncode == 0
+        except:
+            pg_running = False
+        
+        # Redis status check
+        try:
+            redis_result = subprocess.run(['redis-cli', 'ping'], capture_output=True, text=True)
+            redis_running = 'PONG' in redis_result.stdout
+        except:
+            redis_running = False
+        
+        # Update cache
+        menu_state.web_forge_status_cache.update({
+            'env_status': env_status,
+            'backend_running': backend_running,
+            'backend_pid': backend_pid,
+            'pg_running': pg_running,
+            'redis_running': redis_running,
+            'last_check': time.time()
+        })
+    else:
+        # Use cached values during navigation
+        backend_running = menu_state.web_forge_status_cache['backend_running']
+        backend_pid = menu_state.web_forge_status_cache['backend_pid']
+        pg_running = menu_state.web_forge_status_cache['pg_running']
+        redis_running = menu_state.web_forge_status_cache['redis_running']
     
-    # Environment status removed per requirements
-    # Previously showed environment status at line 5
-    
-    # Show server status
-    backend_running, backend_pid = check_backend_running()
-    
+    # Always display status bar (but with cached values during navigation)
     # Create a status bar
     move_cursor(content_x + 5, 4)  # Changed from 5 to 4
     print(f"{Colors.BOLD}server status:{Colors.RESET}", end='')
@@ -5703,103 +5902,86 @@ def draw_web_forge_menu():
     move_cursor(content_x + 5, 5)  # Changed from 6 to 5
     print(f"{Colors.BOLD}database status:{Colors.RESET}", end='')
     
-    # PostgreSQL status check - more reliable method
-    try:
-        # Try using brew services first (macOS)
-        brew_result = subprocess.run(['brew', 'services', 'list'], capture_output=True, text=True)
-        if 'postgresql' in brew_result.stdout:
-            pg_running = 'started' in brew_result.stdout.lower() and 'postgresql' in brew_result.stdout
-        else:
-            # Fallback to pg_isready which is more reliable
-            pg_result = subprocess.run(['pg_isready'], capture_output=True, text=True)
-            pg_running = pg_result.returncode == 0
-    except:
-        pg_running = False
-    
     move_cursor(content_x + 22, 5)  # Changed from 6 to 5
     pg_icon = "●" if pg_running else "○"
     pg_color = Colors.GREEN if pg_running else Colors.RED
     print(f"{pg_color}{pg_icon}{Colors.RESET} postgresql: {pg_color}{'running' if pg_running else 'stopped'}{Colors.RESET}", end='')
     
-    # Redis status check
-    try:
-        redis_result = subprocess.run(['redis-cli', 'ping'], capture_output=True, text=True)
-        redis_running = 'PONG' in redis_result.stdout
-    except:
-        redis_running = False
-    
+    # Redis status
     move_cursor(content_x + 50, 5)  # Changed from 6 to 5
     redis_icon = "●" if redis_running else "○"
     redis_color = Colors.GREEN if redis_running else Colors.YELLOW  # Yellow for optional
     print(f"{redis_color}{redis_icon}{Colors.RESET} redis: {redis_color}{'running' if redis_running else 'not installed'}{Colors.RESET}")
     
-    # Web launcher options with medieval theme and grouping
-    options = get_web_forge_options()
-    
-    # Calculate layout for better spacing
-    start_y = 7  # Changed from 8 to 7 for single-line header
-    y_pos = start_y
-    actual_index = 0  # Track actual selectable items
-    
-    # Display options with PROPER visual hierarchy
-    for i, (key, title, desc) in enumerate(options):
-        if key == "separator":
-            # Draw separator line
-            move_cursor(content_x + 3, y_pos)
-            sys.stdout.write('\033[K')  # Clear from cursor to end of line
-            separator_width = min(content_width - 8, 60)
-            sys.stdout.write(f"{Colors.DIM}{'─' * separator_width}{Colors.RESET}")
-            sys.stdout.flush()
-            y_pos += 1
-            continue
-        elif key == "header":
-            # Draw section header with proper spacing
-            if y_pos > start_y:  # Add space before headers (except first)
+    # Draw menu items only on full redraw
+    if not update_status_only:
+        # Web launcher options with medieval theme and grouping
+        options = get_web_forge_options()
+        
+        # Calculate layout for better spacing
+        start_y = 7  # Changed from 8 to 7 for single-line header
+        y_pos = start_y
+        actual_index = 0  # Track actual selectable items
+        
+        # Display options with PROPER visual hierarchy
+        for i, (key, title, desc) in enumerate(options):
+            if key == "separator":
+                # Draw separator line
+                move_cursor(content_x + 3, y_pos)
+                sys.stdout.write('\033[K')  # Clear from cursor to end of line
+                separator_width = min(content_width - 8, 60)
+                sys.stdout.write(f"{Colors.DIM}{'─' * separator_width}{Colors.RESET}")
+                sys.stdout.flush()
                 y_pos += 1
-            move_cursor(content_x + 3, y_pos)
-            sys.stdout.write('\033[K')  # Clear from cursor to end of line
-            sys.stdout.write(f"{Colors.BOLD}{Colors.YELLOW}{title}{Colors.RESET}")
-            sys.stdout.flush()
-            y_pos += 1
-            continue
-        
-        # Don't draw if it would go past the content area
-        if y_pos + 1 >= content_height - 3:
-            break
+                continue
+            elif key == "header":
+                # Draw section header with proper spacing
+                if y_pos > start_y:  # Add space before headers (except first)
+                    y_pos += 1
+                move_cursor(content_x + 3, y_pos)
+                sys.stdout.write('\033[K')  # Clear from cursor to end of line
+                sys.stdout.write(f"{Colors.BOLD}{Colors.YELLOW}{title}{Colors.RESET}")
+                sys.stdout.flush()
+                y_pos += 1
+                continue
             
-        # DO NOT use \033[2K - it clears entire line including sidebar!
-        move_cursor(content_x + 5, y_pos)  # Indent menu items under headers
-        
-        if actual_index == menu_state.web_forge_index:
-            # Selected option with orange background
-            # No clear needed - just draw
-            # Draw with orange background - use dark text for contrast
-            clean_title = title[:30]  # Shorter to prevent overlap
-            sys.stdout.write(f"{Colors.BG_ORANGE}{Colors.BLACK}{Colors.BOLD}▶ {clean_title:<35}{Colors.RESET}")
-            sys.stdout.flush()
-        else:
-            # No clear needed - just draw
-            move_cursor(content_x + 5, y_pos)
-            # Use appropriate color based on item type (matching update_web_forge_selection)
-            if 'Start' in title or '▶' in title:
-                color = Colors.GREEN
-            elif 'Stop' in title or '◼' in title or '🛑' in title:
-                color = Colors.RED
-            elif 'Restart' in title or '↻' in title or '🔄' in title:
-                color = Colors.YELLOW
-            elif 'Back' in title or '←' in title:
-                color = Colors.BLUE
+            # Don't draw if it would go past the content area
+            if y_pos + 1 >= content_height - 3:
+                break
+                
+            # DO NOT use \033[2K - it clears entire line including sidebar!
+            move_cursor(content_x + 5, y_pos)  # Indent menu items under headers
+            
+            if actual_index == menu_state.web_forge_index:
+                # Selected option with orange background
+                # No clear needed - just draw
+                # Draw with orange background - use dark text for contrast
+                clean_title = title[:30]  # Shorter to prevent overlap
+                sys.stdout.write(f"{Colors.BG_ORANGE}{Colors.BLACK}{Colors.BOLD}▶ {clean_title:<35}{Colors.RESET}")
+                sys.stdout.flush()
             else:
-                color = Colors.WHITE  # Default white, not cyan
-            # Ensure proper spacing and formatting with padding to clear any artifacts
-            # Truncate title to prevent overflow
-            clean_title = title[:30]  # Shorter to prevent overlap
-            formatted_title = f"  {clean_title:<35}"  # Pad to consistent width
-            sys.stdout.write(f"{color}{formatted_title}{Colors.RESET}")
-            sys.stdout.flush()
-        
-        y_pos += 1  # Spacing between items
-        actual_index += 1  # Increment actual index for selectable items
+                # No clear needed - just draw
+                move_cursor(content_x + 5, y_pos)
+                # Use appropriate color based on item type (matching update_web_forge_selection)
+                if 'Start' in title or '▶' in title:
+                    color = Colors.GREEN
+                elif 'Stop' in title or '◼' in title or '🛑' in title:
+                    color = Colors.RED
+                elif 'Restart' in title or '↻' in title or '🔄' in title:
+                    color = Colors.YELLOW
+                elif 'Back' in title or '←' in title:
+                    color = Colors.BLUE
+                else:
+                    color = Colors.WHITE  # Default white, not cyan
+                # Ensure proper spacing and formatting with padding to clear any artifacts
+                # Truncate title to prevent overflow
+                clean_title = title[:30]  # Shorter to prevent overlap
+                formatted_title = f"  {clean_title:<35}"  # Pad to consistent width
+                sys.stdout.write(f"{color}{formatted_title}{Colors.RESET}")
+                sys.stdout.flush()
+            
+            y_pos += 1  # Spacing between items
+            actual_index += 1  # Increment actual index for selectable items
     
     # Navigation instructions already in footer - no need for extra tips
 
@@ -7374,6 +7556,67 @@ def clear_content_area():
             sys.stdout.write(f"{Colors.DIM}│{Colors.RESET}")
         sys.stdout.flush()
 
+def show_ai_builder_menu():
+    """Show AI builder menu with proper submenu interface"""
+    # Force sidebar redraw to ensure dimmed state
+    menu_state.last_sidebar_cache_key = None
+    draw_sidebar()
+    
+    cols, lines = get_terminal_size()
+    content_x = 27  # After sidebar
+    content_width = cols - content_x - 1
+    
+    # Clear content area
+    for y in range(2, lines - 1):
+        move_cursor(content_x, y)
+        sys.stdout.write('\033[K')
+    sys.stdout.flush()
+    
+    # Title
+    move_cursor(content_x + 2, 3)
+    print(f"{Colors.BOLD}{Colors.CYAN}🤖 ai builder{Colors.RESET}")
+    
+    move_cursor(content_x + 2, 5)
+    print(f"{Colors.YELLOW}ai-powered development tools{Colors.RESET}")
+    
+    # Options
+    y = 7
+    move_cursor(content_x + 2, y)
+    print(f"{Colors.BOLD}available features:{Colors.RESET}")
+    y += 2
+    
+    move_cursor(content_x + 4, y)
+    print(f"• {Colors.GREEN}code generation{Colors.RESET} - generate code with ai")
+    y += 1
+    move_cursor(content_x + 4, y)
+    print(f"• {Colors.GREEN}code review{Colors.RESET} - ai-powered code review")
+    y += 1
+    move_cursor(content_x + 4, y)
+    print(f"• {Colors.GREEN}refactoring{Colors.RESET} - intelligent code refactoring")
+    y += 1
+    move_cursor(content_x + 4, y)
+    print(f"• {Colors.GREEN}documentation{Colors.RESET} - auto-generate docs")
+    y += 2
+    
+    move_cursor(content_x + 2, y)
+    print(f"{Colors.DIM}press enter to launch ai builder{Colors.RESET}")
+    
+    # Import select for ESC key detection
+    import select
+    
+    # Wait for key
+    while True:
+        key = get_single_key(timeout=0.1)
+        if key == '\x1b[D' or key in ['q', 'Q']:  # Left Arrow or q to exit
+            break
+        elif key == '\x1b':  # ESC alone
+            if not select.select([sys.stdin], [], [], 0.0)[0]:
+                break
+        elif key == '\r' or key == '\x1b[C':  # Enter or Right Arrow to launch
+            # Launch actual AI builder
+            ai_builder_tools()
+            break
+
 def ai_builder_tools():
     """Launch AI Builder interface"""
     try:
@@ -7434,33 +7677,84 @@ def ai_builder_tools():
         hide_cursor()
         draw_main_screen()
 
+def show_code_forge_menu():
+    """Show code forge menu with proper submenu interface"""
+    # Force sidebar redraw to ensure dimmed state
+    menu_state.last_sidebar_cache_key = None
+    draw_sidebar()
+    
+    cols, lines = get_terminal_size()
+    content_x = 27  # After sidebar
+    content_width = cols - content_x - 1
+    
+    # Clear content area
+    for y in range(2, lines - 1):
+        move_cursor(content_x, y)
+        sys.stdout.write('\033[K')
+    sys.stdout.flush()
+    
+    # Title
+    move_cursor(content_x + 2, 3)
+    print(f"{Colors.BOLD}{Colors.CYAN}📦 code forge{Colors.RESET}")
+    
+    move_cursor(content_x + 2, 5)
+    print(f"{Colors.YELLOW}version control & git tools{Colors.RESET}")
+    
+    # Options
+    y = 7
+    move_cursor(content_x + 2, y)
+    print(f"{Colors.BOLD}available tools:{Colors.RESET}")
+    y += 2
+    
+    move_cursor(content_x + 4, y)
+    print(f"• {Colors.GREEN}git status{Colors.RESET} - view repository status")
+    y += 1
+    move_cursor(content_x + 4, y)
+    print(f"• {Colors.GREEN}git commit{Colors.RESET} - commit changes")
+    y += 1
+    move_cursor(content_x + 4, y)
+    print(f"• {Colors.GREEN}git push/pull{Colors.RESET} - sync with remote")
+    y += 1
+    move_cursor(content_x + 4, y)
+    print(f"• {Colors.GREEN}branch management{Colors.RESET} - create/switch branches")
+    y += 2
+    
+    move_cursor(content_x + 2, y)
+    print(f"{Colors.DIM}press enter to launch git manager{Colors.RESET}")
+    
+    # Import select for ESC key detection
+    import select
+    
+    # Wait for key
+    while True:
+        key = get_single_key(timeout=0.1)
+        if key == '\x1b[D' or key in ['q', 'Q']:  # Left Arrow or q to exit
+            break
+        elif key == '\x1b':  # ESC alone
+            if not select.select([sys.stdin], [], [], 0.0)[0]:
+                break
+        elif key == '\r' or key == '\x1b[C':  # Enter or Right Arrow to launch
+            # Launch actual git manager
+            try:
+                show_cursor()
+                clear_screen()
+                from git_manager import GitManager
+                git_manager = GitManager()
+                git_manager.show_git_menu()
+                hide_cursor()
+            except ImportError as e:
+                move_cursor(content_x + 2, lines - 5)
+                print(f"{Colors.RED}Git Manager not found: {e}{Colors.RESET}")
+                time.sleep(2)
+            except Exception as e:
+                move_cursor(content_x + 2, lines - 5)
+                print(f"{Colors.RED}Error: {e}{Colors.RESET}")
+                time.sleep(2)
+            break
+
 def show_git_menu():
-    """Launch git manager interface"""
-    try:
-        # Save terminal state
-        show_cursor()
-        clear_screen()
-        
-        from git_manager import GitManager
-        git_manager = GitManager()
-        git_manager.show_git_menu()
-        
-        # Restore terminal state
-        hide_cursor()
-        draw_main_screen()
-        
-    except ImportError as e:
-        clear_screen()
-        print(f"\n{Colors.RED}Error loading Git Manager: {e}{Colors.RESET}")
-        time.sleep(2)
-        hide_cursor()
-        draw_main_screen()
-    except Exception as e:
-        clear_screen()
-        print(f"\n{Colors.RED}Error in Git Manager: {e}{Colors.RESET}")
-        time.sleep(2)
-        hide_cursor()
-        draw_main_screen()
+    """Legacy git menu launcher - redirects to new code forge menu"""
+    show_code_forge_menu()
 
 def show_splash_screen():
     """Show animated splash screen"""

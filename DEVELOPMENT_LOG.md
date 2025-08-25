@@ -1103,3 +1103,118 @@ Each entry should follow this format:
 - Result: Move history now records properly, abandoned games display correctly with parsed card formats
 
 
+## [2025-08-23 10:50] CLI Performance: Fixed CLI solitaire flicker and implemented lowercase UI
+- Eliminated screen flicker in CLI solitaire, implemented QW shortcuts properly, converted all UI text to lowercase, fixed screen lock password to 'lplp'
+- Result: Smooth flicker-free solitaire gameplay, consistent lowercase UI across CLI and web, working QW shortcuts
+
+
+## [2025-08-24 12:07] Navigation: administration menu arrow key fixes
+- Fixed right arrow key navigation to enter submenus in administration module. Also fixed sidebar visibility issues by using draw_sidebar_simple for consistent rendering.
+- Result: Administration menu now properly responds to right arrow key for entering submenus and left arrow for exiting, matching version manager behavior
+
+
+## [2025-08-24 12:13] Bug Fix: administration menu left arrow exit fix
+- Fixed the issue where left arrow key required double press to exit administration menu. Separated ESC and Left Arrow key handling to prevent conflict with arrow key sequences.
+- Result: Administration menu now exits immediately with single left arrow press, matching version manager behavior
+
+
+## [2025-08-24 12:22] UI/UX: sidebar update fix on administration exit
+- Fixed sidebar not updating properly when exiting administration menu. Added cache clearing and proper state reset to ensure sidebar shows correct highlighting after leaving submenu.
+- Result: Sidebar now properly refreshes and shows correct state when exiting administration menu with left arrow or q key
+
+
+## [2025-08-24 12:29] Navigation: sidebar navigation fixes and module limit removal
+- Fixed hidden navigation issue between modules and tools sections. Removed 6-module limit in sidebar display. Standardized all module and tool navigation with right arrow to enter and left arrow to exit submenus.
+- Result: Sidebar navigation now works smoothly across all sections without hidden gaps. All modules are visible and navigation is consistent throughout.
+
+
+## [2025-08-24 12:31] Bug Fix: Fixed sys import error in administration menu
+- Resolved 'sys not associated with value' error by moving select import outside the while loop in both administration_menu.py and show_module_screen function.
+- Result: All menu navigation now works without import errors
+
+
+## [2025-08-24 12:39] UI/UX: code forge and ai builder submenu implementation
+- Implemented proper submenu interfaces for code forge and ai builder. Both now display in content area with navigation (right arrow to enter, left arrow to exit) matching other submenus like administration and version manager.
+- Result: All tools and dev tools now have consistent submenu behavior with proper sidebar highlighting
+
+
+## [2025-08-24 13:01] UI/UX: code forge and ai builder proper submenu implementation
+- Converted code forge and ai builder to proper submenu structure matching administration and version manager. Created separate menu files (code_forge_menu.py and ai_builder_menu.py) with full navigation support and content area display.
+- Result: Both menus now have consistent behavior with navigation arrows, proper sidebar highlighting, and clean content area presentation
+
+
+## [2025-08-24 13:08] Performance: web ui menu status update optimization
+- Separated status updates from navigation in web ui menu. Status now updates every 5 seconds independently while navigation remains instant. Fixed flickering issue during menu navigation.
+- Result: Web UI menu navigation is now smooth without flickering, status updates happen in background every 5 seconds
+
+
+## [2025-08-24 13:20] UI/UX: Web UI Navigation Performance Fix
+- Fixed 1-second black screen during web UI submenu navigation by implementing status caching. Subprocess calls for checking backend, PostgreSQL, and Redis status are now only executed during the 5-second status update timer, not during navigation.
+- Result: Navigation is now instant without delays
+
+
+## [2025-08-24 13:32] Navigation: Code Forge Menu Fix
+- Fixed code forge submenu navigation and sidebar integration. Added fallback for git manager when not available.
+- Result: Code forge now works properly with sidebar
+
+
+## [2025-08-24 13:38] Navigation: Unified Submenu Navigation Fix
+- Standardized all submenu navigation to match version manager behavior. Fixed administration, code forge, and ai builder menus to use consistent exit handling with break instead of return. All menus now use draw_sidebar() instead of draw_sidebar_simple().
+- Result: All submenus now work consistently like version manager
+
+
+## [2025-08-24 18:34] Bug Fix: Fixed Missing draw_sidebar Import
+- Fixed NameError in code_forge, administration, and ai_builder menus by adding draw_sidebar to imports from main module.
+- Result: All submenus now import draw_sidebar correctly
+
+
+## [2025-08-24 18:37] Bug Fix: Fixed Web UI NoneType Error
+- Fixed 'NoneType object is not subscriptable' error in Web UI menu by properly deleting cache attribute instead of setting to None.
+- Result: Web UI menu now handles cache properly on re-entry
+
+
+## [2025-08-24 18:40] Bug Fix: Fixed Missing Sidebar Items
+- Fixed issue where sidebar items would disappear after exiting submenus by ensuring menu items are always initialized before drawing sidebar. Also fixed vertical separator to start from correct line.
+- Result: Sidebar now always shows all items correctly
+
+
+## [2025-08-24 18:43] Bug Fix: Fixed Sidebar Submenu State Persistence
+- Fixed issue where sidebar would continue showing submenu as selected after exiting. Added proper None checks to ensure submenu highlighting only occurs when actually in a submenu.
+- Result: Sidebar now correctly shows main menu state after exiting submenus
+
+
+## [2025-08-24 18:46] Bug Fix: Fixed Sidebar Incorrect Highlighting
+- Fixed issue where sidebar would incorrectly highlight modules and simple tools. Now only real submenus (administration, web_forge, code_forge, ai_builder, version_manager) are highlighted. Modules and simple tool displays are only dimmed.
+- Result: Sidebar highlighting now correctly distinguishes between real submenus and simple displays
+
+
+## [2025-08-24 18:48] Bug Fix: Fixed Submenu Exit Timing Delay
+- Fixed issue where sidebar would show old submenu state for a few seconds after exiting. Added explicit flush calls before and after redraw to ensure immediate UI update.
+- Result: Submenu exits now update sidebar immediately without delay
+
+
+## [2025-08-24 18:51] Bug Fix: Standardized Submenu Exit Behavior
+- Fixed persistent sidebar highlighting by ensuring all submenus use same exit pattern as version manager: clear_screen() and draw_main_screen() before break. Removed return statements that prevented proper redraw.
+- Result: All submenus now exit consistently like version manager
+
+
+## [2025-08-24 19:55] Bug Fix: Force Clear Sidebar Highlights on Exit
+- Added force_no_highlights flag to prevent any submenu highlighting when menu_state.in_submenu is None. This ensures sidebar immediately shows correct state after exiting submenus.
+- Result: Sidebar now immediately clears highlights on submenu exit
+
+
+## [2025-08-25 21:21] Bug Fix: Fixed Inconsistent Sidebar Update on Submenu Exit
+- Replaced draw_main_screen() with explicit component drawing (header, sidebar, footer, content) on submenu exit. Added multiple flush points to ensure terminal updates are immediately visible.
+- Result: Sidebar now reliably updates when exiting submenus
+
+
+## [2025-08-25 21:32] Bug Fix: Enhanced Sidebar State Reset on Submenu Exit
+- Added more aggressive state clearing on submenu exit including _sidebar_highlight_cache removal and double-checking for empty string states. Standardized all submenu exits to use same pattern as version_manager.
+- Result: Sidebar state now fully resets when exiting submenus
+
+
+## [2025-08-25 21:35] Bug Fix: Fixed Double State Setting in Tool Handlers
+- Removed premature in_submenu setting in handle_tool_launch. Now only simple tools set state at handler level. Submenus (administration, code_forge, ai_builder) manage their own state. Added explicit state clearing after submenu exit.
+- Result: Tool launch handlers now properly manage submenu state
+
+

@@ -377,8 +377,12 @@ class CLISolitaire:
             # Select/deselect
             self.handle_select()
         elif key == '\r':
-            # Place selected cards
-            self.handle_place()
+            # If cursor is on stock, draw cards
+            if self.cursor_pile == 'stock':
+                self.draw_from_stock()
+            else:
+                # Place selected cards
+                self.handle_place()
         elif key == '\x1b[A':  # Up arrow
             self.move_cursor_up()
         elif key == '\x1b[B':  # Down arrow
@@ -416,8 +420,11 @@ class CLISolitaire:
                 self.message = "Selected foundation card"
     
     def handle_place(self):
-        """Handle placing selected cards"""
+        """Handle placing selected cards or auto-move to foundation"""
+        # If no cards selected, try auto-move to foundation
         if not self.game.selected_cards:
+            if self.try_auto_move_to_foundation():
+                return
             self.message = "No cards selected"
             return
         
@@ -431,6 +438,40 @@ class CLISolitaire:
                 self.message = "Card moved to foundation"
             else:
                 self.message = "Invalid move"
+                
+    def try_auto_move_to_foundation(self):
+        """Try to automatically move the card at cursor to foundation"""
+        # Check if we're on waste or tableau
+        if self.cursor_pile == 'waste':
+            if self.game.waste:
+                # Try to move top waste card to foundation
+                for i in range(4):
+                    if self.game.can_place_on_foundation(self.game.waste[-1], i):
+                        card = self.game.waste.pop()
+                        self.game.foundations[i].append(card)
+                        self.game.score += 10
+                        self.game.moves += 1
+                        self.message = f"Auto-moved {card.rank}{card.suit[0]} to foundation"
+                        return True
+                        
+        elif self.cursor_pile == 'tableau':
+            pile = self.game.tableau[self.cursor_index]
+            if pile and pile[-1].face_up:
+                # Try to move top tableau card to foundation
+                for i in range(4):
+                    if self.game.can_place_on_foundation(pile[-1], i):
+                        card = pile.pop()
+                        # Flip face-down card if needed
+                        if pile and not pile[-1].face_up:
+                            pile[-1].face_up = True
+                            self.game.score += 5
+                        self.game.foundations[i].append(card)
+                        self.game.score += 10
+                        self.game.moves += 1
+                        self.message = f"Auto-moved {card.rank}{card.suit[0]} to foundation"
+                        return True
+        
+        return False
     
     def move_cursor_up(self):
         """Move cursor up"""
@@ -479,7 +520,27 @@ class CLISolitaire:
         # Initial draw with full screen clear
         self.draw_game(force_redraw=True)
         
+        # Try to get terminal size, with fallback
+        try:
+            last_terminal_size = os.get_terminal_size()
+        except:
+            last_terminal_size = None
+        
         while True:
+            # Check for terminal resize if supported
+            if last_terminal_size is not None:
+                try:
+                    current_size = os.get_terminal_size()
+                    if current_size != last_terminal_size:
+                        # Terminal was resized, force full redraw
+                        self.screen_initialized = False
+                        last_terminal_size = current_size
+                        self.draw_game(force_redraw=True)
+                        continue
+                except:
+                    # Terminal size detection not supported
+                    pass
+            
             # Update only what's needed (no full screen clear)
             self.draw_game()
             key = get_single_key(timeout=1.0)  # Update every second for timer

@@ -69,6 +69,19 @@ def solitaire_game(request):
         is_active=True
     ).first()
     
+    # Also check if the corresponding GameSession exists (might have been deleted from admin)
+    if session:
+        game_session_exists = SolitaireGameSession.objects.filter(
+            session_id=session.session_id
+        ).exists()
+        
+        if not game_session_exists:
+            # Session was deleted from admin, mark as inactive
+            logger.info(f"Session {session.session_id[:8]} was deleted from admin, creating new game")
+            session.is_active = False
+            session.save()
+            session = None
+    
     if not session:
         # Get player for tracking
         player, _ = SolitairePlayer.objects.get_or_create(
