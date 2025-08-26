@@ -1383,3 +1383,8 @@ Each entry should follow this format:
 - Result: Clean deployment output without overlapping text
 
 
+## [2025-08-26 17:56] UI/UX: Public Server Navigation Cleanup
+- Removed duplicate navigation hints from all screens, verified quick deploy functionality
+- Result: Cleaner interface without redundant instructions
+
+

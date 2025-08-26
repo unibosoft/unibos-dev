@@ -61,11 +61,13 @@ def get_public_server_options():
             ("deploy_backend", "🔧 backend only", "sync backend/ folder + restart django"),
             ("deploy_cli", "💻 cli only", "sync src/ folder + install cli deps"),
             ("separator", "", ""),
+            ("header", "database operations", ""),
+            ("database", "🗄️  database setup", "create db + user + permissions + migrate"),
+            ("db_sync", "🔄 database sync", "sync database between local and rocksteady"),
+            ("backup", "💾 backup management", "create/restore/download db backups"),
+            ("separator", "", ""),
             ("header", "monitoring", ""),
             ("server_status", "📊 server status", "ssh check + system info + service status"),
-            ("database", "🗄️  database setup", "create db + user + permissions + migrate"),
-            ("sync_data", "🔄 data sync", "pg_dump local → rocksteady or reverse"),
-            ("backup", "💾 backup management", "create/restore/download db backups"),
             ("logs", "📋 view logs", "tail -f django/nginx/system logs"),
             ("separator", "", ""),
             ("header", "system control", ""),
@@ -1545,6 +1547,14 @@ def public_server_menu():
                         draw_footer()
                         sys.stdout.flush()
                     
+                    elif selected_key == "db_sync":
+                        database_sync()
+                        # Redraw menu properly after returning with full redraw
+                        menu_state.in_submenu = 'public_server'
+                        draw_public_server_menu(full_redraw=True)
+                        draw_footer()
+                        sys.stdout.flush()
+                    
                     elif selected_key == "deploy_cli":
                         deploy_cli()
                         # Redraw menu properly after returning with full redraw
@@ -1590,6 +1600,207 @@ def public_server_menu():
     show_cursor()
     menu_state.in_submenu = None
     menu_state.public_server_index = 0
+
+def database_sync():
+    """Database sync between local and rocksteady"""
+    from main import (Colors, move_cursor, get_terminal_size,
+                      draw_footer, get_single_key)
+    import os
+    import subprocess
+    from datetime import datetime
+    
+    cols, lines = get_terminal_size()
+    content_x = 27
+    
+    # Clear content area
+    for y in range(2, lines - 2):
+        move_cursor(content_x, y)
+        sys.stdout.write('\033[K')
+    sys.stdout.flush()
+    
+    # Title
+    move_cursor(content_x + 2, 3)
+    print(f"{Colors.BOLD}{Colors.CYAN}🔄  database sync{Colors.RESET}")
+    
+    move_cursor(content_x + 2, 5)
+    print(f"{Colors.YELLOW}select sync direction:{Colors.RESET}")
+    
+    # Options
+    options = [
+        ("local_to_remote", "📤  local → rocksteady", "upload local database to server"),
+        ("remote_to_local", "📥  rocksteady → local", "download server database to local"),
+        ("cancel", "❌  cancel", "return to menu")
+    ]
+    
+    selected_index = 0
+    
+    def draw_sync_options():
+        y = 7
+        for i, (key, name, desc) in enumerate(options):
+            move_cursor(content_x + 4, y + i * 2)
+            if i == selected_index:
+                print(f"{Colors.CYAN}▶ {name}{Colors.RESET}  {Colors.DIM}{desc}{Colors.RESET}")
+            else:
+                print(f"  {name}  {Colors.DIM}{desc}{Colors.RESET}")
+    
+    draw_sync_options()
+    
+    # Instructions
+    move_cursor(content_x + 2, lines - 4)
+    print(f"{Colors.DIM}↑↓ select | enter confirm | esc cancel{Colors.RESET}")
+    
+    while True:
+        key = get_single_key()
+        
+        if key == '\x1b' or key == '\x1b[D':  # ESC or left arrow
+            return
+        elif key == '\x1b[A':  # Up arrow
+            if selected_index > 0:
+                selected_index -= 1
+                draw_sync_options()
+        elif key == '\x1b[B':  # Down arrow
+            if selected_index < len(options) - 1:
+                selected_index += 1
+                draw_sync_options()
+        elif key == '\r':  # Enter
+            selected_option = options[selected_index][0]
+            
+            if selected_option == "cancel":
+                return
+            
+            # Clear options
+            for y in range(7, 13):
+                move_cursor(content_x, y)
+                sys.stdout.write('\033[K')
+            sys.stdout.flush()
+            
+            # Get timestamp for backup
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            
+            if selected_option == "local_to_remote":
+                sync_local_to_remote(timestamp)
+            else:  # remote_to_local
+                sync_remote_to_local(timestamp)
+            
+            # Wait for key to return
+            move_cursor(content_x + 2, lines - 4)
+            print(f"{Colors.DIM}press any key to return...{Colors.RESET}")
+            get_single_key()
+            return
+
+def sync_local_to_remote(timestamp):
+    """Sync local database to rocksteady"""
+    from main import Colors, move_cursor, get_terminal_size
+    import subprocess
+    import os
+    
+    cols, lines = get_terminal_size()
+    content_x = 27
+    y = 7
+    
+    move_cursor(content_x + 2, y)
+    print(f"{Colors.BOLD}{Colors.YELLOW}📤  syncing local → rocksteady{Colors.RESET}")
+    y += 2
+    
+    steps = [
+        ("creating local backup", "PGPASSWORD=unibos_password pg_dump -h localhost -p 5432 -U unibos_user -d unibos_db --clean --if-exists --no-owner --no-privileges -f /tmp/unibos_sync_{}.sql 2>&1".format(timestamp)),
+        ("uploading to server", "scp /tmp/unibos_sync_{}.sql rocksteady:/tmp/".format(timestamp)),
+        ("backing up remote db", "ssh rocksteady 'cd ~/unibos && PGPASSWORD=unibos_password pg_dump -h localhost -U unibos_user -d unibos_db --if-exists --no-owner -f ~/unibos/backup_before_sync_{}.sql 2>&1'".format(timestamp)),
+        ("applying to remote db", "ssh rocksteady 'PGPASSWORD=unibos_password psql -h localhost -U unibos_user -d unibos_db -f /tmp/unibos_sync_{}.sql 2>&1'".format(timestamp)),
+        ("cleaning up", "rm /tmp/unibos_sync_{}.sql && ssh rocksteady 'rm /tmp/unibos_sync_{}.sql'".format(timestamp, timestamp))
+    ]
+    
+    success = True
+    for step_name, command in steps:
+        move_cursor(content_x + 4, y)
+        print(f"⏳ {step_name}...", end='')
+        sys.stdout.flush()
+        
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        
+        move_cursor(content_x + 4, y)
+        if result.returncode == 0:
+            print(f"✅ {step_name}")
+        else:
+            print(f"❌ {step_name}")
+            y += 1
+            move_cursor(content_x + 6, y)
+            error_msg = result.stderr.strip() or result.stdout.strip()
+            if error_msg:
+                # Truncate error if too long
+                max_width = cols - content_x - 8
+                if len(error_msg) > max_width:
+                    error_msg = error_msg[:max_width-3] + "..."
+                print(f"{Colors.RED}{error_msg}{Colors.RESET}")
+            success = False
+            break
+        y += 1
+    
+    y += 1
+    move_cursor(content_x + 2, y)
+    if success:
+        print(f"{Colors.GREEN}✅ database successfully synced to rocksteady!{Colors.RESET}")
+        move_cursor(content_x + 2, y + 1)
+        print(f"{Colors.DIM}backup saved at: ~/unibos/backup_before_sync_{timestamp}.sql{Colors.RESET}")
+    else:
+        print(f"{Colors.RED}❌ sync failed! check errors above{Colors.RESET}")
+
+def sync_remote_to_local(timestamp):
+    """Sync rocksteady database to local"""
+    from main import Colors, move_cursor, get_terminal_size
+    import subprocess
+    import os
+    
+    cols, lines = get_terminal_size()
+    content_x = 27
+    y = 7
+    
+    move_cursor(content_x + 2, y)
+    print(f"{Colors.BOLD}{Colors.YELLOW}📥  syncing rocksteady → local{Colors.RESET}")
+    y += 2
+    
+    steps = [
+        ("backing up local db", "PGPASSWORD=unibos_password pg_dump -h localhost -p 5432 -U unibos_user -d unibos_db --if-exists --no-owner -f ~/Desktop/unibos/backup_before_sync_{}.sql 2>&1".format(timestamp)),
+        ("creating remote backup", "ssh rocksteady 'PGPASSWORD=unibos_password pg_dump -h localhost -U unibos_user -d unibos_db --clean --if-exists --no-owner --no-privileges -f /tmp/unibos_sync_{}.sql 2>&1'".format(timestamp)),
+        ("downloading from server", "scp rocksteady:/tmp/unibos_sync_{}.sql /tmp/".format(timestamp)),
+        ("applying to local db", "PGPASSWORD=unibos_password psql -h localhost -p 5432 -U unibos_user -d unibos_db -f /tmp/unibos_sync_{}.sql 2>&1".format(timestamp)),
+        ("cleaning up", "rm /tmp/unibos_sync_{}.sql && ssh rocksteady 'rm /tmp/unibos_sync_{}.sql'".format(timestamp, timestamp))
+    ]
+    
+    success = True
+    for step_name, command in steps:
+        move_cursor(content_x + 4, y)
+        print(f"⏳ {step_name}...", end='')
+        sys.stdout.flush()
+        
+        result = subprocess.run(command, shell=True, capture_output=True, text=True)
+        
+        move_cursor(content_x + 4, y)
+        if result.returncode == 0:
+            print(f"✅ {step_name}")
+        else:
+            print(f"❌ {step_name}")
+            y += 1
+            move_cursor(content_x + 6, y)
+            error_msg = result.stderr.strip() or result.stdout.strip()
+            if error_msg:
+                # Truncate error if too long
+                max_width = cols - content_x - 8
+                if len(error_msg) > max_width:
+                    error_msg = error_msg[:max_width-3] + "..."
+                print(f"{Colors.RED}{error_msg}{Colors.RESET}")
+            success = False
+            break
+        y += 1
+    
+    y += 1
+    move_cursor(content_x + 2, y)
+    if success:
+        print(f"{Colors.GREEN}✅ database successfully synced from rocksteady!{Colors.RESET}")
+        move_cursor(content_x + 2, y + 1)
+        print(f"{Colors.DIM}backup saved at: ~/Desktop/unibos/backup_before_sync_{timestamp}.sql{Colors.RESET}")
+    else:
+        print(f"{Colors.RED}❌ sync failed! check errors above{Colors.RESET}")
 
 # Entry point
 if __name__ == "__main__":
