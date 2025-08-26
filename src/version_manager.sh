@@ -119,6 +119,50 @@ cleanup_old_sql_files() {
     fi
 }
 
+preserve_critical_settings() {
+    echo -e "${YELLOW}🔒 Kritik ayarlar korunuyor...${NC}"
+    
+    # Geçici dizin oluştur
+    PRESERVE_DIR="/tmp/unibos_preserve_$$"
+    mkdir -p "$PRESERVE_DIR"
+    
+    # Korunacak dosyalar
+    if [ -f "backend/unibos_backend/settings/production.py" ]; then
+        cp "backend/unibos_backend/settings/production.py" "$PRESERVE_DIR/"
+        echo -e "${GREEN}   ✓ production.py korundu${NC}"
+    fi
+    
+    if [ -f "backend/.env" ]; then
+        cp "backend/.env" "$PRESERVE_DIR/"
+        echo -e "${GREEN}   ✓ .env korundu${NC}"
+    fi
+    
+    echo "$PRESERVE_DIR" > /tmp/unibos_preserve_path.txt
+}
+
+restore_critical_settings() {
+    echo -e "${YELLOW}🔄 Kritik ayarlar geri yükleniyor...${NC}"
+    
+    if [ -f "/tmp/unibos_preserve_path.txt" ]; then
+        PRESERVE_DIR=$(cat /tmp/unibos_preserve_path.txt)
+        
+        if [ -d "$PRESERVE_DIR" ]; then
+            if [ -f "$PRESERVE_DIR/production.py" ]; then
+                cp "$PRESERVE_DIR/production.py" backend/unibos_backend/settings/
+                echo -e "${GREEN}   ✓ production.py geri yüklendi${NC}"
+            fi
+            
+            if [ -f "$PRESERVE_DIR/.env" ]; then
+                cp "$PRESERVE_DIR/.env" backend/
+                echo -e "${GREEN}   ✓ .env geri yüklendi${NC}"
+            fi
+            
+            rm -rf "$PRESERVE_DIR"
+            rm -f /tmp/unibos_preserve_path.txt
+        fi
+    fi
+}
+
 export_postgresql() {
     local version=$1
     local timestamp=$2
@@ -394,6 +438,9 @@ echo -e "${BLUE}ℹ️  Otomatik push aktif${NC}"
 export TZ='Europe/Istanbul'
 timestamp=$(date '+%Y%m%d_%H%M')
 
+# KRİTİK: Settings dosyalarını koru
+preserve_critical_settings
+
 # Versiyon dosyalarını güncelle (ÖNCE güncelle ki arşivde yeni versiyon olsun)
 update_version_files "$new_version" "$timestamp"
 
@@ -406,6 +453,9 @@ update_changelog "$new_version" "$timestamp"
 # PostgreSQL export - YENİ versiyonla export et, arşivlemeden SONRA
 echo -e "${YELLOW}🗄️ PostgreSQL veritabanı export ediliyor...${NC}"
 export_postgresql "$new_version" "$timestamp"
+
+# KRİTİK: Settings dosyalarını geri yükle
+restore_critical_settings
 
 # README.md'deki version badge'i güncelle
 if [ -f "README.md" ]; then

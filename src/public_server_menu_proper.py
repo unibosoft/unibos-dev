@@ -2739,7 +2739,7 @@ def sync_local_to_remote(timestamp):
     steps = [
         ("creating local backup", "PGPASSWORD=unibos_password pg_dump -h localhost -p 5432 -U unibos_user -d unibos_db --clean --if-exists --no-owner --no-privileges -f /tmp/unibos_sync_{}.sql 2>&1".format(timestamp)),
         ("uploading to server", "scp /tmp/unibos_sync_{}.sql rocksteady:/tmp/".format(timestamp)),
-        ("backing up remote db", "ssh rocksteady 'cd ~/unibos && PGPASSWORD=unibos_password pg_dump -h localhost -U unibos_user -d unibos_db --if-exists --no-owner -f ~/unibos/backup_before_sync_{}.sql 2>&1'".format(timestamp)),
+        ("backing up remote db", "ssh rocksteady 'cd ~/unibos && PGPASSWORD=unibos_password pg_dump -h localhost -U unibos_user -d unibos_db --clean --if-exists --no-owner -f ~/unibos/backup_before_sync_{}.sql 2>&1'".format(timestamp)),
         ("applying to remote db", "ssh rocksteady 'PGPASSWORD=unibos_password psql -h localhost -U unibos_user -d unibos_db -f /tmp/unibos_sync_{}.sql 2>&1'".format(timestamp)),
         ("cleaning up", "rm /tmp/unibos_sync_{}.sql && ssh rocksteady 'rm /tmp/unibos_sync_{}.sql'".format(timestamp, timestamp))
     ]
@@ -2798,7 +2798,7 @@ def sync_remote_to_local(timestamp):
     y += 2
     
     steps = [
-        ("backing up local db", "PGPASSWORD=unibos_password pg_dump -h localhost -p 5432 -U unibos_user -d unibos_db --if-exists --no-owner -f ~/Desktop/unibos/backup_before_sync_{}.sql 2>&1".format(timestamp)),
+        ("backing up local db", "PGPASSWORD=unibos_password pg_dump -h localhost -p 5432 -U unibos_user -d unibos_db --clean --if-exists --no-owner -f ~/Desktop/unibos/backup_before_sync_{}.sql 2>&1".format(timestamp)),
         ("creating remote backup", "ssh rocksteady 'PGPASSWORD=unibos_password pg_dump -h localhost -U unibos_user -d unibos_db --clean --if-exists --no-owner --no-privileges -f /tmp/unibos_sync_{}.sql 2>&1'".format(timestamp)),
         ("downloading from server", "scp rocksteady:/tmp/unibos_sync_{}.sql /tmp/".format(timestamp)),
         ("applying to local db", "PGPASSWORD=unibos_password psql -h localhost -p 5432 -U unibos_user -d unibos_db -f /tmp/unibos_sync_{}.sql 2>&1".format(timestamp)),

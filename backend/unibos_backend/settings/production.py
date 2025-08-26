@@ -51,8 +51,12 @@ MEDIA_ROOT = '/opt/unibos/media'
 # Security
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-production-key-change-this!')
 SECURE_SSL_REDIRECT = False
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+# Changed to False for HTTP compatibility
+SESSION_COOKIE_SECURE = False  # Was True - requires HTTPS
+CSRF_COOKIE_SECURE = False     # Was True - requires HTTPS
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SAMESITE = 'Lax'
 X_FRAME_OPTIONS = 'DENY'
 
 # Import other settings from base
