@@ -654,6 +654,13 @@ class LoginView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         # Version info is now provided by context processor
+        # Add server location indicator
+        import socket
+        hostname = socket.gethostname()
+        if 'rocksteady' in hostname.lower() or 'recaria' in hostname.lower():
+            context['server_location'] = 'recaria.org'
+        else:
+            context['server_location'] = 'local'
         return context
     
     def post(self, request, *args, **kwargs):

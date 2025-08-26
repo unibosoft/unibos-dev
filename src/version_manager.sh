@@ -556,3 +556,8 @@ echo -e "${YELLOW}💡 ipucu: yazılımı test etmek için:${NC}"
 echo -e "   ${GREEN}./unibos.sh${NC}"
 echo
 echo -e "${YELLOW}📋 ÖNEMLI: CHANGELOG.md'yi manuel olarak güncelleyin!${NC}"
+# Run deploy checklist before sync
+if [ -f ../deploy_checklist.sh ]; then
+    ../deploy_checklist.sh
+fi
+
