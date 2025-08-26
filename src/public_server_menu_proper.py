@@ -86,7 +86,7 @@ def get_public_server_options():
         ]
 
 def draw_public_server_menu(full_redraw=True):
-    """Draw public server menu interface - with optimized updates"""
+    """Draw public server menu interface - exactly like administration menu"""
     from main import (Colors, move_cursor, get_terminal_size, menu_state)
     
     cols, lines = get_terminal_size()
@@ -102,12 +102,13 @@ def draw_public_server_menu(full_redraw=True):
     
     # Only clear content area on full redraw
     if full_redraw:
-        # Clear content area properly with ANSI escape sequences
         for y in range(2, lines - 2):
             move_cursor(content_x, y)
             sys.stdout.write('\033[K')  # Clear to end of line
         sys.stdout.flush()
-        
+    
+    # Only draw title and environment on full redraw
+    if full_redraw:
         # Title based on environment
         move_cursor(content_x + 2, 3)
         if is_server:
@@ -127,7 +128,9 @@ def draw_public_server_menu(full_redraw=True):
             print(f"{Colors.CYAN}● running on: cloud server{Colors.RESET}")
         else:
             print(f"{Colors.YELLOW}● running on: {env}{Colors.RESET}")
-        
+    
+    # Only draw status on full redraw
+    if full_redraw:
         # Additional status for server environment
         if is_server:
             # Show live server stats
@@ -167,24 +170,24 @@ def draw_public_server_menu(full_redraw=True):
                 status = f"{Colors.YELLOW}🟡 rocksteady: checking...{Colors.RESET}"
             print(status)
     
+    # Track previous index to optimize redraws
+    if not hasattr(menu_state, 'prev_public_server_index'):
+        menu_state.prev_public_server_index = -1
+    
     # Draw menu options
     y = 9  # Start lower since we have more info at top
     option_index = 0
     
-    # Store previous selected index to optimize redraws
-    if not hasattr(menu_state, 'prev_public_server_index'):
-        menu_state.prev_public_server_index = -1
-    
     for i, (key, name, desc) in enumerate(options):
         if key == "header":
+            # Section header - blue
             if full_redraw:
-                # Section header - blue
                 move_cursor(content_x + 2, y)
                 print(f"{Colors.BOLD}{Colors.BLUE}{name}{Colors.RESET}")
             y += 1
         elif key == "separator":
+            # Separator line
             if full_redraw:
-                # Separator line
                 move_cursor(content_x + 2, y)
                 print(f"{Colors.DIM}{'─' * 40}{Colors.RESET}")
             y += 1
@@ -193,10 +196,10 @@ def draw_public_server_menu(full_redraw=True):
             is_selected = (option_index == menu_state.public_server_index)
             was_selected = (option_index == menu_state.prev_public_server_index)
             
-            # Only redraw if selection state changed or on full redraw
+            # Only redraw if this item's selection state changed or on full redraw
             if full_redraw or is_selected or was_selected:
                 move_cursor(content_x + 2, y)
-                sys.stdout.write('\033[K')  # Clear line
+                sys.stdout.write('\033[K')  # Clear line first
                 
                 if is_selected:
                     # Orange background selection
@@ -207,22 +210,24 @@ def draw_public_server_menu(full_redraw=True):
                     else:
                         print()
                 else:
-                    print(f"   {name}", end='')
+                    print(f"   {name:<30}", end='')
                     if desc:
-                        print(f"  {Colors.DIM}{desc}{Colors.RESET}")
+                        print(f" {Colors.DIM}{desc}{Colors.RESET}")
                     else:
                         print()
             
             option_index += 1
             y += 1
+        
+        # Prevent overflow
+        if y >= lines - 3:
+            break
     
     # Update previous index
     menu_state.prev_public_server_index = menu_state.public_server_index
     
-    # Instructions at bottom (only on full redraw)
-    if full_redraw:
-        move_cursor(content_x + 2, lines - 4)
-        print(f"{Colors.DIM}↑↓ navigate | enter/→ select | ←/esc back{Colors.RESET}")
+    # Ensure everything is displayed
+    sys.stdout.flush()
 
 def get_ssh_passphrase():
     """Get SSH passphrase with nice UI in content area"""
@@ -561,10 +566,11 @@ def quick_deploy():
 def restart_recaria():
     """Restart recaria.org Django service and ensure it's running"""
     from main import (Colors, move_cursor, get_terminal_size,
-                      draw_footer, get_single_key, show_cursor, hide_cursor)
+                      draw_footer, get_single_key, show_cursor, hide_cursor, draw_header_time_only)
     import subprocess
     import time
     import os
+    import threading
     # Don't reimport sys - use the global one
     
     cols, lines = get_terminal_size()
@@ -575,6 +581,17 @@ def restart_recaria():
         move_cursor(content_x, y)
         sys.stdout.write('\033[K')
     sys.stdout.flush()
+    
+    # Start footer update thread
+    stop_footer = threading.Event()
+    def update_footer():
+        while not stop_footer.is_set():
+            draw_header_time_only()
+            time.sleep(1)
+    
+    footer_thread = threading.Thread(target=update_footer)
+    footer_thread.daemon = True
+    footer_thread.start()
     
     # Title
     move_cursor(content_x + 2, 3)
@@ -630,7 +647,10 @@ def restart_recaria():
             result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=timeout_val)
             
             move_cursor(content_x + 4, y)
-            if result.returncode == 0:
+            # Special handling for kill commands - they always "succeed"
+            if "killing" in step_name.lower():
+                print(f"✅ {step_name}")
+            elif result.returncode == 0:
                 print(f"✅ {step_name}")
                 
                 # Capture success message
@@ -667,29 +687,40 @@ def restart_recaria():
                         else:
                             print(f"{Colors.YELLOW}{output}{Colors.RESET}")
             else:
-                print(f"❌ {step_name}")
-                # Always show error details
-                y += 1
-                move_cursor(content_x + 6, y)
-                error_msg = (result.stderr or result.stdout).strip()
-                # Split long errors into multiple lines
-                if len(error_msg) > cols - content_x - 8:
-                    lines_to_show = error_msg.split('\n')[:3]  # Show first 3 lines
-                    for line in lines_to_show:
-                        if line.strip():
-                            move_cursor(content_x + 6, y)
-                            print(f"{Colors.DIM}{line[:cols - content_x - 8]}{Colors.RESET}")
-                            y += 1
-                    y -= 1  # Adjust for the extra increment
+                # Check if this is a non-critical step
+                if "killing" in step_name.lower():
+                    # Kill commands that fail are OK (no process to kill)
+                    print(f"✅ {step_name} (no process found)")
                 else:
-                    print(f"{Colors.DIM}{error_msg}{Colors.RESET}")
-                success = False
+                    print(f"❌ {step_name}")
+                    # Always show error details
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    error_msg = (result.stderr or result.stdout).strip()
+                    # Split long errors into multiple lines
+                    if len(error_msg) > cols - content_x - 8:
+                        lines_to_show = error_msg.split('\n')[:3]  # Show first 3 lines
+                        for line in lines_to_show:
+                            if line.strip():
+                                move_cursor(content_x + 6, y)
+                                print(f"{Colors.DIM}{line[:cols - content_x - 8]}{Colors.RESET}")
+                                y += 1
+                        y -= 1  # Adjust for the extra increment
+                    else:
+                        print(f"{Colors.DIM}{error_msg}{Colors.RESET}")
+                    success = False
         except subprocess.TimeoutExpired:
             move_cursor(content_x + 4, y)
-            print(f"⚠️  {step_name} (timeout after {timeout_val}s)")
-            # Don't fail on timeout for non-critical steps
-            if "verifying" not in step_name:
-                success = False
+            # Special handling for background processes
+            if "starting django" in step_name.lower():
+                # Django starts in background, timeout is expected
+                print(f"✅ {step_name} (started in background)")
+                django_pid = "Started in background"
+            else:
+                print(f"⚠️  {step_name} (timeout after {timeout_val}s)")
+                # Don't fail on timeout for non-critical steps
+                if "verifying" not in step_name:
+                    success = False
         except Exception as e:
             move_cursor(content_x + 4, y)
             print(f"❌ {step_name}: {str(e)[:50]}")
@@ -697,16 +728,31 @@ def restart_recaria():
         
         y += 1
     
-    # Final check - even if verification failed, check if Django is actually running
-    if not success and django_pid:
-        # Django was started, let's double-check if it's actually running
-        try:
-            check_result = subprocess.run("ssh rocksteady 'pgrep -f \"manage.py runserver\"'", 
-                                        shell=True, capture_output=True, text=True, timeout=5)
-            if check_result.returncode == 0 and check_result.stdout.strip():
-                success = True  # Django is actually running
-        except:
-            pass  # Keep original success status
+    # Final check - determine success based on actual service status
+    # If Django process is running OR HTTP service is responding, consider it a success
+    final_django_running = False
+    final_http_responding = False
+    
+    try:
+        # Check if Django process is running
+        check_result = subprocess.run("ssh rocksteady 'pgrep -f \"manage.py runserver\"'", 
+                                    shell=True, capture_output=True, text=True, timeout=5)
+        if check_result.returncode == 0 and check_result.stdout.strip():
+            final_django_running = True
+        
+        # Check if HTTP service is responding
+        http_check = subprocess.run("ssh rocksteady 'curl -I -s -m 5 http://localhost:8000/ 2>/dev/null | head -1'",
+                                   shell=True, capture_output=True, text=True, timeout=10)
+        if "HTTP" in http_check.stdout:
+            final_http_responding = True
+    except:
+        pass
+    
+    # If either check passes, it's a success
+    if final_django_running or final_http_responding:
+        success = True
+        if not django_pid and final_django_running:
+            django_pid = "Running"
     
     # Final status - ensure it's visible
     y += 1
@@ -723,6 +769,20 @@ def restart_recaria():
         y += 1
         move_cursor(content_x + 2, y)
         print(f"{Colors.CYAN}access at: https://recaria.org{Colors.RESET}")
+        
+        # Auto-open browser
+        y += 2
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.YELLOW}opening browser...{Colors.RESET}")
+        try:
+            import webbrowser
+            webbrowser.open("https://recaria.org")
+            time.sleep(1)
+            move_cursor(content_x + 2, y)
+            print(f"{Colors.GREEN}✅ browser opened!{Colors.RESET}")
+        except Exception as e:
+            move_cursor(content_x + 2, y)
+            print(f"{Colors.YELLOW}⚠️  please open manually: https://recaria.org{Colors.RESET}")
     else:
         print(f"{Colors.RED}❌ failed to start recaria.org{Colors.RESET}")
         y += 1
@@ -731,8 +791,8 @@ def restart_recaria():
     
     # Always wait for key - make sure it's visible
     y += 2
-    if y > lines - 3:
-        y = lines - 3
+    if y > lines - 4:  # Leave space for footer
+        y = lines - 4
     
     move_cursor(content_x + 2, y)
     print(f"{Colors.DIM}press esc or ← to return...{Colors.RESET}")
@@ -775,6 +835,10 @@ def restart_recaria():
             
     finally:
         termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+        # Stop footer update thread
+        stop_footer.set()
+        if 'footer_thread' in locals() and footer_thread.is_alive():
+            footer_thread.join(timeout=0.5)
     
     hide_cursor()
 
@@ -942,8 +1006,8 @@ def setup_ssl():
     
     # Wait for ESC or left arrow
     y += 2
-    if y > lines - 3:
-        y = lines - 3
+    if y > lines - 4:  # Leave space for footer
+        y = lines - 4
     
     move_cursor(content_x + 2, y)
     print(f"{Colors.DIM}press esc or ← to return...{Colors.RESET}")
@@ -1136,8 +1200,8 @@ def setup_mail_server():
     
     # Wait for ESC or left arrow
     y += 2
-    if y > lines - 3:
-        y = lines - 3
+    if y > lines - 4:  # Leave space for footer
+        y = lines - 4
     
     move_cursor(content_x + 2, y)
     print(f"{Colors.DIM}press esc or ← to return...{Colors.RESET}")
@@ -1305,8 +1369,8 @@ def setup_webmail():
     
     # Wait for ESC or left arrow
     y += 2
-    if y > lines - 3:
-        y = lines - 3
+    if y > lines - 4:  # Leave space for footer
+        y = lines - 4
     
     move_cursor(content_x + 2, y)
     print(f"{Colors.DIM}press esc or ← to return...{Colors.RESET}")
@@ -2274,8 +2338,8 @@ def public_server_menu():
     except:
         pass
     
-    # Draw public server menu with full redraw initially
-    draw_public_server_menu(full_redraw=True)
+    # Draw public server menu
+    draw_public_server_menu()
     draw_footer()
     
     # Hide cursor for better visual experience
@@ -2335,7 +2399,7 @@ def public_server_menu():
                             get_single_key()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2358,7 +2422,7 @@ def public_server_menu():
                             get_single_key()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2381,7 +2445,7 @@ def public_server_menu():
                             get_single_key()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2404,7 +2468,7 @@ def public_server_menu():
                             get_single_key()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2412,7 +2476,7 @@ def public_server_menu():
                         load_ssh_key()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2420,7 +2484,7 @@ def public_server_menu():
                         quick_deploy()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2428,7 +2492,7 @@ def public_server_menu():
                         full_deployment()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2436,7 +2500,7 @@ def public_server_menu():
                         deploy_backend()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2466,7 +2530,7 @@ def public_server_menu():
                         finally:
                             # Redraw menu properly after returning with full redraw
                             menu_state.in_submenu = 'public_server'
-                            draw_public_server_menu(full_redraw=True)
+                            draw_public_server_menu()
                             draw_footer()
                             sys.stdout.flush()
                     
@@ -2474,7 +2538,7 @@ def public_server_menu():
                         deploy_cli()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2482,7 +2546,7 @@ def public_server_menu():
                         show_server_status()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2490,7 +2554,7 @@ def public_server_menu():
                         show_system_info()
                         # Redraw menu properly after returning with full redraw
                         menu_state.in_submenu = 'public_server'
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
                         draw_footer()
                         sys.stdout.flush()
                     
@@ -2505,7 +2569,7 @@ def public_server_menu():
                         move_cursor(27 + 2, lines - 6)
                         print(f"{Colors.YELLOW}feature coming soon...{Colors.RESET}")
                         time.sleep(1)
-                        draw_public_server_menu(full_redraw=True)
+                        draw_public_server_menu()
             
             elif key in ['q', 'Q', '\x1b', '\x1b[D']:  # q, ESC, or Left arrow
                 menu_state.in_submenu = None

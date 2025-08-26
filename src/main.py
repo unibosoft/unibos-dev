@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-🪐 unibos v521 - unicorn bodrum operating system
+🪐 unibos v522 - unicorn bodrum operating system
 Simplified Web Forge + Lowercase UI + Single Server Architecture
 
 Author: berk hatırlı - bitez, bodrum, muğla, türkiye
-Version: v521_20250826_2250
+Version: v522_20250827_0100
 Purpose: Professional terminal UI with multi-module support"""
 
 import os
@@ -128,9 +128,9 @@ except ImportError:
 
 # Version information
 VERSION_INFO = {
-    "version": "v521",
-    "build": "20250826_2250", 
-    "build_date": "2025-08-26 22:50:51 +03:00",
+    "version": "v522",
+    "build": "20250827_0100", 
+    "build_date": "2025-08-27 01:00:15 +03:00",
     "author": "berk hatırlı",
     "location": "bitez, bodrum, muğla, türkiye, dünya, güneş sistemi, samanyolu, yerel galaksi grubu, evren"
 }
@@ -494,9 +494,37 @@ def get_navigation_breadcrumb():
 
 def draw_header_time_only():
     """Update only the time in the header - more efficient for clock updates"""
-    # This function should not be used anymore - just call draw_header()
-    # Keeping for compatibility but redirecting to main draw_header
-    draw_header()
+    from datetime import datetime
+    from system_info import get_hostname
+    cols, lines = get_terminal_size()
+    
+    # Get current values
+    current_time = datetime.now().strftime("%H:%M:%S")
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    hostname = get_hostname()
+    location_text = "bitez, bodrum"
+    status_text = "online"
+    status_led = get_system_status()
+    
+    # Build the parts before and after time
+    # Format: hostname | location | date | TIME | status ●
+    before_time = f"{hostname} | {location_text} | {current_date} | "
+    after_time = f" | {status_text} "
+    
+    # Calculate total length (LED emoji counts as 1)
+    total_len = len(before_time) + len(current_time) + len(after_time) + 1
+    
+    # Calculate where the right side starts
+    right_start = cols - total_len - 2  # -2 for right padding
+    right_start = max(2, right_start)
+    
+    # Calculate exact position for time
+    time_pos = right_start + len(before_time)
+    
+    # Move to time position and write only the time
+    move_cursor(time_pos, lines - 1)
+    sys.stdout.write(f"{Colors.BG_DARK}{Colors.WHITE}{current_time}{Colors.RESET}")
+    sys.stdout.flush()
 
 def draw_header():
     """Draw header with logo/version and user info - SINGLE LINE"""
@@ -3155,10 +3183,11 @@ def main_loop():
                 clear_screen()
                 draw_main_screen()
             
-            # Update footer only when needed (no more blinking)
+            # Update footer time every second when not in submenu
             current_time = time.time()
-            if current_time - last_footer_update >= 60.0:  # Check every minute for date change
-                # Only update if date actually changed
+            if current_time - last_footer_update >= 1.0 and not menu_state.in_submenu:
+                # Update only the time portion to prevent blinking
+                draw_header_time_only()
                 last_footer_update = current_time
                 hide_cursor()
             

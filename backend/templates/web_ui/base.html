@@ -340,7 +340,7 @@
             display: flex;
             flex: 1;
             overflow: hidden;
-            padding-bottom: 35px; /* Space for fixed footer */
+            padding-bottom: 30px; /* Space for fixed footer - exact footer height */
         }
         
         /* Sidebar - CLI Style */
@@ -498,58 +498,55 @@
         .footer {
             background: var(--bg-dark);
             border-top: 1px solid var(--dark-gray);
-            padding: 8px 20px;
+            padding: 0 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            font-size: 12px;
-            min-height: 35px;
+            font-size: 13px;
+            height: 30px;
+            line-height: 30px;
             position: fixed;
             bottom: 0;
             left: 0;
             width: 100%;
             z-index: 100;
             box-sizing: border-box;
+            font-family: 'Courier New', monospace;
         }
         
         .footer-left {
-            display: flex;
-            gap: 20px;
-            color: var(--gray);
+            color: #666;
             flex: 1;
-            min-width: 0;
-            overflow: hidden;
-        }
-        
-        .footer-left > span {
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
         }
         
         .footer-right {
-            display: flex;
-            gap: 20px;
-            align-items: center;
+            color: #fff;
             flex-shrink: 0;
-            padding-right: 10px;
-        }
-        
-        .status-indicator {
+            white-space: nowrap;
             display: flex;
             align-items: center;
             gap: 5px;
         }
         
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            margin-left: 5px;
+        }
+        
         .status-dot {
-            width: 8px;
-            height: 8px;
+            width: 10px;
+            height: 10px;
             border-radius: 50%;
-            background: var(--green);
+            background: #0f0;
+            display: inline-block;
         }
         
         .status-dot.offline {
-            background: var(--orange);
+            background: #ff6600;
         }
         
         /* Fullscreen Mode Styles */
@@ -782,15 +779,11 @@
     
     <!-- Footer Status Bar -->
     <div class="footer">
-        <div class="footer-left">
-            <span>{{ footer_nav }}</span>
-        </div>
+        <div class="footer-left">{{ footer_nav }}</div>
         <div class="footer-right">
-            <span>{{ hostname }} | {{ location }} | <span id="footer-date">{{ current_date }}</span> | <span id="footer-time">{{ current_time }}</span> | 
-                <span class="status-indicator">
-                    <span class="status-dot {% if not online_status %}offline{% endif %}"></span>
-                    <span>{% if online_status %}online{% else %}offline{% endif %}</span>
-                </span>
+            {{ hostname }} | {{ location }} | <span id="footer-date">{{ current_date }}</span> | <span id="footer-time">{{ current_time }}</span> | {% if online_status %}online{% else %}offline{% endif %} 
+            <span class="status-indicator">
+                <span class="status-dot {% if not online_status %}offline{% endif %}"></span>
             </span>
         </div>
     </div>

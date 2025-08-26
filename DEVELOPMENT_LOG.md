@@ -1428,3 +1428,48 @@ Each entry should follow this format:
 - Result: Webmail accessible at https://webmail.recaria.org for all users
 
 
+## [2025-08-26 23:22] Bug Fix: Fixed public server menu display issues
+- Fixed indentation errors, removed non-existent full_redraw parameter, matched administration menu structure
+- Result: Menu displays correctly without duplication or shifting
+
+
+## [2025-08-26 23:27] Bug Fix: Fixed CLI display issues and footer blinking
+- Fixed menu overlap with footer by adjusting y positioning, fixed footer time blinking by updating only time instead of full redraw
+- Result: Menu displays correctly without overlap, footer clock updates smoothly
+
+
+## [2025-08-26 23:32] Bug Fix: Fixed footer time display and menu navigation flickering
+- Fixed extra digits in footer by calculating correct time position, optimized public server menu to only redraw changed items instead of full content
+- Result: Footer time displays correctly, menu navigation is smooth without flickering
+
+
+## [2025-08-26 23:38] Bug Fix: Fixed main screen footer clock not updating
+- Re-enabled footer time updates in main loop, updating every second using draw_header_time_only() for smooth updates
+- Result: Clock now updates properly on main screen without blinking
+
+
+## [2025-08-27 00:31] Bug Fix: Fixed extra character in footer time display
+- Corrected time position calculation in draw_header_time_only() to prevent overlapping characters
+- Result: Footer time displays correctly without extra digits
+
+
+## [2025-08-27 00:34] Bug Fix: Fixed footer clock freezing in restart_recaria module
+- Added footer update thread to restart_recaria function to keep clock updating during long operations
+- Result: Footer clock continues updating while restart operations are running
+
+
+## [2025-08-27 00:48] Bug Fix: Fixed restart_recaria logic errors and false failures
+- Kill commands now always show success, Django background start timeout handled properly, final status based on actual service check
+- Result: Restart shows accurate status without false failures
+
+
+## [2025-08-27 00:52] Feature: Added auto-browser opening for successful restart
+- When restart_recaria completes successfully, automatically opens https://recaria.org in browser
+- Result: Browser opens automatically on successful deployment
+
+
+## [2025-08-27 00:58] UI/UX: Fixed web UI footer to match CLI appearance
+- Adjusted footer height to 30px, fixed alignment, simplified status indicator, matched monospace font
+- Result: Web UI footer now identical to CLI footer
+
+
