@@ -1398,3 +1398,8 @@ Each entry should follow this format:
 - Result: recaria.org now fully functional with UNIBOS web UI
 
 
+## [2025-08-26 18:53] UI/UX: Footer and header standardization
+- Standardized footer format across all modules with navigation help on left, system info on right. Removed time from header to keep only language and username.
+- Result: Complete standardization of UI elements
+
+
