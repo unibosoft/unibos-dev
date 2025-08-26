@@ -748,7 +748,8 @@ def full_deployment():
         ("creating db user", "ssh rocksteady 'sudo -u postgres psql -c \"CREATE USER unibos_user WITH PASSWORD '\\''unibos_password'\\'';\" 2>/dev/null || true'"),
         ("creating database", "ssh rocksteady 'sudo -u postgres psql -c \"CREATE DATABASE unibos_db OWNER unibos_user;\" 2>/dev/null || true'"),
         ("granting permissions", "ssh rocksteady 'sudo -u postgres psql -c \"ALTER USER unibos_user CREATEDB;\" 2>/dev/null || true'"),
-        ("syncing files", "rsync -avz --exclude=.git --exclude='*.pyc' --exclude=__pycache__ --exclude=venv --exclude=archive --exclude=quarantine --exclude='*.sql' --exclude='*.log' --exclude=db.sqlite3 --exclude=.DS_Store --exclude=node_modules --exclude='.env*' . rocksteady:~/unibos/"),
+        ("syncing files", "rsync -avz --delete --exclude=.git --exclude='*.pyc' --exclude=__pycache__ --exclude=venv --exclude=archive --exclude=quarantine --exclude='*.log' --exclude=db.sqlite3 --exclude=.DS_Store --exclude=node_modules --exclude='.env' --exclude='media/*' --exclude='staticfiles/*' . rocksteady:~/unibos/"),
+        ("syncing version", "rsync -avz /Users/berkhatirli/Desktop/unibos/backend/VERSION.json /Users/berkhatirli/Desktop/unibos/src/VERSION.json rocksteady:~/unibos/backend/"),
         ("creating directories", "ssh rocksteady 'cd ~/unibos/backend && mkdir -p logs staticfiles media && touch logs/django.log'"),
         ("setting up venv", "ssh rocksteady 'cd ~/unibos/backend && [ -d venv ] || python3 -m venv venv'"),
         ("upgrading pip", "ssh rocksteady 'cd ~/unibos/backend && ./venv/bin/python -m pip install --upgrade pip'"),
@@ -759,8 +760,8 @@ def full_deployment():
         ("installing cli deps", "ssh rocksteady 'cd ~/unibos/src && if [ -f requirements.txt ]; then pip3 install --user -r requirements.txt 2>/dev/null || true; fi'"),
         ("setting permissions", "ssh rocksteady 'cd ~/unibos && chmod +x unibos.sh rocksteady_deploy.sh *.sh 2>/dev/null || true'"),
         ("stopping old server", "ssh rocksteady 'pkill -f \"manage.py runserver\" 2>/dev/null; sleep 1; echo \"old server stopped (if any)\"'"),
-        ("starting server", "ssh rocksteady 'cd ~/unibos/backend && (nohup ./venv/bin/python manage.py runserver 0.0.0.0:8000 </dev/null >logs/server.log 2>&1 &); sleep 2; echo \"server started\"'"),
-        ("verifying server", "ssh rocksteady 'sleep 3 && (pgrep -f \"manage.py runserver\" > /dev/null && echo \"server running on port 8000\" || echo \"server not detected\")'"),
+        ("restarting server", "ssh rocksteady 'cd ~/unibos/backend && nohup ./venv/bin/python manage.py runserver 0.0.0.0:8000 </dev/null >logs/server.log 2>&1 & echo $! > server.pid; sleep 3; echo \"server restarted with pid $(cat server.pid)\"'"),
+        ("verifying server", "ssh rocksteady 'sleep 2 && curl -s -o /dev/null -w \"%{http_code}\" http://localhost:8000 | grep -q \"302\\|200\\|301\" && echo \"server responding correctly\" || echo \"server check failed\"'"),
     ]
     
     success_count = 0

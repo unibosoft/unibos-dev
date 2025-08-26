@@ -1368,3 +1368,8 @@ Each entry should follow this format:
 - Result: Cleaner deployment output with correct server URL
 
 
+## [2025-08-26 17:43] Bug Fix: Login Version Display Fix
+- Updated context processor fallback values to v517 for correct version display on login screen
+- Result: Login now shows v517 instead of v515
+
+
