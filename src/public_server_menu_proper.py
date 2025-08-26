@@ -58,6 +58,7 @@ def get_public_server_options():
             ("separator", "", ""),
             ("header", "web server setup", ""),
             ("setup_mail_server", "📧 setup mail server", "configure email for username@recaria.org"),
+            ("setup_webmail", "📮 setup webmail", "install roundcube webmail interface"),
             ("separator", "", ""),
             ("header", "authentication", ""),
             ("load_ssh_key", "🔑 load ssh key", "add rocksteady-2025 key to ssh-agent"),
@@ -1186,6 +1187,170 @@ def setup_mail_server():
     
     hide_cursor()
 
+def setup_webmail():
+    """Setup Roundcube webmail for recaria.org"""
+    from main import (Colors, move_cursor, get_terminal_size,
+                      draw_footer, show_cursor, hide_cursor, draw_header_time_only)
+    import subprocess
+    import time
+    import os
+    
+    cols, lines = get_terminal_size()
+    content_x = 27
+    
+    # Clear content area
+    for y in range(2, lines - 2):
+        move_cursor(content_x, y)
+        sys.stdout.write('\033[K')
+    sys.stdout.flush()
+    
+    # Title
+    move_cursor(content_x + 2, 3)
+    print(f"{Colors.BOLD}{Colors.CYAN}📮  setup webmail (roundcube){Colors.RESET}")
+    
+    # Get proper working directory
+    base_dir = "/Users/berkhatirli/Desktop/unibos"
+    os.chdir(base_dir)
+    
+    y = 5
+    steps = [
+        ("checking connection", "ssh rocksteady 'echo connected' 2>&1"),
+        ("checking nginx", "ssh rocksteady 'nginx -v 2>&1 || echo \"nginx not installed\"'"),
+        ("checking php", "ssh rocksteady 'php -v 2>&1 | head -1 || echo \"php not installed\"'"),
+        ("installing php packages", "ssh rocksteady 'export DEBIAN_FRONTEND=noninteractive; sudo -E apt update -qq && sudo -E apt install -y php8.1-fpm php8.1-cli php8.1-mysql php8.1-pgsql php8.1-imap php8.1-ldap php8.1-xml php8.1-mbstring php8.1-intl php8.1-zip php8.1-gd php8.1-curl 2>&1 | tail -3' 2>&1", 90),
+        ("creating webmail directory", "ssh rocksteady 'sudo mkdir -p /var/www/webmail && sudo chown -R www-data:www-data /var/www/webmail'"),
+        ("downloading roundcube", "ssh rocksteady 'cd /tmp && wget -q https://github.com/roundcube/roundcubemail/releases/download/1.6.5/roundcubemail-1.6.5-complete.tar.gz && tar -xzf roundcubemail-1.6.5-complete.tar.gz' 2>&1"),
+        ("installing roundcube", "ssh rocksteady 'sudo cp -r /tmp/roundcubemail-1.6.5/* /var/www/webmail/ && sudo chown -R www-data:www-data /var/www/webmail' 2>&1"),
+        ("creating database", "ssh rocksteady 'sudo -u postgres psql -c \"CREATE DATABASE roundcube;\" 2>/dev/null || echo \"database exists\"' 2>&1"),
+        ("creating db user", "ssh rocksteady 'sudo -u postgres psql -c \"CREATE USER roundcube WITH PASSWORD '\\''roundcube_pass'\\''\" 2>/dev/null || echo \"user exists\"' 2>&1"),
+        ("granting permissions", "ssh rocksteady 'sudo -u postgres psql -c \"GRANT ALL PRIVILEGES ON DATABASE roundcube TO roundcube;\" 2>/dev/null' 2>&1"),
+        ("configuring roundcube", "ssh rocksteady 'cat > /tmp/config.inc.php << \"EOF\"\n<?php\n\\$config = [];\n\\$config[\"db_dsnw\"] = \"pgsql://roundcube:roundcube_pass@localhost/roundcube\";\n\\$config[\"default_host\"] = \"localhost\";\n\\$config[\"smtp_server\"] = \"localhost\";\n\\$config[\"smtp_port\"] = 587;\n\\$config[\"smtp_user\"] = \"%u\";\n\\$config[\"smtp_pass\"] = \"%p\";\n\\$config[\"support_url\"] = \"\";\n\\$config[\"des_key\"] = \"$(openssl rand -base64 24)\";\n\\$config[\"product_name\"] = \"UNIBOS Webmail\";\n\\$config[\"language\"] = \"en_US\";\n\\$config[\"enable_installer\"] = false;\nEOF\n' 2>&1"),
+        ("copying config", "ssh rocksteady 'sudo cp /tmp/config.inc.php /var/www/webmail/config/config.inc.php && sudo chown www-data:www-data /var/www/webmail/config/config.inc.php' 2>&1"),
+        ("creating nginx config", "ssh rocksteady 'cat > /tmp/webmail.conf << \"EOF\"\nserver {\n    listen 80;\n    server_name webmail.recaria.org;\n    return 301 https://\\$server_name\\$request_uri;\n}\n\nserver {\n    listen 443 ssl http2;\n    server_name webmail.recaria.org;\n    \n    ssl_certificate /etc/letsencrypt/live/recaria.org/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/recaria.org/privkey.pem;\n    \n    root /var/www/webmail;\n    index index.php index.html;\n    \n    location / {\n        try_files \\$uri \\$uri/ =404;\n    }\n    \n    location ~ \\.php\\$ {\n        include snippets/fastcgi-php.conf;\n        fastcgi_pass unix:/var/run/php/php8.1-fpm.sock;\n        fastcgi_param SCRIPT_FILENAME \\$document_root\\$fastcgi_script_name;\n        include fastcgi_params;\n    }\n    \n    location ~ /\\.(ht|git) {\n        deny all;\n    }\n}\nEOF\n' 2>&1"),
+        ("copying nginx config", "ssh rocksteady 'sudo cp /tmp/webmail.conf /etc/nginx/sites-available/webmail && sudo ln -sf /etc/nginx/sites-available/webmail /etc/nginx/sites-enabled/' 2>&1"),
+        ("testing nginx", "ssh rocksteady 'sudo nginx -t' 2>&1"),
+        ("restarting services", "ssh rocksteady 'sudo systemctl restart nginx php8.1-fpm' 2>&1"),
+        ("checking webmail", "curl -I https://webmail.recaria.org 2>&1 | head -1"),
+    ]
+    
+    success = True
+    
+    for step_name, command, *timeout_args in steps:
+        timeout_val = timeout_args[0] if timeout_args else 15
+        
+        move_cursor(content_x + 4, y)
+        print(f"⏳ {step_name}...", end='')
+        sys.stdout.flush()
+        
+        try:
+            result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=timeout_val)
+            
+            move_cursor(content_x + 4, y)
+            if result.returncode == 0:
+                print(f"✅ {step_name}")
+                
+                # Show specific outputs
+                if "checking webmail" in step_name:
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    if "HTTP" in result.stdout:
+                        print(f"{Colors.GREEN}✅ webmail accessible{Colors.RESET}")
+                    else:
+                        print(f"{Colors.YELLOW}webmail starting...{Colors.RESET}")
+            else:
+                print(f"❌ {step_name}")
+                # Show error but don't fail for optional steps
+                if "database" in step_name or "user exists" in result.stdout:
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    print(f"{Colors.DIM}already configured{Colors.RESET}")
+                else:
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    error_msg = (result.stderr or result.stdout).strip()[:cols - content_x - 8]
+                    print(f"{Colors.DIM}{error_msg}{Colors.RESET}")
+                    if "checking" not in step_name:
+                        success = False
+        except subprocess.TimeoutExpired:
+            move_cursor(content_x + 4, y)
+            print(f"⚠️  {step_name} (timeout after {timeout_val}s)")
+            if "checking" not in step_name:
+                success = False
+        except Exception as e:
+            move_cursor(content_x + 4, y)
+            print(f"❌ {step_name}: {str(e)[:50]}")
+            success = False
+        
+        y += 1
+    
+    # Final status
+    y += 1
+    if y > lines - 6:
+        y = lines - 6
+    
+    move_cursor(content_x + 2, y)
+    if success:
+        print(f"{Colors.GREEN}✅ webmail configured!{Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.CYAN}access: https://webmail.recaria.org{Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.DIM}login with: username@recaria.org{Colors.RESET}")
+    else:
+        print(f"{Colors.RED}❌ webmail setup incomplete{Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.YELLOW}check logs: ssh rocksteady 'sudo tail /var/log/nginx/error.log'{Colors.RESET}")
+    
+    # Wait for ESC or left arrow
+    y += 2
+    if y > lines - 3:
+        y = lines - 3
+    
+    move_cursor(content_x + 2, y)
+    print(f"{Colors.DIM}press esc or ← to return...{Colors.RESET}")
+    sys.stdout.flush()
+    
+    # Show cursor and wait for ESC or left arrow
+    show_cursor()
+    
+    # Non-blocking wait for ESC or left arrow only
+    import select
+    import termios
+    import tty
+    
+    old_settings = termios.tcgetattr(sys.stdin)
+    try:
+        tty.setcbreak(sys.stdin.fileno())
+        
+        while True:
+            # Check if input is available (non-blocking)
+            if select.select([sys.stdin], [], [], 0.05)[0]:  # 50ms timeout
+                key = sys.stdin.read(1)
+                
+                # Check for escape sequences
+                if key == '\x1b':  # ESC or arrow key start
+                    # Check if it's an arrow key
+                    if select.select([sys.stdin], [], [], 0)[0]:
+                        key2 = sys.stdin.read(1)
+                        if key2 == '[':
+                            if select.select([sys.stdin], [], [], 0)[0]:
+                                key3 = sys.stdin.read(1)
+                                if key3 == 'D':  # Left arrow
+                                    break
+                    else:
+                        # Just ESC key
+                        break
+            
+            # Keep footer updated
+            time.sleep(0.05)
+            
+    finally:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+    
+    hide_cursor()
+
 def load_ssh_key():
     """Load SSH key to agent with passphrase"""
     from main import (Colors, move_cursor, get_terminal_size,
@@ -2210,6 +2375,29 @@ def public_server_menu():
                                 sys.stdout.write('\033[K')
                             move_cursor(29, 5)
                             print(f"{Colors.RED}❌ mail setup error: {str(e)[:80]}{Colors.RESET}")
+                            move_cursor(29, lines - 3)
+                            print(f"{Colors.DIM}press any key to return...{Colors.RESET}")
+                            sys.stdout.flush()
+                            get_single_key()
+                        # Redraw menu properly after returning with full redraw
+                        menu_state.in_submenu = 'public_server'
+                        draw_public_server_menu(full_redraw=True)
+                        draw_footer()
+                        sys.stdout.flush()
+                    
+                    elif selected_key == "setup_webmail":
+                        try:
+                            setup_webmail()
+                        except KeyboardInterrupt:
+                            # User pressed Ctrl+C, return to menu
+                            pass
+                        except Exception as e:
+                            # Show error and wait
+                            for y in range(2, lines - 2):
+                                move_cursor(27, y)
+                                sys.stdout.write('\033[K')
+                            move_cursor(29, 5)
+                            print(f"{Colors.RED}❌ webmail setup error: {str(e)[:80]}{Colors.RESET}")
                             move_cursor(29, lines - 3)
                             print(f"{Colors.DIM}press any key to return...{Colors.RESET}")
                             sys.stdout.flush()

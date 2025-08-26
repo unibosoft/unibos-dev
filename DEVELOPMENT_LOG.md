@@ -1423,3 +1423,8 @@ Each entry should follow this format:
 - Result: Email server ready for user@recaria.org addresses with IMAP/SMTP support
 
 
+## [2025-08-26 23:13] Webmail: Added Roundcube webmail setup
+- Implemented complete webmail installation with Roundcube, PHP-FPM configuration, nginx setup for webmail.recaria.org, PostgreSQL database for webmail
+- Result: Webmail accessible at https://webmail.recaria.org for all users
+
+
