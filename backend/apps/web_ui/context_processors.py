@@ -153,4 +153,5 @@ def unibos_context(request):
         'hostname': hostname,
         'environment': environment,
         'display_name': display_name,
+        'footer_nav': '↑↓ navigate | → select | tab switch | L language | M minimize | q quit',
     }

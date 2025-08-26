@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-🪐 unibos v519 - unicorn bodrum operating system
+🪐 unibos v520 - unicorn bodrum operating system
 Simplified Web Forge + Lowercase UI + Single Server Architecture
 
 Author: berk hatırlı - bitez, bodrum, muğla, türkiye
-Version: v519_20250826_1843
+Version: v520_20250826_1853
 Purpose: Professional terminal UI with multi-module support"""
 
 import os
@@ -128,9 +128,9 @@ except ImportError:
 
 # Version information
 VERSION_INFO = {
-    "version": "v519",
-    "build": "20250826_1843", 
-    "build_date": "2025-08-26 18:43:13 +03:00",
+    "version": "v520",
+    "build": "20250826_1853", 
+    "build_date": "2025-08-26 18:53:18 +03:00",
     "author": "berk hatırlı",
     "location": "bitez, bodrum, muğla, türkiye, dünya, güneş sistemi, samanyolu, yerel galaksi grubu, evren"
 }
@@ -532,24 +532,15 @@ def draw_header():
     controls_text = "[_] [□] [X]"
     controls_len = len(controls_text)
     
-    # Right side info: language | username | time - ON SAME LINE
+    # Right side info: language | username - ON SAME LINE (no time)
     lang_flag = TRANSLATIONS[CURRENT_LANG]["flag"]
     lang_name = TRANSLATIONS[CURRENT_LANG]["name"]
     username = os.environ.get('USER', 'user')[:15]
     
-    # Get current time
-    try:
-        from zoneinfo import ZoneInfo
-        now = datetime.now(ZoneInfo('Europe/Istanbul'))
-    except ImportError:
-        now = datetime.now()
-    
-    current_date = now.strftime("%Y-%m-%d")
-    current_time = now.strftime("%H:%M:%S")
-    right_text = f"{lang_flag} {lang_name} | {username} | {current_time}"
+    right_text = f"{lang_flag} {lang_name} | {username}"
     
     # Calculate position for right-aligned text with controls
-    right_text_len = len(f"{lang_name} | {username} | {current_time}") + 3  # +3 for flag
+    right_text_len = len(f"{lang_name} | {username}") + 3  # +3 for flag
     controls_pos = cols - controls_len - 2
     right_pos = controls_pos - right_text_len - 2
     
@@ -687,39 +678,29 @@ def draw_footer(only_time=False):
     move_cursor(1, footer_start)
     print(f"{Colors.BG_DARK}{' ' * cols}{Colors.RESET}", end='', flush=True)
     
-    # Navigation hints on footer line
+    # Navigation hints on footer line - STANDARDIZED FORMAT
     move_cursor(2, footer_start)  # Single line footer
-    # Context-specific navigation hints
-    if menu_state.in_submenu in ['system_info', 'security_tools']:
-        nav_text = "← back/esc to return | enter to close"
-    elif menu_state.in_submenu == 'tools':
-        nav_text = "↑↓ navigate | → select | ← back"
-    elif menu_state.in_submenu == 'web_forge':
-        nav_text = "↑↓ navigate | enter select | ← back | q quit"
-    elif menu_state.in_submenu == 'version_manager':
-        nav_text = "↑↓ navigate | enter select | ← back | q quit"
-    elif menu_state.in_submenu == 'administration':
-        nav_text = "↑↓ navigate | enter select | ← back | q quit"
-    elif menu_state.in_submenu:
-        nav_text = "← back/esc to return | enter to launch"
-    else:
-        nav_text = "↑↓ navigate | → select | tab switch | L language | M minimize | q quit"
+    nav_text = "↑↓ navigate | → select | tab switch | L language | M minimize | q quit"
     
     # Draw navigation hints in gray
     print(f"{Colors.BG_DARK}{Colors.DIM}{nav_text}{Colors.RESET}", end='', flush=True)
     
     # Get location and hostname from system info
     from system_info import get_hostname
+    from datetime import datetime
+    
     location_text = "bitez, bodrum"
     hostname = get_hostname()
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    current_time = datetime.now().strftime("%H:%M:%S")
     
     # Get status LED
     status = get_system_status()
     status_text = "online"
     
-    # Build right side text: hostname | location | online
-    right_side = f"{hostname} | {location_text} | {status_text} {status}"
-    right_side_len = len(f"{hostname} | {location_text} | {status_text} ") + 1  # +1 for LED
+    # Build right side text: hostname | location | date | time | online
+    right_side = f"{hostname} | {location_text} | {current_date} | {current_time} | {status_text} {status}"
+    right_side_len = len(f"{hostname} | {location_text} | {current_date} | {current_time} | {status_text} ") + 1  # +1 for LED
     
     # Calculate position for right-aligned text
     right_pos = cols - right_side_len - 2
@@ -727,7 +708,7 @@ def draw_footer(only_time=False):
     
     # Draw right side info
     move_cursor(right_pos, footer_start)
-    print(f"{Colors.BG_DARK}{Colors.WHITE}{hostname} | {location_text} | {status_text} {status}{Colors.RESET}", end='', flush=True)
+    print(f"{Colors.BG_DARK}{Colors.WHITE}{hostname} | {location_text} | {current_date} | {current_time} | {status_text} {status}{Colors.RESET}", end='', flush=True)
 
 def initialize_menu_items():
     """Initialize menu items for sidebar - CENTRALIZED"""

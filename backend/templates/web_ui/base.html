@@ -783,14 +783,15 @@
     <!-- Footer Status Bar -->
     <div class="footer">
         <div class="footer-left">
-            <span>esc: back | tab: navigate | enter: select</span>
-            <span>{{ hostname }} | <span id="footer-date">{{ current_date }}</span> - {{ location }} - <span id="footer-time">{{ current_time }}</span></span>
+            <span>{{ footer_nav }}</span>
         </div>
         <div class="footer-right">
-            <div class="status-indicator">
-                <span class="status-dot {% if not online_status %}offline{% endif %}"></span>
-                <span>{% if online_status %}online{% else %}offline{% endif %}</span>
-            </div>
+            <span>{{ hostname }} | {{ location }} | <span id="footer-date">{{ current_date }}</span> | <span id="footer-time">{{ current_time }}</span> | 
+                <span class="status-indicator">
+                    <span class="status-dot {% if not online_status %}offline{% endif %}"></span>
+                    <span>{% if online_status %}online{% else %}offline{% endif %}</span>
+                </span>
+            </span>
         </div>
     </div>
     
