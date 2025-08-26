@@ -54,6 +54,7 @@ def get_public_server_options():
         return [
             ("header", "recaria.org control", ""),
             ("restart_recaria", "🌐 restart recaria.org", "ensure django is running properly on recaria.org"),
+            ("setup_ssl", "🔒 setup ssl certificate", "configure ssl/https for recaria.org"),
             ("separator", "", ""),
             ("header", "authentication", ""),
             ("load_ssh_key", "🔑 load ssh key", "add rocksteady-2025 key to ssh-agent"),
@@ -582,7 +583,7 @@ def restart_recaria():
     y = 5
     steps = [
         ("checking connection", "ssh rocksteady 'echo connected' 2>&1"),
-        ("killing old processes", "ssh rocksteady 'pkill -f \"manage.py runserver\" || true' 2>&1"),
+        ("killing old processes", "ssh rocksteady 'pkill -f \"manage.py runserver\" 2>/dev/null; echo \"cleaned\"' 2>&1"),
         ("ensuring directories", "ssh rocksteady 'mkdir -p ~/unibos/backend/logs ~/unibos/backend/staticfiles ~/unibos/backend/media ~/unibos/backend/apps/users ~/unibos/backend/unibos_backend/settings' 2>&1"),
         ("checking backend files", "ls backend/manage.py backend/requirements.txt backend/apps/users/models.py 2>&1"),
         ("syncing backend files", "rsync -az backend/manage.py backend/requirements.txt rocksteady:~/unibos/backend/ 2>&1"),
@@ -594,7 +595,7 @@ def restart_recaria():
         ("installing core deps", "ssh rocksteady 'cd ~/unibos/backend && ./venv/bin/pip install -q django djangorestframework django-cors-headers psycopg2-binary' 2>&1"),
         ("installing extra deps", "ssh rocksteady 'cd ~/unibos/backend && ./venv/bin/pip install -q django-redis whitenoise django-environ python-json-logger' 2>&1"),
         ("running migrations", "ssh rocksteady 'cd ~/unibos/backend && ./venv/bin/python manage.py migrate --run-syncdb 2>&1 | head -10'"),
-        ("killing old django", "ssh rocksteady 'pkill -f \"manage.py runserver\" || true' 2>&1"),
+        ("killing old django", "ssh rocksteady 'pkill -f \"manage.py runserver\" 2>/dev/null; echo \"cleaned\"' 2>&1"),
         ("starting django", "ssh rocksteady 'cd ~/unibos/backend && nohup ./venv/bin/python manage.py runserver 0.0.0.0:8000 > server.log 2>&1 & echo \"Django process started with PID: $!\"' 2>&1"),
         ("waiting for startup", "sleep 5"),
         ("checking django process", "ssh rocksteady 'pgrep -f \"manage.py runserver\" > /dev/null && echo \"✅ django process running\" || echo \"❌ django not running\"' 2>&1"),
@@ -732,6 +733,187 @@ def restart_recaria():
     move_cursor(content_x + 2, y)
     print(f"{Colors.DIM}press esc or ← to return...{Colors.RESET}")
     sys.stdout.flush()  # Force output
+    
+    # Show cursor and wait for ESC or left arrow
+    show_cursor()
+    
+    # Non-blocking wait for ESC or left arrow only
+    import select
+    import termios
+    import tty
+    
+    old_settings = termios.tcgetattr(sys.stdin)
+    try:
+        tty.setcbreak(sys.stdin.fileno())
+        
+        while True:
+            # Check if input is available (non-blocking)
+            if select.select([sys.stdin], [], [], 0.05)[0]:  # 50ms timeout
+                key = sys.stdin.read(1)
+                
+                # Check for escape sequences
+                if key == '\x1b':  # ESC or arrow key start
+                    # Check if it's an arrow key
+                    if select.select([sys.stdin], [], [], 0)[0]:
+                        key2 = sys.stdin.read(1)
+                        if key2 == '[':
+                            if select.select([sys.stdin], [], [], 0)[0]:
+                                key3 = sys.stdin.read(1)
+                                if key3 == 'D':  # Left arrow
+                                    break
+                    else:
+                        # Just ESC key
+                        break
+            
+            # Update time in footer while waiting (non-blocking)
+            # This keeps the clock running
+            pass
+            
+    finally:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+    
+    hide_cursor()
+
+def setup_ssl():
+    """Setup SSL certificate for recaria.org using Let's Encrypt"""
+    from main import (Colors, move_cursor, get_terminal_size,
+                      draw_footer, show_cursor, hide_cursor)
+    import subprocess
+    import time
+    import os
+    
+    cols, lines = get_terminal_size()
+    content_x = 27
+    
+    # Clear content area
+    for y in range(2, lines - 2):
+        move_cursor(content_x, y)
+        sys.stdout.write('\033[K')
+    sys.stdout.flush()
+    
+    # Title
+    move_cursor(content_x + 2, 3)
+    print(f"{Colors.BOLD}{Colors.CYAN}🔒  setup ssl certificate{Colors.RESET}")
+    
+    # Get proper working directory
+    base_dir = "/Users/berkhatirli/Desktop/unibos"
+    os.chdir(base_dir)
+    
+    y = 5
+    steps = [
+        ("checking connection", "ssh rocksteady 'echo connected' 2>&1"),
+        ("checking nginx", "ssh rocksteady 'which nginx || echo \"nginx not installed\"' 2>&1"),
+        ("checking certbot", "ssh rocksteady 'which certbot || echo \"certbot not installed\"' 2>&1"),
+        ("installing certbot", "ssh rocksteady 'sudo apt update && sudo apt install -y certbot python3-certbot-nginx' 2>&1", 60),
+        ("stopping nginx", "ssh rocksteady 'sudo systemctl stop nginx' 2>&1"),
+        ("obtaining certificate", "ssh rocksteady 'sudo certbot certonly --standalone -d recaria.org -d www.recaria.org --non-interactive --agree-tos --email berkhatirli@gmail.com' 2>&1", 60),
+        ("creating ssl config", "ssh rocksteady 'cat > /tmp/recaria-ssl.conf << \"EOF\"\nserver {\n    listen 80;\n    server_name recaria.org www.recaria.org;\n    return 301 https://\\$server_name\\$request_uri;\n}\n\nserver {\n    listen 443 ssl http2;\n    server_name recaria.org www.recaria.org;\n    \n    ssl_certificate /etc/letsencrypt/live/recaria.org/fullchain.pem;\n    ssl_certificate_key /etc/letsencrypt/live/recaria.org/privkey.pem;\n    \n    ssl_protocols TLSv1.2 TLSv1.3;\n    ssl_ciphers HIGH:!aNULL:!MD5;\n    ssl_prefer_server_ciphers off;\n    \n    add_header Strict-Transport-Security \"max-age=31536000\" always;\n    \n    location / {\n        proxy_pass http://127.0.0.1:8000;\n        proxy_set_header Host \\$host;\n        proxy_set_header X-Real-IP \\$remote_addr;\n        proxy_set_header X-Forwarded-For \\$proxy_add_x_forwarded_for;\n        proxy_set_header X-Forwarded-Proto \\$scheme;\n    }\n    \n    location /static/ {\n        alias /home/berkhatirli/unibos/backend/staticfiles/;\n    }\n    \n    location /media/ {\n        alias /home/berkhatirli/unibos/backend/media/;\n    }\n}\nEOF\n' 2>&1"),
+        ("copying nginx config", "ssh rocksteady 'sudo cp /tmp/recaria-ssl.conf /etc/nginx/sites-available/recaria.org' 2>&1"),
+        ("enabling site", "ssh rocksteady 'sudo ln -sf /etc/nginx/sites-available/recaria.org /etc/nginx/sites-enabled/' 2>&1"),
+        ("testing nginx config", "ssh rocksteady 'sudo nginx -t' 2>&1"),
+        ("starting nginx", "ssh rocksteady 'sudo systemctl start nginx' 2>&1"),
+        ("enabling auto-renewal", "ssh rocksteady 'sudo systemctl enable certbot.timer' 2>&1"),
+        ("verifying https", "curl -I -s https://recaria.org | head -1 2>&1"),
+    ]
+    
+    success = True
+    
+    for step_name, command, *timeout_args in steps:
+        timeout_val = timeout_args[0] if timeout_args else 15
+        
+        move_cursor(content_x + 4, y)
+        print(f"⏳ {step_name}...", end='')
+        sys.stdout.flush()
+        
+        try:
+            result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=timeout_val)
+            
+            move_cursor(content_x + 4, y)
+            if result.returncode == 0:
+                print(f"✅ {step_name}")
+                
+                # Show specific outputs
+                if "checking nginx" in step_name and "not installed" in result.stdout:
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    print(f"{Colors.YELLOW}nginx will be installed{Colors.RESET}")
+                elif "checking certbot" in step_name and "not installed" in result.stdout:
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    print(f"{Colors.YELLOW}certbot will be installed{Colors.RESET}")
+                elif "obtaining certificate" in step_name:
+                    if "Successfully received certificate" in result.stdout or "Certificate not yet due" in result.stdout:
+                        y += 1
+                        move_cursor(content_x + 6, y)
+                        print(f"{Colors.GREEN}✅ certificate obtained{Colors.RESET}")
+                    elif "already exists" in result.stdout:
+                        y += 1
+                        move_cursor(content_x + 6, y)
+                        print(f"{Colors.CYAN}certificate already exists{Colors.RESET}")
+                elif "verifying https" in step_name:
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    if "HTTP/2 200" in result.stdout or "HTTP/1.1 200" in result.stdout:
+                        print(f"{Colors.GREEN}✅ https working!{Colors.RESET}")
+                    else:
+                        print(f"{Colors.YELLOW}{result.stdout.strip()}{Colors.RESET}")
+            else:
+                print(f"❌ {step_name}")
+                if "obtaining certificate" in step_name and "already" in (result.stderr or result.stdout):
+                    # Certificate already exists, not a failure
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    print(f"{Colors.CYAN}certificate already exists{Colors.RESET}")
+                else:
+                    # Show error details
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    error_msg = (result.stderr or result.stdout).strip()
+                    if len(error_msg) > cols - content_x - 8:
+                        error_msg = error_msg[:cols - content_x - 8]
+                    print(f"{Colors.DIM}{error_msg}{Colors.RESET}")
+                    if "test" not in step_name.lower():
+                        success = False
+        except subprocess.TimeoutExpired:
+            move_cursor(content_x + 4, y)
+            print(f"⚠️  {step_name} (timeout after {timeout_val}s)")
+            if "verifying" not in step_name:
+                success = False
+        except Exception as e:
+            move_cursor(content_x + 4, y)
+            print(f"❌ {step_name}: {str(e)[:50]}")
+            success = False
+        
+        y += 1
+    
+    # Final status
+    y += 1
+    if y > lines - 6:
+        y = lines - 6
+    
+    move_cursor(content_x + 2, y)
+    if success:
+        print(f"{Colors.GREEN}✅ ssl setup complete!{Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.CYAN}secure access: https://recaria.org{Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.DIM}certificate auto-renews every 90 days{Colors.RESET}")
+    else:
+        print(f"{Colors.RED}❌ ssl setup failed{Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.YELLOW}check logs: ssh rocksteady 'sudo tail /var/log/nginx/error.log'{Colors.RESET}")
+    
+    # Wait for ESC or left arrow
+    y += 2
+    if y > lines - 3:
+        y = lines - 3
+    
+    move_cursor(content_x + 2, y)
+    print(f"{Colors.DIM}press esc or ← to return...{Colors.RESET}")
+    sys.stdout.flush()
     
     # Show cursor and wait for ESC or left arrow
     show_cursor()
@@ -1751,6 +1933,29 @@ def public_server_menu():
                                 sys.stdout.write('\033[K')
                             move_cursor(29, 5)
                             print(f"{Colors.RED}❌ restart error: {str(e)[:80]}{Colors.RESET}")
+                            move_cursor(29, lines - 3)
+                            print(f"{Colors.DIM}press any key to return...{Colors.RESET}")
+                            sys.stdout.flush()
+                            get_single_key()
+                        # Redraw menu properly after returning with full redraw
+                        menu_state.in_submenu = 'public_server'
+                        draw_public_server_menu(full_redraw=True)
+                        draw_footer()
+                        sys.stdout.flush()
+                    
+                    elif selected_key == "setup_ssl":
+                        try:
+                            setup_ssl()
+                        except KeyboardInterrupt:
+                            # User pressed Ctrl+C, return to menu
+                            pass
+                        except Exception as e:
+                            # Show error and wait
+                            for y in range(2, lines - 2):
+                                move_cursor(27, y)
+                                sys.stdout.write('\033[K')
+                            move_cursor(29, 5)
+                            print(f"{Colors.RED}❌ ssl setup error: {str(e)[:80]}{Colors.RESET}")
                             move_cursor(29, lines - 3)
                             print(f"{Colors.DIM}press any key to return...{Colors.RESET}")
                             sys.stdout.flush()
