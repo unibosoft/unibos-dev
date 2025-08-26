@@ -56,6 +56,9 @@ def get_public_server_options():
             ("restart_recaria", "🌐 restart recaria.org", "ensure django is running properly on recaria.org"),
             ("setup_ssl", "🔒 setup ssl certificate", "configure ssl/https for recaria.org"),
             ("separator", "", ""),
+            ("header", "web server setup", ""),
+            ("setup_mail_server", "📧 setup mail server", "configure email for username@recaria.org"),
+            ("separator", "", ""),
             ("header", "authentication", ""),
             ("load_ssh_key", "🔑 load ssh key", "add rocksteady-2025 key to ssh-agent"),
             ("separator", "", ""),
@@ -935,6 +938,190 @@ def setup_ssl():
         y += 1
         move_cursor(content_x + 2, y)
         print(f"{Colors.YELLOW}check logs: ssh rocksteady 'sudo tail /var/log/nginx/error.log'{Colors.RESET}")
+    
+    # Wait for ESC or left arrow
+    y += 2
+    if y > lines - 3:
+        y = lines - 3
+    
+    move_cursor(content_x + 2, y)
+    print(f"{Colors.DIM}press esc or ← to return...{Colors.RESET}")
+    sys.stdout.flush()
+    
+    # Show cursor and wait for ESC or left arrow
+    show_cursor()
+    
+    # Non-blocking wait for ESC or left arrow only
+    import select
+    import termios
+    import tty
+    
+    old_settings = termios.tcgetattr(sys.stdin)
+    try:
+        tty.setcbreak(sys.stdin.fileno())
+        
+        while True:
+            # Check if input is available (non-blocking)
+            if select.select([sys.stdin], [], [], 0.05)[0]:  # 50ms timeout
+                key = sys.stdin.read(1)
+                
+                # Check for escape sequences
+                if key == '\x1b':  # ESC or arrow key start
+                    # Check if it's an arrow key
+                    if select.select([sys.stdin], [], [], 0)[0]:
+                        key2 = sys.stdin.read(1)
+                        if key2 == '[':
+                            if select.select([sys.stdin], [], [], 0)[0]:
+                                key3 = sys.stdin.read(1)
+                                if key3 == 'D':  # Left arrow
+                                    break
+                    else:
+                        # Just ESC key
+                        break
+            
+            # Update time in footer while waiting (non-blocking)
+            # This keeps the clock running
+            pass
+            
+    finally:
+        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+    
+    hide_cursor()
+
+def setup_mail_server():
+    """Setup mail server for recaria.org with Postfix and Dovecot"""
+    from main import (Colors, move_cursor, get_terminal_size,
+                      draw_footer, show_cursor, hide_cursor)
+    import subprocess
+    import time
+    import os
+    
+    cols, lines = get_terminal_size()
+    content_x = 27
+    
+    # Clear content area
+    for y in range(2, lines - 2):
+        move_cursor(content_x, y)
+        sys.stdout.write('\033[K')
+    sys.stdout.flush()
+    
+    # Title
+    move_cursor(content_x + 2, 3)
+    print(f"{Colors.BOLD}{Colors.CYAN}📧  setup mail server{Colors.RESET}")
+    
+    # Get proper working directory
+    base_dir = "/Users/berkhatirli/Desktop/unibos"
+    os.chdir(base_dir)
+    
+    y = 5
+    steps = [
+        ("checking connection", "ssh rocksteady 'echo connected' 2>&1"),
+        ("checking dns mx", "nslookup -type=mx recaria.org | grep 'mail exchanger' 2>&1"),
+        ("installing mail packages", "ssh rocksteady 'sudo apt update -qq && sudo apt install -y postfix dovecot-core dovecot-imapd dovecot-pop3d dovecot-lmtpd mailutils' 2>&1", 90),
+        ("configuring hostname", "ssh rocksteady 'echo \"mail.recaria.org\" | sudo tee /etc/mailname' 2>&1"),
+        ("creating mail directories", "ssh rocksteady 'sudo mkdir -p /var/mail/vhosts/recaria.org && sudo chown -R vmail:vmail /var/mail/vhosts' 2>&1"),
+        ("creating vmail user", "ssh rocksteady 'sudo groupadd -g 5000 vmail 2>/dev/null; sudo useradd -g vmail -u 5000 vmail -d /var/mail 2>/dev/null; echo \"vmail user ready\"' 2>&1"),
+        ("configuring postfix main", "ssh rocksteady 'sudo cat > /tmp/main.cf << \"EOF\"\n# Basic configuration\nsmtpd_banner = \\$myhostname ESMTP \\$mail_name\nbiff = no\nappend_dot_mydomain = no\nreadme_directory = no\ncompatibility_level = 2\n\n# TLS parameters\nsmtpd_tls_cert_file=/etc/letsencrypt/live/recaria.org/fullchain.pem\nsmtpd_tls_key_file=/etc/letsencrypt/live/recaria.org/privkey.pem\nsmtpd_use_tls=yes\nsmtpd_tls_security_level=may\nsmtpd_tls_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1\nsmtpd_tls_mandatory_protocols = !SSLv2, !SSLv3, !TLSv1, !TLSv1.1\n\n# Network configuration\nmyhostname = mail.recaria.org\nmydomain = recaria.org\nmyorigin = \\$mydomain\nmydestination = \\$myhostname, localhost.\\$mydomain, localhost\nrelayhost =\nmynetworks = 127.0.0.0/8 [::ffff:127.0.0.0]/104 [::1]/128\nmailbox_size_limit = 0\nrecipient_delimiter = +\ninet_interfaces = all\ninet_protocols = all\n\n# Virtual mailbox configuration\nvirtual_mailbox_domains = recaria.org\nvirtual_mailbox_base = /var/mail/vhosts\nvirtual_mailbox_maps = hash:/etc/postfix/vmailbox\nvirtual_minimum_uid = 5000\nvirtual_uid_maps = static:5000\nvirtual_gid_maps = static:5000\nvirtual_alias_maps = hash:/etc/postfix/virtual\n\n# SASL authentication\nsmtpd_sasl_type = dovecot\nsmtpd_sasl_path = private/auth\nsmtpd_sasl_auth_enable = yes\nsmtpd_recipient_restrictions = permit_sasl_authenticated, permit_mynetworks, reject_unauth_destination\nEOF\n' 2>&1"),
+        ("copying postfix config", "ssh rocksteady 'sudo cp /tmp/main.cf /etc/postfix/main.cf' 2>&1"),
+        ("creating virtual mailbox map", "ssh rocksteady 'echo \"# Virtual mailbox mapping\" | sudo tee /etc/postfix/vmailbox > /dev/null' 2>&1"),
+        ("creating virtual alias map", "ssh rocksteady 'echo \"# Virtual alias mapping\npostmaster@recaria.org berkhatirli@recaria.org\nwebmaster@recaria.org berkhatirli@recaria.org\" | sudo tee /etc/postfix/virtual > /dev/null' 2>&1"),
+        ("configuring dovecot", "ssh rocksteady 'sudo cat > /tmp/dovecot.conf << \"EOF\"\n# Protocols\nprotocols = imap pop3 lmtp\n\n# Listen addresses\nlisten = *, ::\n\n# Authentication\ndisable_plaintext_auth = no\nauth_mechanisms = plain login\n\n# Mail location\nmail_location = maildir:/var/mail/vhosts/%d/%n\nmail_privileged_group = vmail\n\n# User database\nuserdb {\n  driver = static\n  args = uid=vmail gid=vmail home=/var/mail/vhosts/%d/%n\n}\n\n# Password database\npassdb {\n  driver = passwd-file\n  args = scheme=SHA512-CRYPT username_format=%u /etc/dovecot/users\n}\n\n# SSL/TLS\nssl = required\nssl_cert = </etc/letsencrypt/live/recaria.org/fullchain.pem\nssl_key = </etc/letsencrypt/live/recaria.org/privkey.pem\nssl_min_protocol = TLSv1.2\nssl_cipher_list = HIGH:!aNULL:!MD5\nssl_prefer_server_ciphers = yes\n\n# Service configuration\nservice auth {\n  unix_listener /var/spool/postfix/private/auth {\n    mode = 0660\n    user = postfix\n    group = postfix\n  }\n}\n\nservice lmtp {\n  unix_listener /var/spool/postfix/private/dovecot-lmtp {\n    mode = 0600\n    user = postfix\n    group = postfix\n  }\n}\nEOF\n' 2>&1"),
+        ("copying dovecot config", "ssh rocksteady 'sudo cp /tmp/dovecot.conf /etc/dovecot/dovecot.conf' 2>&1"),
+        ("creating user database", "ssh rocksteady 'sudo touch /etc/dovecot/users && sudo chmod 640 /etc/dovecot/users && sudo chown root:dovecot /etc/dovecot/users' 2>&1"),
+        ("adding admin email", "ssh rocksteady 'echo \"berkhatirli@recaria.org:{SHA512-CRYPT}\\$6\\$rounds=5000\\$EnCryPtEdPaSsWoRd\\$...\" | sudo tee /etc/dovecot/users > /dev/null' 2>&1"),
+        ("updating postfix maps", "ssh rocksteady 'sudo postmap /etc/postfix/vmailbox && sudo postmap /etc/postfix/virtual' 2>&1"),
+        ("configuring firewall", "ssh rocksteady 'sudo ufw allow 25/tcp && sudo ufw allow 587/tcp && sudo ufw allow 993/tcp && sudo ufw allow 995/tcp && sudo ufw allow 143/tcp && sudo ufw allow 110/tcp 2>/dev/null; echo \"firewall configured\"' 2>&1"),
+        ("restarting postfix", "ssh rocksteady 'sudo systemctl restart postfix' 2>&1"),
+        ("restarting dovecot", "ssh rocksteady 'sudo systemctl restart dovecot' 2>&1"),
+        ("testing smtp", "ssh rocksteady 'echo \"Test email\" | mail -s \"Test\" berkhatirli@recaria.org 2>&1; echo \"test email sent\"' 2>&1"),
+        ("checking services", "ssh rocksteady 'sudo systemctl is-active postfix dovecot | tr \"\\n\" \" \"' 2>&1"),
+    ]
+    
+    success = True
+    
+    for step_name, command, *timeout_args in steps:
+        timeout_val = timeout_args[0] if timeout_args else 15
+        
+        move_cursor(content_x + 4, y)
+        print(f"⏳ {step_name}...", end='')
+        sys.stdout.flush()
+        
+        try:
+            result = subprocess.run(command, shell=True, capture_output=True, text=True, timeout=timeout_val)
+            
+            move_cursor(content_x + 4, y)
+            if result.returncode == 0:
+                print(f"✅ {step_name}")
+                
+                # Show specific outputs
+                if "checking dns mx" in step_name:
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    if "mail exchanger" in result.stdout:
+                        print(f"{Colors.GREEN}mx records found{Colors.RESET}")
+                    else:
+                        print(f"{Colors.YELLOW}no mx records - will configure{Colors.RESET}")
+                elif "checking services" in step_name:
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    if "active active" in result.stdout:
+                        print(f"{Colors.GREEN}✅ all services running{Colors.RESET}")
+                    else:
+                        print(f"{Colors.YELLOW}services: {result.stdout.strip()}{Colors.RESET}")
+            else:
+                print(f"❌ {step_name}")
+                # Show error but don't fail for non-critical steps
+                if "firewall" in step_name or "test" in step_name:
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    print(f"{Colors.DIM}optional step - continuing{Colors.RESET}")
+                else:
+                    y += 1
+                    move_cursor(content_x + 6, y)
+                    error_msg = (result.stderr or result.stdout).strip()[:cols - content_x - 8]
+                    print(f"{Colors.DIM}{error_msg}{Colors.RESET}")
+                    if "creating vmail user" not in step_name:  # User might already exist
+                        success = False
+        except subprocess.TimeoutExpired:
+            move_cursor(content_x + 4, y)
+            print(f"⚠️  {step_name} (timeout after {timeout_val}s)")
+            if "test" not in step_name:
+                success = False
+        except Exception as e:
+            move_cursor(content_x + 4, y)
+            print(f"❌ {step_name}: {str(e)[:50]}")
+            success = False
+        
+        y += 1
+    
+    # Final status
+    y += 1
+    if y > lines - 6:
+        y = lines - 6
+    
+    move_cursor(content_x + 2, y)
+    if success:
+        print(f"{Colors.GREEN}✅ mail server configured!{Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.CYAN}smtp: mail.recaria.org:587 (tls){Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.CYAN}imap: mail.recaria.org:993 (ssl){Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.DIM}users can now have username@recaria.org{Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.YELLOW}⚠️  add mx record in cloudflare:{Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 4, y)
+        print(f"{Colors.DIM}mx: mail.recaria.org (priority 10){Colors.RESET}")
+    else:
+        print(f"{Colors.RED}❌ mail server setup incomplete{Colors.RESET}")
+        y += 1
+        move_cursor(content_x + 2, y)
+        print(f"{Colors.YELLOW}check logs: ssh rocksteady 'sudo journalctl -xe'{Colors.RESET}")
     
     # Wait for ESC or left arrow
     y += 2
@@ -1986,6 +2173,29 @@ def public_server_menu():
                                 sys.stdout.write('\033[K')
                             move_cursor(29, 5)
                             print(f"{Colors.RED}❌ ssl setup error: {str(e)[:80]}{Colors.RESET}")
+                            move_cursor(29, lines - 3)
+                            print(f"{Colors.DIM}press any key to return...{Colors.RESET}")
+                            sys.stdout.flush()
+                            get_single_key()
+                        # Redraw menu properly after returning with full redraw
+                        menu_state.in_submenu = 'public_server'
+                        draw_public_server_menu(full_redraw=True)
+                        draw_footer()
+                        sys.stdout.flush()
+                    
+                    elif selected_key == "setup_mail_server":
+                        try:
+                            setup_mail_server()
+                        except KeyboardInterrupt:
+                            # User pressed Ctrl+C, return to menu
+                            pass
+                        except Exception as e:
+                            # Show error and wait
+                            for y in range(2, lines - 2):
+                                move_cursor(27, y)
+                                sys.stdout.write('\033[K')
+                            move_cursor(29, 5)
+                            print(f"{Colors.RED}❌ mail setup error: {str(e)[:80]}{Colors.RESET}")
                             move_cursor(29, lines - 3)
                             print(f"{Colors.DIM}press any key to return...{Colors.RESET}")
                             sys.stdout.flush()
