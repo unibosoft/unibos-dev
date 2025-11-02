@@ -1,10 +1,10 @@
 {
-  "version": "v526",
-  "build_number": "20251102_0501",
-  "release_date": "2025-11-02 05:01:52 +0300",
+  "version": "v527",
+  "build_number": "20251102_0644",
+  "release_date": "2025-11-02 06:44:41 +0300",
   "author": "berk hatırlı",
   "location": "bitez, bodrum, muğla, türkiye, dünya, güneş sistemi, samanyolu, yerel galaksi grubu, evren",
-  "description": "birlikteyiz flutter uygulaması - logo ve ui iyileştirmeleri, harita zoom düzeltmeleri",
+  "description": "Fixed CSRF error in birlikteyiz manual earthquake fetch",
   "features": [
     "🎬 **Movies Module**: Complete movie/series collection management with TMDB/OMDB API integration",
     "🎵 **Music Module**: Spotify-integrated music library without storing files, open source artwork",
