@@ -28,10 +28,6 @@ def sidebar_context(request):
     # Base tools - conditionally add administration (using CLI emojis)
     tools = [
         {'id': 'system_scrolls', 'name': 'system scrolls', 'icon': '📊'},
-        {'id': 'castle_guard', 'name': 'castle guard', 'icon': '🔒'},
-        {'id': 'forge_smithy', 'name': 'forge smithy', 'icon': '🔧'},
-        {'id': 'anvil_repair', 'name': 'anvil repair', 'icon': '🛠️'},
-        {'id': 'code_forge', 'name': 'code forge', 'icon': '📦'},
         {'id': 'web_forge', 'name': 'web forge', 'icon': '🌐'},
     ]
     

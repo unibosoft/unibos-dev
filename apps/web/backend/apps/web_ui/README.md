@@ -89,8 +89,7 @@ Open your browser and navigate to:
 │                  │                                   │
 │  TOOLS           │                                   │
 │  ▸ System Scrolls│                                   │
-│  ▸ Castle Guard │                                   │
-│  ▸ Web UI       │                                   │
+│  ▸ Web Forge    │                                   │
 │                  │                                   │
 │  DEV TOOLS       │                                   │
 │  ▸ AI Builder   │                                   │
