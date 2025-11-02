@@ -1,10 +1,10 @@
 {
-  "version": "v528",
-  "build_number": "20251102_1230",
-  "release_date": "2025-11-02 12:30:12 +0300",
+  "version": "v529",
+  "build_number": "20251102_1259",
+  "release_date": "2025-11-02 12:59:55 +0300",
   "author": "berk hatırlı",
   "location": "bitez, bodrum, muğla, türkiye, dünya, güneş sistemi, samanyolu, yerel galaksi grubu, evren",
-  "description": "Comprehensive monorepo restructuring and path consistency updates",
+  "description": "Regular update and maintenance",
   "features": [
     "🎬 **Movies Module**: Complete movie/series collection management with TMDB/OMDB API integration",
     "🎵 **Music Module**: Spotify-integrated music library without storing files, open source artwork",
