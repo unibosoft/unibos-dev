@@ -17,38 +17,52 @@ from .models import (
 @login_required
 def birlikteyiz_dashboard(request):
     """Main dashboard for Birlikteyiz module"""
-    
-    # Get recent earthquakes
-    recent_earthquakes = Earthquake.objects.filter(
+
+    # Get recent earthquakes (base queryset - NO slice yet)
+    recent_earthquakes_qs = Earthquake.objects.filter(
         occurred_at__gte=timezone.now() - timedelta(days=7)
-    ).order_by('-occurred_at')[:50]
-    
+    ).order_by('-occurred_at')
+
     # Get active disaster zones
     active_zones = DisasterZone.objects.filter(
         is_active=True
     ).order_by('-severity', '-declared_at')[:5]
-    
+
     # Get mesh network stats
     total_nodes = MeshNode.objects.count()
     online_nodes = MeshNode.objects.filter(is_online=True).count()
     recent_messages = EmergencyMessage.objects.filter(
         created_at__gte=timezone.now() - timedelta(hours=24)
     ).count()
-    
+
     # Get resource points
     resource_points = ResourcePoint.objects.filter(
         is_operational=True
     ).select_related()[:10]
-    
-    # Get data sources
+
+    # Get data sources with health status
     data_sources = EarthquakeDataSource.objects.all()
-    
-    # Count earthquakes for badge
+
+    # Enhanced earthquake statistics
     earthquake_count = Earthquake.objects.filter(
         occurred_at__gte=timezone.now() - timedelta(days=1),
         magnitude__gte=3.0
     ).count()
-    
+
+    # Count by magnitude ranges (last 7 days) - use queryset BEFORE slice
+    major_quakes = recent_earthquakes_qs.filter(magnitude__gte=5.0).count()
+    moderate_quakes = recent_earthquakes_qs.filter(magnitude__gte=4.0, magnitude__lt=5.0).count()
+    minor_quakes = recent_earthquakes_qs.filter(magnitude__gte=3.0, magnitude__lt=4.0).count()
+
+    # Get strongest earthquake in last 7 days
+    strongest_quake = recent_earthquakes_qs.order_by('-magnitude').first()
+
+    # Get most recent earthquake
+    latest_quake = recent_earthquakes_qs.first()
+
+    # NOW apply slice for template display
+    recent_earthquakes = recent_earthquakes_qs[:50]
+
     context = {
         'recent_earthquakes': recent_earthquakes,
         'active_zones': active_zones,
@@ -58,8 +72,13 @@ def birlikteyiz_dashboard(request):
         'resource_points': resource_points,
         'data_sources': data_sources,
         'earthquake_count': earthquake_count,
+        'major_quakes': major_quakes,
+        'moderate_quakes': moderate_quakes,
+        'minor_quakes': minor_quakes,
+        'strongest_quake': strongest_quake,
+        'latest_quake': latest_quake,
     }
-    
+
     return render(request, 'birlikteyiz/dashboard.html', context)
 
 
@@ -141,16 +160,74 @@ def cron_jobs(request):
 @require_POST
 def manual_fetch(request):
     """Manually trigger earthquake data fetch"""
-    
+
     try:
         # Run the command in a background thread to not block the request
         def fetch_data():
             call_command('fetch_earthquakes')
-        
+
         thread = threading.Thread(target=fetch_data)
         thread.daemon = True
         thread.start()
-        
+
         return JsonResponse({'success': True, 'message': 'veri çekme işlemi başlatıldı'})
     except Exception as e:
         return JsonResponse({'success': False, 'error': str(e)})
+
+
+@login_required
+def earthquake_map(request):
+    """Interactive map view of earthquakes"""
+
+    # Get filter parameters
+    days = request.GET.get('days', 7)
+    try:
+        days = int(days)
+    except:
+        days = 7
+
+    magnitude_min = request.GET.get('magnitude_min', 2.5)
+    try:
+        magnitude_min = float(magnitude_min)
+    except:
+        magnitude_min = 2.5
+
+    # Get earthquakes for map
+    earthquakes = Earthquake.objects.filter(
+        occurred_at__gte=timezone.now() - timedelta(days=days),
+        magnitude__gte=magnitude_min
+    ).order_by('-occurred_at')[:500]  # Limit to 500 for performance
+
+    # Convert to list for JSON serialization
+    earthquake_data = []
+    for eq in earthquakes:
+        earthquake_data.append({
+            'id': eq.id,
+            'lat': float(eq.latitude),
+            'lon': float(eq.longitude),
+            'magnitude': float(eq.magnitude),
+            'depth': float(eq.depth),
+            'location': eq.location,
+            'city': eq.city or '',
+            'source': eq.source,
+            'occurred_at': eq.occurred_at.strftime('%Y-%m-%d %H:%M:%S'),
+            'time_ago': f'{(timezone.now() - eq.occurred_at).days} gün önce' if (timezone.now() - eq.occurred_at).days > 0 else f'{(timezone.now() - eq.occurred_at).seconds // 3600} saat önce'
+        })
+
+    # Statistics
+    total_earthquakes = len(earthquake_data)
+    major_count = len([e for e in earthquake_data if e['magnitude'] >= 5.0])
+    moderate_count = len([e for e in earthquake_data if 4.0 <= e['magnitude'] < 5.0])
+    minor_count = len([e for e in earthquake_data if 3.0 <= e['magnitude'] < 4.0])
+
+    context = {
+        'earthquake_data': earthquake_data,
+        'total_earthquakes': total_earthquakes,
+        'major_count': major_count,
+        'moderate_count': moderate_count,
+        'minor_count': minor_count,
+        'filter_days': days,
+        'filter_magnitude_min': magnitude_min,
+    }
+
+    return render(request, 'birlikteyiz/earthquake_map.html', context)

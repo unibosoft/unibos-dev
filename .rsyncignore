@@ -72,3 +72,13 @@ tmp/
 temp/
 *.tmp
 *.temp
+
+# Production settings (preserve remote)
+backend/.env
+backend/unibos_backend/settings/production.py
+backend/unibos_backend/settings/production_*.py
+
+# Django generated
+backend/staticfiles/
+backend/media/
+backend/venv/

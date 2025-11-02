@@ -457,7 +457,7 @@ class PublicServerMenu:
                     self.deploy_cli()
     
     def full_deployment(self):
-        """Full deployment with setup"""
+        """Full deployment with complete setup"""
         cols, lines = get_terminal_size()
         clear_screen()
         
@@ -468,29 +468,102 @@ class PublicServerMenu:
         print(f"{Colors.CYAN}📦 FULL DEPLOYMENT{Colors.RESET}")
         
         move_cursor(content_x, 4)
-        print(f"complete setup on {Colors.GREEN}{self.config['server']['host']}{Colors.RESET}")
+        print(f"complete setup on {Colors.GREEN}rocksteady{Colors.RESET}")
         
         y = 6
-        steps = [
-            "syncing files...",
-            "installing dependencies...",
-            "setting up database...",
-            "collecting static files...",
-            "running migrations...",
-            "starting services..."
-        ]
         
-        for step in steps:
+        # Check for rocksteady_deploy.sh
+        deploy_script = self.base_path / "rocksteady_deploy.sh"
+        if deploy_script.exists():
+            # Use the existing deployment script
             move_cursor(content_x, y)
-            print(f"{Colors.YELLOW}⏳ {step}{Colors.RESET}")
-            time.sleep(0.5)  # Simulate work
+            print(f"{Colors.YELLOW}⏳ running full deployment script...{Colors.RESET}")
+            y += 2
+            
+            try:
+                # Run the deployment script
+                result = subprocess.run(
+                    ["./rocksteady_deploy.sh", "deploy"],
+                    cwd=self.base_path,
+                    capture_output=True,
+                    text=True,
+                    timeout=300  # 5 minute timeout
+                )
+                
+                # Parse and display output
+                output_lines = result.stdout.split('\n')
+                for line in output_lines:
+                    if '✅' in line or 'complete' in line.lower():
+                        move_cursor(content_x, y)
+                        print(f"{Colors.GREEN}{line}{Colors.RESET}")
+                        y += 1
+                    elif '⏳' in line or 'ing' in line:
+                        move_cursor(content_x, y)
+                        print(f"{Colors.YELLOW}{line}{Colors.RESET}")
+                        y += 1
+                    elif '❌' in line or 'error' in line.lower():
+                        move_cursor(content_x, y)
+                        print(f"{Colors.RED}{line}{Colors.RESET}")
+                        y += 1
+                    
+                    if y > lines - 5:
+                        break
+                
+                if result.returncode == 0:
+                    y += 1
+                    move_cursor(content_x, y)
+                    print(f"{Colors.GREEN}✅ full deployment successful!{Colors.RESET}")
+                else:
+                    y += 1
+                    move_cursor(content_x, y)
+                    print(f"{Colors.RED}❌ deployment had issues{Colors.RESET}")
+                    
+            except subprocess.TimeoutExpired:
+                move_cursor(content_x, y)
+                print(f"{Colors.RED}❌ deployment timeout{Colors.RESET}")
+            except Exception as e:
+                move_cursor(content_x, y)
+                print(f"{Colors.RED}❌ error: {str(e)}{Colors.RESET}")
+        else:
+            # Manual deployment steps
+            steps = [
+                ("backing up settings", "ssh rocksteady 'cd ~/unibos/backend && cp -f unibos_backend/settings/production.py /tmp/prod_bak.py 2>/dev/null || true; cp -f .env /tmp/env_bak 2>/dev/null || true'"),
+                ("syncing files", "rsync -avz --exclude-from=.rsyncignore . rocksteady:~/unibos/"),
+                ("restoring settings", "ssh rocksteady 'cd ~/unibos/backend && [ -f /tmp/prod_bak.py ] && cp -f /tmp/prod_bak.py unibos_backend/settings/production.py || true; [ -f /tmp/env_bak ] && cp -f /tmp/env_bak .env || true'"),
+                ("fixing gunicorn config", "ssh rocksteady '[ -f ~/unibos/backend/gunicorn.conf.py ] && rm -f ~/unibos/backend/gunicorn.conf.py || true'"),
+                ("checking venv", "ssh rocksteady '[ -d ~/unibos/backend/venv ] || (cd ~/unibos/backend && python3 -m venv venv)'"),
+                ("installing dependencies", "ssh rocksteady 'cd ~/unibos/backend && ./venv/bin/pip install -q -r requirements.txt'"),
+                ("running migrations", "ssh rocksteady 'cd ~/unibos/backend && ./venv/bin/python manage.py migrate --noinput'"),
+                ("collecting static", "ssh rocksteady 'cd ~/unibos/backend && ./venv/bin/python manage.py collectstatic --noinput'"),
+                ("restarting services", "ssh rocksteady 'sudo systemctl restart gunicorn && sudo systemctl reload nginx'")
+            ]
+            
+            for step_name, cmd in steps:
+                move_cursor(content_x, y)
+                print(f"{Colors.YELLOW}⏳ {step_name}...{Colors.RESET}")
+                
+                try:
+                    result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=60)
+                    
+                    if result.returncode == 0:
+                        move_cursor(content_x, y)
+                        print(f"{Colors.GREEN}✅ {step_name}{Colors.RESET}")
+                    else:
+                        move_cursor(content_x, y)
+                        print(f"{Colors.YELLOW}⚠ {step_name} (may need manual check){Colors.RESET}")
+                except:
+                    move_cursor(content_x, y)
+                    print(f"{Colors.YELLOW}⚠ {step_name} (skipped){Colors.RESET}")
+                
+                y += 1
+            
+            y += 2
             move_cursor(content_x, y)
-            print(f"{Colors.GREEN}✅ {step}{Colors.RESET}")
-            y += 1
+            print(f"{Colors.GREEN}✅ deployment steps completed!{Colors.RESET}")
         
         y += 2
         move_cursor(content_x, y)
-        print(f"{Colors.GREEN}✅ full deployment complete!{Colors.RESET}")
+        print(f"web ui: {Colors.CYAN}https://recaria.org{Colors.RESET}")
         
         move_cursor(content_x, lines - 3)
         print(f"{Colors.DIM}press any key to continue...{Colors.RESET}")
@@ -508,14 +581,83 @@ class PublicServerMenu:
         print(f"{Colors.CYAN}🔧 BACKEND DEPLOYMENT{Colors.RESET}")
         
         move_cursor(content_x, 4)
-        print(f"deploying django to {Colors.GREEN}{self.config['server']['host']}{Colors.RESET}")
+        print(f"deploying django backend to {Colors.GREEN}rocksteady{Colors.RESET}")
         
         y = 6
+        
+        # Step 1: Backup remote settings
+        move_cursor(content_x, y)
+        print(f"{Colors.YELLOW}⏳ backing up remote settings...{Colors.RESET}")
+        
+        backup_cmd = "ssh rocksteady 'cd ~/unibos/backend && cp -f unibos_backend/settings/production.py /tmp/prod_bak.py 2>/dev/null; cp -f .env /tmp/env_bak 2>/dev/null'"
+        subprocess.run(backup_cmd, shell=True, capture_output=True)
+        
+        move_cursor(content_x, y)
+        print(f"{Colors.GREEN}✅ settings backed up{Colors.RESET}")
+        y += 1
+        
+        # Step 2: Sync backend files
         move_cursor(content_x, y)
         print(f"{Colors.YELLOW}⏳ syncing backend files...{Colors.RESET}")
-        time.sleep(0.5)
-        move_cursor(content_x, y)
-        print(f"{Colors.GREEN}✅ backend deployed{Colors.RESET}")
+        
+        backend_path = self.base_path / "backend"
+        rsync_cmd = f"rsync -avz --exclude='venv' --exclude='*.pyc' --exclude='__pycache__' --exclude='*.log' --exclude='staticfiles' --exclude='media' --exclude='.env' --exclude='unibos_backend/settings/production*.py' {backend_path}/ rocksteady:~/unibos/backend/"
+        
+        try:
+            result = subprocess.run(rsync_cmd, shell=True, capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                move_cursor(content_x, y)
+                print(f"{Colors.GREEN}✅ backend files synced{Colors.RESET}")
+                y += 1
+                
+                # Step 3: Restore settings
+                move_cursor(content_x, y)
+                print(f"{Colors.YELLOW}⏳ restoring settings...{Colors.RESET}")
+                
+                restore_cmd = "ssh rocksteady 'cd ~/unibos/backend && [ -f /tmp/prod_bak.py ] && cp -f /tmp/prod_bak.py unibos_backend/settings/production.py; [ -f /tmp/env_bak ] && cp -f /tmp/env_bak .env'"
+                subprocess.run(restore_cmd, shell=True, capture_output=True)
+                
+                move_cursor(content_x, y)
+                print(f"{Colors.GREEN}✅ settings restored{Colors.RESET}")
+                y += 1
+                
+                # Step 4: Run migrations
+                move_cursor(content_x, y)
+                print(f"{Colors.YELLOW}⏳ running migrations...{Colors.RESET}")
+                
+                migrate_cmd = "ssh rocksteady 'cd ~/unibos/backend && ./venv/bin/python manage.py migrate --noinput'"
+                result = subprocess.run(migrate_cmd, shell=True, capture_output=True, text=True, timeout=30)
+                
+                if result.returncode == 0:
+                    move_cursor(content_x, y)
+                    print(f"{Colors.GREEN}✅ migrations complete{Colors.RESET}")
+                else:
+                    move_cursor(content_x, y)
+                    print(f"{Colors.YELLOW}⚠ migrations may need manual check{Colors.RESET}")
+                y += 1
+                
+                # Step 5: Restart gunicorn
+                move_cursor(content_x, y)
+                print(f"{Colors.YELLOW}⏳ restarting gunicorn...{Colors.RESET}")
+                
+                restart_cmd = "ssh rocksteady 'sudo systemctl restart gunicorn'"
+                subprocess.run(restart_cmd, shell=True, capture_output=True, timeout=10)
+                
+                move_cursor(content_x, y)
+                print(f"{Colors.GREEN}✅ gunicorn restarted{Colors.RESET}")
+                
+                y += 2
+                move_cursor(content_x, y)
+                print(f"{Colors.GREEN}✅ backend deployed successfully!{Colors.RESET}")
+                
+            else:
+                move_cursor(content_x, y)
+                print(f"{Colors.RED}❌ sync failed{Colors.RESET}")
+                
+        except Exception as e:
+            move_cursor(content_x, y + 2)
+            print(f"{Colors.RED}❌ error: {str(e)}{Colors.RESET}")
         
         move_cursor(content_x, lines - 3)
         print(f"{Colors.DIM}press any key to continue...{Colors.RESET}")
@@ -533,21 +675,74 @@ class PublicServerMenu:
         print(f"{Colors.CYAN}💻 CLI DEPLOYMENT{Colors.RESET}")
         
         move_cursor(content_x, 4)
-        print(f"deploying cli to {Colors.GREEN}{self.config['server']['host']}{Colors.RESET}")
+        print(f"deploying cli to {Colors.GREEN}rocksteady{Colors.RESET}")
         
         y = 6
+        
+        # Sync src directory
         move_cursor(content_x, y)
-        print(f"{Colors.YELLOW}⏳ syncing src files...{Colors.RESET}")
-        time.sleep(0.5)
-        move_cursor(content_x, y)
-        print(f"{Colors.GREEN}✅ cli deployed{Colors.RESET}")
+        print(f"{Colors.YELLOW}⏳ syncing cli source files...{Colors.RESET}")
+        
+        src_path = self.base_path / "src"
+        rsync_cmd = f"rsync -avz --exclude='*.pyc' --exclude='__pycache__' {src_path}/ rocksteady:~/unibos/src/"
+        
+        try:
+            result = subprocess.run(rsync_cmd, shell=True, capture_output=True, text=True)
+            
+            if result.returncode == 0:
+                move_cursor(content_x, y)
+                print(f"{Colors.GREEN}✅ cli files synced{Colors.RESET}")
+                y += 1
+                
+                # Make scripts executable
+                move_cursor(content_x, y)
+                print(f"{Colors.YELLOW}⏳ setting permissions...{Colors.RESET}")
+                
+                chmod_cmd = "ssh rocksteady 'chmod +x ~/unibos/src/*.py ~/unibos/src/*.sh 2>/dev/null || true'"
+                subprocess.run(chmod_cmd, shell=True, capture_output=True)
+                
+                move_cursor(content_x, y)
+                print(f"{Colors.GREEN}✅ permissions set{Colors.RESET}")
+                y += 1
+                
+                # Sync unibos.sh if exists
+                unibos_sh = self.base_path / "unibos.sh"
+                if unibos_sh.exists():
+                    move_cursor(content_x, y)
+                    print(f"{Colors.YELLOW}⏳ updating unibos.sh...{Colors.RESET}")
+                    
+                    sync_unibos = f"rsync -avz {unibos_sh} rocksteady:~/unibos/"
+                    subprocess.run(sync_unibos, shell=True, capture_output=True)
+                    
+                    chmod_unibos = "ssh rocksteady 'chmod +x ~/unibos/unibos.sh'"
+                    subprocess.run(chmod_unibos, shell=True, capture_output=True)
+                    
+                    move_cursor(content_x, y)
+                    print(f"{Colors.GREEN}✅ unibos.sh updated{Colors.RESET}")
+                    y += 1
+                
+                y += 1
+                move_cursor(content_x, y)
+                print(f"{Colors.GREEN}✅ cli deployed successfully!{Colors.RESET}")
+                
+                y += 2
+                move_cursor(content_x, y)
+                print(f"run on server: {Colors.CYAN}cd ~/unibos && ./unibos.sh{Colors.RESET}")
+                
+            else:
+                move_cursor(content_x, y)
+                print(f"{Colors.RED}❌ sync failed{Colors.RESET}")
+                
+        except Exception as e:
+            move_cursor(content_x, y + 2)
+            print(f"{Colors.RED}❌ error: {str(e)}{Colors.RESET}")
         
         move_cursor(content_x, lines - 3)
         print(f"{Colors.DIM}press any key to continue...{Colors.RESET}")
         self.get_key()
     
     def quick_deploy(self):
-        """Quick deployment using rsync"""
+        """Quick deployment using rsync - preserves remote settings"""
         cols, lines = get_terminal_size()
         clear_screen()
         
@@ -558,54 +753,116 @@ class PublicServerMenu:
         print(f"{Colors.CYAN}⚡ QUICK DEPLOY{Colors.RESET}")
         
         move_cursor(content_x, 4)
-        print(f"pushing to {Colors.GREEN}rocksteady ({self.config['server']['host']}){Colors.RESET}...")
+        print(f"pushing to {Colors.GREEN}rocksteady{Colors.RESET}...")
         
         y = 6
         
-        # Build rsync command from Mac to rocksteady
-        exclude_file = self.base_path / ".rsync-exclude"
-        host = "rocksteady"  # Use SSH config alias
-        deploy_path = "~/unibos"
+        # Check for .rsyncignore file
+        rsyncignore_file = self.base_path / ".rsyncignore"
+        if not rsyncignore_file.exists():
+            move_cursor(content_x, y)
+            print(f"{Colors.YELLOW}⚠ creating .rsyncignore file...{Colors.RESET}")
+            # Create a safe .rsyncignore
+            with open(rsyncignore_file, 'w') as f:
+                f.write("""# Safe deployment exclusions
+archive/
+*.sql
+*.db
+db.sqlite3
+.git/
+__pycache__/
+*.pyc
+.DS_Store
+venv/
+backend/venv/
+backend/.env
+backend/staticfiles/
+backend/media/
+logs/
+*.log
+quarantine/
+backend/unibos_backend/settings/production.py
+backend/unibos_backend/settings/production_clean.py
+""")
+            y += 1
         
-        if exclude_file.exists():
-            rsync_cmd = f"rsync -avz --exclude-from={exclude_file} . {host}:{deploy_path}/"
-        else:
-            rsync_cmd = f"rsync -avz --exclude={{.git,venv,__pycache__,archive,quarantine,*.sql,*.log,db.sqlite3}} . {host}:{deploy_path}/"
+        # Build rsync command
+        rsync_cmd = f"rsync -avz --exclude-from={rsyncignore_file} . rocksteady:~/unibos/"
         
         move_cursor(content_x, y)
-        print(f"{Colors.DIM}local path:{Colors.RESET} {self.base_path}")
+        print(f"{Colors.DIM}local:{Colors.RESET} {self.base_path}")
         y += 1
         move_cursor(content_x, y)
-        print(f"{Colors.DIM}remote:{Colors.RESET} {host}:{deploy_path}")
+        print(f"{Colors.DIM}remote:{Colors.RESET} rocksteady:~/unibos")
         y += 2
         
+        # Step 1: Backup remote settings
         move_cursor(content_x, y)
-        print(f"{Colors.DIM}command:{Colors.RESET}")
-        y += 1
+        print(f"{Colors.YELLOW}⏳ backing up remote settings...{Colors.RESET}")
+        
+        backup_cmd = """ssh rocksteady 'cd ~/unibos/backend && 
+            cp -f unibos_backend/settings/production.py /tmp/production_backup.py 2>/dev/null; 
+            cp -f .env /tmp/env_backup 2>/dev/null; 
+            echo "backup complete"'""".replace('\n', '')
+        
+        subprocess.run(backup_cmd, shell=True, capture_output=True)
+        
         move_cursor(content_x, y)
-        print(f"  {Colors.BLUE}{rsync_cmd[:60]}...{Colors.RESET}")
+        print(f"{Colors.GREEN}✅ settings backed up{Colors.RESET}")
         y += 2
         
+        # Step 2: Sync files
         move_cursor(content_x, y)
-        print(f"{Colors.YELLOW}⏳ syncing files to rocksteady...{Colors.RESET}")
+        print(f"{Colors.YELLOW}⏳ syncing files...{Colors.RESET}")
         
-        # Execute rsync
         try:
             result = subprocess.run(rsync_cmd, shell=True, capture_output=True, text=True)
             
             if result.returncode == 0:
-                y += 2
                 move_cursor(content_x, y)
-                print(f"{Colors.GREEN}✅ files synced successfully!{Colors.RESET}")
-                
-                # Run unibos.sh on rocksteady
+                print(f"{Colors.GREEN}✅ files synced{Colors.RESET}")
                 y += 2
+                
+                # Step 3: Restore settings
                 move_cursor(content_x, y)
-                print(f"{Colors.YELLOW}⏳ starting unibos on rocksteady...{Colors.RESET}")
+                print(f"{Colors.YELLOW}⏳ restoring settings...{Colors.RESET}")
                 
-                ssh_cmd = f"ssh rocksteady 'cd ~/unibos && chmod +x unibos.sh && ./unibos.sh'"
+                restore_cmd = """ssh rocksteady 'cd ~/unibos/backend && 
+                    [ -f /tmp/production_backup.py ] && cp -f /tmp/production_backup.py unibos_backend/settings/production.py; 
+                    [ -f /tmp/env_backup ] && cp -f /tmp/env_backup .env; 
+                    echo "restore complete"'""".replace('\n', '')
                 
-                result = subprocess.run(ssh_cmd, shell=True, capture_output=True, text=True, timeout=10)
+                subprocess.run(restore_cmd, shell=True, capture_output=True)
+                
+                move_cursor(content_x, y)
+                print(f"{Colors.GREEN}✅ settings restored{Colors.RESET}")
+                y += 2
+                
+                # Step 4: Fix gunicorn config if exists
+                move_cursor(content_x, y)
+                print(f"{Colors.YELLOW}⏳ checking gunicorn config...{Colors.RESET}")
+                
+                # Remove problematic gunicorn.conf.py if it exists
+                fix_gunicorn = "ssh rocksteady '[ -f ~/unibos/backend/gunicorn.conf.py ] && rm -f ~/unibos/backend/gunicorn.conf.py && echo removed || echo clean'"
+                subprocess.run(fix_gunicorn, shell=True, capture_output=True)
+                
+                move_cursor(content_x, y)
+                print(f"{Colors.GREEN}✅ gunicorn config cleaned{Colors.RESET}")
+                y += 2
+                
+                # Step 5: Restart services
+                move_cursor(content_x, y)
+                print(f"{Colors.YELLOW}⏳ restarting services...{Colors.RESET}")
+                
+                restart_cmd = "ssh rocksteady 'sudo systemctl restart gunicorn && sudo systemctl reload nginx'"
+                result = subprocess.run(restart_cmd, shell=True, capture_output=True, text=True, timeout=10)
+                
+                if result.returncode == 0:
+                    move_cursor(content_x, y)
+                    print(f"{Colors.GREEN}✅ services restarted{Colors.RESET}")
+                else:
+                    move_cursor(content_x, y)
+                    print(f"{Colors.YELLOW}⚠ service restart may need manual check{Colors.RESET}")
                 
                 y += 2
                 move_cursor(content_x, y)
@@ -613,12 +870,14 @@ class PublicServerMenu:
                 
                 y += 2
                 move_cursor(content_x, y)
-                print(f"access at: {Colors.CYAN}http://{self.config['server']['host']}:8000{Colors.RESET}")
+                print(f"web ui: {Colors.CYAN}https://recaria.org{Colors.RESET}")
+                y += 1
+                move_cursor(content_x, y)
+                print(f"admin: {Colors.CYAN}https://recaria.org/admin{Colors.RESET}")
                 
             else:
-                y += 2
                 move_cursor(content_x, y)
-                print(f"{Colors.RED}❌ deployment failed{Colors.RESET}")
+                print(f"{Colors.RED}❌ sync failed{Colors.RESET}")
                 y += 1
                 move_cursor(content_x, y)
                 print(f"{Colors.DIM}{result.stderr[:100]}{Colors.RESET}")

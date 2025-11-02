@@ -410,7 +410,7 @@ class Command(BaseCommand):
                         'location': props['place'],
                         'occurred_at': occurred_at,
                         'intensity': props.get('mmi'),
-                        'felt_reports': props.get('felt', 0),
+                        'felt_reports': props.get('felt') or 0,  # Handle None values
                         'raw_data': feature
                     }
                 )

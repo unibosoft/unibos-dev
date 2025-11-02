@@ -1,7 +1,7 @@
 #!/bin/bash
-# UNIBOS v460 Root Launcher
+# UNIBOS v525 Root Launcher
 
-echo "🚀 launching unibos v460..."
+echo "🚀 launching unibos v525..."
 
 # Ensure we're in the right directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
