@@ -10,38 +10,41 @@
 /* Override Leaflet styles for dark theme */
 .leaflet-popup-content-wrapper {
     background: #1a1a1a;
-    color: var(--green);
-    border: 1px solid var(--green);
+    color: var(--gray);
+    border: 1px solid var(--gray);
     font-family: 'Courier New', monospace;
     font-size: 12px;
 }
 
 .leaflet-popup-tip {
     background: #1a1a1a;
-    border: 1px solid var(--green);
+    border: 1px solid var(--gray);
 }
 
 .leaflet-container {
     background: #0a0a0a;
+    max-width: 100%;
+    overflow: hidden;
 }
 
 .leaflet-control-zoom a {
     background: #1a1a1a;
-    color: var(--green);
-    border: 1px solid var(--green);
+    color: var(--gray);
+    border: 1px solid var(--gray);
 }
 
 .leaflet-control-zoom a:hover {
     background: #2a2a2a;
+    color: var(--orange);
 }
 
 .leaflet-bar {
-    border: 1px solid var(--green);
+    border: 1px solid var(--gray);
 }
 
 .leaflet-control-attribution {
     background: rgba(26, 26, 26, 0.8);
-    color: var(--green);
+    color: var(--gray);
     font-size: 10px;
 }
 
@@ -88,8 +91,8 @@
 <div class="section" style="margin-bottom: 20px;">
     <form method="get" style="display: flex; gap: 15px; align-items: center; flex-wrap: wrap;">
         <div style="display: flex; gap: 8px; align-items: center;">
-            <label style="color: var(--green); font-size: 12px;">zaman aralığı:</label>
-            <select name="days" style="background: #0a0a0a; border: 1px solid var(--green); color: var(--green); padding: 5px 10px; font-family: 'Courier New', monospace; font-size: 12px;">
+            <label style="color: var(--gray); font-size: 12px;">zaman aralığı:</label>
+            <select name="days" style="background: #0a0a0a; border: 1px solid var(--gray); color: var(--gray); padding: 5px 10px; font-family: 'Courier New', monospace; font-size: 12px;">
                 <option value="1" {% if filter_days == 1 %}selected{% endif %}>son 24 saat</option>
                 <option value="3" {% if filter_days == 3 %}selected{% endif %}>son 3 gün</option>
                 <option value="7" {% if filter_days == 7 %}selected{% endif %}>son 7 gün</option>
@@ -99,8 +102,8 @@
         </div>
 
         <div style="display: flex; gap: 8px; align-items: center;">
-            <label style="color: var(--green); font-size: 12px;">minimum büyüklük:</label>
-            <select name="magnitude_min" style="background: #0a0a0a; border: 1px solid var(--green); color: var(--green); padding: 5px 10px; font-family: 'Courier New', monospace; font-size: 12px;">
+            <label style="color: var(--gray); font-size: 12px;">minimum büyüklük:</label>
+            <select name="magnitude_min" style="background: #0a0a0a; border: 1px solid var(--gray); color: var(--gray); padding: 5px 10px; font-family: 'Courier New', monospace; font-size: 12px;">
                 <option value="2.0" {% if filter_magnitude_min == 2.0 %}selected{% endif %}>2.0+</option>
                 <option value="2.5" {% if filter_magnitude_min == 2.5 %}selected{% endif %}>2.5+</option>
                 <option value="3.0" {% if filter_magnitude_min == 3.0 %}selected{% endif %}>3.0+</option>
@@ -115,7 +118,7 @@
 
 <!-- Map Container -->
 <div class="section">
-    <div id="earthquake-map" style="height: 600px; width: 100%; border: 2px solid var(--green); background: #0a0a0a;"></div>
+    <div id="earthquake-map" style="height: 600px; width: 100%; max-width: 100%; border: 2px solid var(--gray); background: #0a0a0a; overflow: hidden;"></div>
 </div>
 
 <!-- Legend -->
@@ -126,19 +129,19 @@
     <div style="display: flex; gap: 20px; flex-wrap: wrap; padding: 15px;">
         <div style="display: flex; align-items: center; gap: 8px;">
             <div style="width: 20px; height: 20px; border-radius: 50%; background: #ff4444; border: 2px solid #fff;"></div>
-            <span style="color: var(--green); font-size: 12px;">büyük (≥5.0)</span>
+            <span style="color: var(--gray); font-size: 12px;">büyük (≥5.0)</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
             <div style="width: 16px; height: 16px; border-radius: 50%; background: var(--orange); border: 2px solid #fff;"></div>
-            <span style="color: var(--green); font-size: 12px;">orta (4.0-5.0)</span>
+            <span style="color: var(--gray); font-size: 12px;">orta (4.0-5.0)</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
             <div style="width: 12px; height: 12px; border-radius: 50%; background: var(--yellow); border: 2px solid #fff;"></div>
-            <span style="color: var(--green); font-size: 12px;">küçük (3.0-4.0)</span>
+            <span style="color: var(--gray); font-size: 12px;">küçük (3.0-4.0)</span>
         </div>
         <div style="display: flex; align-items: center; gap: 8px;">
-            <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--green); border: 2px solid #fff;"></div>
-            <span style="color: var(--green); font-size: 12px;">çok küçük (<3.0)</span>
+            <div style="width: 8px; height: 8px; border-radius: 50%; background: var(--gray); border: 2px solid #fff;"></div>
+            <span style="color: var(--gray); font-size: 12px;">çok küçük (<3.0)</span>
         </div>
     </div>
 </div>
@@ -215,7 +218,7 @@ function initializeEarthquakeMap() {
         color = '#ffff00';  // yellow
         radius = 6;
     } else {
-        color = '#00ff00';  // green
+        color = '#808080';  // gray
         radius = 4;
     }
 
