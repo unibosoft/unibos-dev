@@ -315,17 +315,23 @@ full_deploy() {
 quick_deploy() {
     echo "⚡ Quick deployment to $ROCKSTEADY_HOST"
     echo ""
-    
+
     check_connection || exit 1
     sync_files || exit 1
-    
+
+    # Ensure required directories exist
+    print_step "Checking required directories..."
+    if run_on_rocksteady "cd $ROCKSTEADY_DIR && mkdir -p logs backend/logs backend/venv && touch logs/django.log backend/logs/django.log"; then
+        print_success "Directories verified"
+    fi
+
     # Restart backend if running
     if run_on_rocksteady "pgrep -f 'manage.py runserver' >/dev/null"; then
         print_step "Restarting backend..."
         run_on_rocksteady "pkill -f 'manage.py runserver' || true"
         start_backend
     fi
-    
+
     print_success "Quick deployment complete!"
 }
 

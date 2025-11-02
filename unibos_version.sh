@@ -106,22 +106,49 @@ with open('$VERSION_FILE', 'w') as f:
 
 update_django_files() {
     local version=$1
-    
+
     # Clean version - remove any existing 'v' prefix
     local clean_version=$(echo "$version" | sed 's/^v//')
-    
+    local timestamp=$(get_istanbul_time "+%Y-%m-%d %H:%M:%S %z")
+    local build=$(get_istanbul_time "+%Y%m%d_%H%M")
+
     # Update Django views.py
     if [ -f "$DJANGO_VERSION_FILE" ]; then
         sed -i.bak "s/'version': 'v[0-9]*'/'version': 'v$clean_version'/" "$DJANGO_VERSION_FILE"
         rm -f "${DJANGO_VERSION_FILE}.bak"
         print_color "$GREEN" "✅ Django views.py updated"
     fi
-    
+
     # Update login template
     if [ -f "$LOGIN_TEMPLATE" ]; then
         sed -i.bak "s/v[0-9]* - /v$clean_version - /" "$LOGIN_TEMPLATE"
         rm -f "${LOGIN_TEMPLATE}.bak"
         print_color "$GREEN" "✅ Login template updated"
+    fi
+
+    # Update src/main.py
+    if [ -f "src/main.py" ]; then
+        # Update version in docstring (line with "🪐 unibos vXXX")
+        sed -i.bak "s/🪐 unibos v[0-9]*/🪐 unibos v$clean_version/" "src/main.py"
+        # Update version in Version: line
+        sed -i.bak "s/Version: v[0-9]*_[0-9_]*/Version: v${clean_version}_${build}/" "src/main.py"
+        rm -f "src/main.py.bak"
+        print_color "$GREEN" "✅ src/main.py updated"
+    fi
+
+    # Update backend/VERSION.json
+    if [ -f "backend/VERSION.json" ]; then
+        python3 -c "
+import json
+with open('backend/VERSION.json', 'r') as f:
+    data = json.load(f)
+data['version'] = 'v$clean_version'
+data['build_number'] = '$build'
+data['release_date'] = '$timestamp'
+with open('backend/VERSION.json', 'w') as f:
+    json.dump(data, f, indent=2, ensure_ascii=False)
+"
+        print_color "$GREEN" "✅ backend/VERSION.json updated"
     fi
 }
 
