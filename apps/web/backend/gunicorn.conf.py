@@ -1,6 +1,5 @@
 """
 Gunicorn configuration for UNIBOS backend
-Optimized for high-traffic production use
 """
 
 import multiprocessing
@@ -11,8 +10,8 @@ bind = "0.0.0.0:8000"
 backlog = 2048
 
 # Worker processes
-workers = multiprocessing.cpu_count() * 2 + 1
-worker_class = "uvicorn.workers.UvicornWorker"  # For ASGI support
+workers = 3
+worker_class = "sync"  # Simple sync worker, no special permissions needed
 worker_connections = 1000
 max_requests = 1000
 max_requests_jitter = 50
@@ -20,15 +19,12 @@ timeout = 120
 graceful_timeout = 30
 keepalive = 5
 
-# Threads
-threads = 4
-
 # Restart workers after this many requests, to help prevent memory leaks
 max_requests = 1000
 max_requests_jitter = 100
 
 # Preload application
-preload_app = True
+preload_app = False
 
 # Enable stdout/stderr logging
 capture_output = True
@@ -37,29 +33,22 @@ enable_stdio_inheritance = True
 # Access log format
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
 
-# Error log
-errorlog = "/var/log/unibos/gunicorn-error.log"
+# Error log - using backend logs directory
+base_dir = os.path.dirname(os.path.abspath(__file__))
+errorlog = os.path.join(base_dir, "logs", "gunicorn-error.log")
 loglevel = "info"
 
 # Access log
-accesslog = "/var/log/unibos/gunicorn-access.log"
+accesslog = os.path.join(base_dir, "logs", "gunicorn-access.log")
 
 # Process naming
 proc_name = "unibos_backend"
 
 # Server mechanics
 daemon = False
-user = "www-data"
-group = "www-data"
-tmp_upload_dir = "/tmp"
-
-# SSL/TLS (if terminating SSL at Gunicorn level)
-# keyfile = "/path/to/keyfile"
-# certfile = "/path/to/certfile"
-
-# StatsD integration (optional)
-# statsd_host = "localhost:8125"
-# statsd_prefix = "unibos.backend"
+# Run as ubuntu user (not www-data)
+user = None  # Will run as the user starting the process
+group = None  # Will run as the group of the user starting the process
 
 # Server hooks
 def when_ready(server):
