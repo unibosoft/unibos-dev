@@ -1888,3 +1888,44 @@ Benefits:
 - Result: Map now has user-selectable tile providers. Default is Carto Dark. Deployed to recaria.org. Users can switch styles with buttons above map.
 
 
+## [2025-11-03 02:14] Bug Fix: earthquake map - switched to local Leaflet files
+- Fixed map control visibility issues on remote server:
+
+Problem:
+- Zoom controls not visible on remote
+- Scale indicator missing
+- Attribution text not showing
+- Map tiles loading but controls broken
+- CDN loading issues causing inconsistent behavior
+
+Root Cause:
+- Leaflet CSS and JS loading from CDN (jsdelivr.net)
+- Remote server had intermittent CDN access issues
+- Mixed content or CORS issues preventing proper loading
+
+Solution:
+- Downloaded Leaflet 1.9.4 to local static files
+- Serves all Leaflet assets from /static/leaflet/
+- No more dependency on external CDN
+- Updated Stamen Toner to use new Stadia Maps URL
+
+Files Added:
+- static/leaflet/leaflet.js (147KB)
+- static/leaflet/leaflet.css (14KB)
+- static/leaflet/images/markers-icon*.png
+- static/leaflet/images/layers*.png
+- static/leaflet/images/marker-shadow.png
+
+Template Changes:
+- Added {% load static %} to template
+- Changed CDN links to {% static 'leaflet/...' %}
+- Updated Stamen tile provider URL
+
+Benefits:
+- 100% reliable loading on remote
+- Faster load times (no CDN lookup)
+- Works offline if needed
+- Complete control over Leaflet version
+- Result: Map controls, scale, and attribution now visible on remote. All Leaflet assets served locally. Deployed to recaria.org and tested successfully.
+
+
