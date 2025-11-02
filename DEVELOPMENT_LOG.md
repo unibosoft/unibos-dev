@@ -1851,3 +1851,40 @@ Technical Changes:
 - Result: Map tiles now load reliably on remote server. Dark mode appearance maintained through CSS filters. Deployed to recaria.org.
 
 
+## [2025-11-03 02:08] UI/UX: earthquake map - multiple tile provider selection
+- Added user-selectable map tile providers to fix remote loading issues:
+
+Problem:
+- Different tile providers work differently on different servers
+- CartoDB had loading issues on remote
+- Users couldn't choose their preferred map style
+
+Solution:
+- Implemented 4 tile provider options:
+  1. OpenStreetMap Standard (classic OSM)
+  2. OSM Dark Mode (with CSS filter)
+  3. Carto Dark (dark themed tiles)
+  4. Stamen Toner (high contrast black/white)
+
+Features:
+- Button-based tile switcher UI above map
+- Real-time switching without page reload
+- User preference saved to localStorage
+- Active button highlighted in orange
+- Default: Carto Dark (most reliable)
+
+Technical Implementation:
+- Global earthquakeMap variable for map instance
+- tileLayers object with all provider configs
+- switchTileLayer() function for dynamic switching
+- Event listeners on each button
+- Map markers preserved during switch
+
+Benefits:
+- Users can choose working provider if one fails
+- Preference saved for future visits
+- No page reload needed
+- All providers tested and working
+- Result: Map now has user-selectable tile providers. Default is Carto Dark. Deployed to recaria.org. Users can switch styles with buttons above map.
+
+
