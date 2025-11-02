@@ -284,8 +284,8 @@ health_check() {
     # Check virtual environment
     echo ""
     echo "Virtual Environment:"
-    if run_on_rocksteady "[ -d $ROCKSTEADY_DIR/backend/$VENV_DIR ]"; then
-        print_success "  venv exists at $ROCKSTEADY_DIR/backend/$VENV_DIR"
+    if run_on_rocksteady "[ -d $ROCKSTEADY_DIR/apps/web/backend/$VENV_DIR ]"; then
+        print_success "  venv exists at $ROCKSTEADY_DIR/apps/web/backend/$VENV_DIR"
     else
         print_error "  venv not found"
         FAILED=1
@@ -318,13 +318,13 @@ health_check() {
     # Check .env file
     echo ""
     echo "Environment Configuration:"
-    if run_on_rocksteady "[ -f $ROCKSTEADY_DIR/backend/.env ]"; then
+    if run_on_rocksteady "[ -f $ROCKSTEADY_DIR/apps/web/backend/.env ]"; then
         print_success "  .env file exists"
 
         # Check critical env vars
         local ENV_VARS=("SECRET_KEY" "DB_NAME" "DB_USER" "DB_PASSWORD" "ALLOWED_HOSTS")
         for var in "${ENV_VARS[@]}"; do
-            if run_on_rocksteady "grep -q '^$var=' $ROCKSTEADY_DIR/backend/.env"; then
+            if run_on_rocksteady "grep -q '^$var=' $ROCKSTEADY_DIR/apps/web/backend/.env"; then
                 print_success "    $var configured"
             else
                 print_warning "    $var missing"
@@ -341,7 +341,7 @@ health_check() {
     echo "Required Directories:"
     local DIRS=("logs" "staticfiles" "media")
     for dir in "${DIRS[@]}"; do
-        if run_on_rocksteady "[ -d $ROCKSTEADY_DIR/backend/$dir ]"; then
+        if run_on_rocksteady "[ -d $ROCKSTEADY_DIR/apps/web/backend/$dir ]"; then
             print_success "  $dir/ exists"
         else
             print_warning "  $dir/ missing"
@@ -477,7 +477,7 @@ quick_deploy() {
 
     # Ensure required directories exist
     print_step "Checking required directories..."
-    if run_on_rocksteady "cd $ROCKSTEADY_DIR && mkdir -p logs backend/logs backend/venv && touch logs/django.log backend/logs/django.log"; then
+    if run_on_rocksteady "cd $ROCKSTEADY_DIR && mkdir -p logs apps/web/backend/logs apps/web/backend/venv && touch logs/django.log apps/web/backend/logs/django.log"; then
         print_success "Directories verified"
     fi
 

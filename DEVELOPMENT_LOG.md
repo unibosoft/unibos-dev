@@ -1654,3 +1654,30 @@ Each entry should follow this format:
 - Result: SQL backups will now be created for v528+ versions. Backup naming: unibos_vXXX_YYYYMMDD_HHMM.sql
 
 
+## [2025-11-02 12:06] Project Structure: Major monorepo reorganization - apps, docs, tools structure
+- Completed comprehensive 4-phase restructuring:
+
+Phase 1 - Archive Anomaly Fix:
+- Added Flutter build artifacts to .rsyncignore and .archiveignore
+- Fixed v526/v527 archive bloat (1.7GB → ~70MB expected)
+
+Phase 2 - Documentation Organization:
+- Created docs/ with subdirectories: architecture/, development/, features/, deployment/, claude/, archive/
+- Moved 32+ documentation files using git mv to preserve history
+
+Phase 3 - Monorepo Apps Structure:
+- Created apps/ directory structure
+- Moved src/ → apps/cli/src/ (110+ files)
+- Moved backend/ → apps/web/backend/ (70 files)
+- Moved birlikteyiz_app/ → apps/mobile/birlikteyiz/ (27 files)
+
+Phase 4 - Tools and Scripts Organization:
+- Created tools/scripts/ directory
+- Moved 25+ shell scripts to tools/scripts/
+- Created symlinks for main entry points (unibos.sh, unibos_version.sh)
+- Updated all path references in version and deployment scripts
+
+All version management and deployment scripts updated for new structure.
+- Result: Monorepo structure successfully implemented. All applications, documentation, and tools properly organized. Path references updated throughout codebase.
+
+

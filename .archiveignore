@@ -19,9 +19,9 @@ unibos.log
 debug_output.txt
 
 # Media and document files
-/backend/documents/
-/backend/media/
-/backend/documents/thumbnails/
+/apps/web/backend/documents/
+/apps/web/backend/media/
+/apps/web/backend/documents/thumbnails/
 /data_db/documents/
 /data_db/media/
 media/
@@ -138,3 +138,17 @@ unicorn_db_backup*.sql
 /berk_claude_file_pool_DONT_DELETE/output/
 /berk_claude_file_pool_DONT_DELETE/input/
 /berk_claude_file_pool_DONT_DELETE/claude_results/
+
+# Flutter/Mobile build artifacts
+apps/mobile/birlikteyiz/build/
+apps/mobile/birlikteyiz/.dart_tool/
+apps/mobile/birlikteyiz/.flutter-plugins
+apps/mobile/birlikteyiz/.flutter-plugins-dependencies
+apps/mobile/birlikteyiz/android/build/
+apps/mobile/birlikteyiz/ios/build/
+apps/mobile/birlikteyiz/ios/Pods/
+apps/mobile/birlikteyiz/macos/build/
+apps/mobile/birlikteyiz/windows/build/
+apps/mobile/birlikteyiz/linux/build/
+apps/mobile/birlikteyiz/.packages
+apps/mobile/birlikteyiz/pubspec.lock

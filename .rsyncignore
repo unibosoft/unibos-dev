@@ -74,11 +74,25 @@ temp/
 *.temp
 
 # Production settings (preserve remote)
-backend/.env
-backend/unibos_backend/settings/production.py
-backend/unibos_backend/settings/production_*.py
+apps/web/backend/.env
+apps/web/backend/unibos_backend/settings/production.py
+apps/web/backend/unibos_backend/settings/production_*.py
 
 # Django generated
-backend/staticfiles/
-backend/media/
-backend/venv/
+apps/web/backend/staticfiles/
+apps/web/backend/media/
+apps/web/backend/venv/
+
+# Flutter/Mobile build artifacts
+apps/mobile/birlikteyiz/build/
+apps/mobile/birlikteyiz/.dart_tool/
+apps/mobile/birlikteyiz/.flutter-plugins
+apps/mobile/birlikteyiz/.flutter-plugins-dependencies
+apps/mobile/birlikteyiz/android/build/
+apps/mobile/birlikteyiz/ios/build/
+apps/mobile/birlikteyiz/ios/Pods/
+apps/mobile/birlikteyiz/macos/build/
+apps/mobile/birlikteyiz/windows/build/
+apps/mobile/birlikteyiz/linux/build/
+apps/mobile/birlikteyiz/.packages
+apps/mobile/birlikteyiz/pubspec.lock
