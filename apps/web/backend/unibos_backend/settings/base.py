@@ -54,6 +54,7 @@ THIRD_PARTY_APPS = [
     'django_prometheus',
     'drf_spectacular',
     'django_extensions',
+    'django_celery_beat',  # Celery Beat database scheduler
 ]
 
 LOCAL_APPS = [
@@ -351,6 +352,10 @@ CELERY_BEAT_SCHEDULE = {
     'calculate-portfolio-performance': {
         'task': 'apps.currencies.tasks.calculate_portfolio_performance',
         'schedule': timedelta(minutes=15),  # Update portfolio metrics
+    },
+    'fetch-earthquakes': {
+        'task': 'birlikteyiz.fetch_earthquakes',
+        'schedule': timedelta(minutes=5),  # Fetch earthquake data every 5 minutes
     },
 }
 

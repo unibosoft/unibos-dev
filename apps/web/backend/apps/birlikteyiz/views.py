@@ -142,7 +142,7 @@ def cron_jobs(request):
     fetch_job, _ = CronJob.objects.get_or_create(
         name='Fetch Earthquakes',
         defaults={
-            'command': 'python manage.py fetch_earthquakes',
+            'command': 'cd /Users/berkhatirli/Desktop/unibos/apps/web/backend && DJANGO_SETTINGS_MODULE=unibos_backend.settings.development ./venv/bin/python3 manage.py fetch_earthquakes',
             'schedule': '*/5 * * * *',
             'is_active': True
         }
