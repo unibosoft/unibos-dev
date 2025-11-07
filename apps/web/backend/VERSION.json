@@ -1,10 +1,10 @@
 {
-  "version": "v529",
-  "build_number": "20251107_1152",
-  "release_date": "2025-11-07 11:52:00 +0300",
+  "version": "v530",
+  "build_number": "20251107_1545",
+  "release_date": "2025-11-07 15:45:00 +0300",
   "author": "berk hatırlı",
   "location": "bitez, bodrum, muğla, türkiye, dünya, güneş sistemi, samanyolu, yerel galaksi grubu, evren",
-  "description": "v529: Birlikteyiz earthquake map UI/UX overhaul, manual data fetch system, EMSC WebSocket integration",
+  "description": "v530: Database backup system, improved deployment automation, version management enhancements",
   "features": [
     "🎬 **Movies Module**: Complete movie/series collection management with TMDB/OMDB API integration",
     "🎵 **Music Module**: Spotify-integrated music library without storing files, open source artwork",
@@ -220,6 +220,23 @@
     "terminal_recommended": "120x40"
   },
   "changelog": [
+    {
+      "version": "v530",
+      "date": "2025-11-07 15:45",
+      "description": "Database backup system, improved deployment automation, version management enhancements",
+      "changes": [
+        "Feature: Automated database backup system with retention policy (last 3 backups)",
+        "Feature: backup_database.sh - creates versioned SQL dumps separate from archives",
+        "Feature: verify_database_backup.sh - validates and displays backup information",
+        "Enhancement: Archive script excludes SQL dumps and Flutter build artifacts",
+        "Enhancement: Deployment script flexible for both Gunicorn and runserver environments",
+        "Documentation: Comprehensive VERSIONING_RULES.md with best practices",
+        "Documentation: Database backup and restore procedures",
+        "Fix: Archive size anomalies resolved (v527: 87MB → v528-v530: 30-40MB)",
+        "Fix: Flutter build directory exclusion prevents 1.5GB bloat",
+        "Chore: Integrated backup creation into version management workflow"
+      ]
+    },
     {
       "version": "v529",
       "date": "2025-11-07 11:52",
