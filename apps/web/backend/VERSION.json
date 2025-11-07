@@ -1,10 +1,10 @@
 {
   "version": "v529",
-  "build_number": "20251102_1259",
-  "release_date": "2025-11-02 12:59:55 +0300",
+  "build_number": "20251107_1152",
+  "release_date": "2025-11-07 11:52:00 +0300",
   "author": "berk hatırlı",
   "location": "bitez, bodrum, muğla, türkiye, dünya, güneş sistemi, samanyolu, yerel galaksi grubu, evren",
-  "description": "v513: Test scripts quarantined, solitaire improvements",
+  "description": "v529: Birlikteyiz earthquake map UI/UX overhaul, manual data fetch system, EMSC WebSocket integration",
   "features": [
     "🎬 **Movies Module**: Complete movie/series collection management with TMDB/OMDB API integration",
     "🎵 **Music Module**: Spotify-integrated music library without storing files, open source artwork",
@@ -220,6 +220,23 @@
     "terminal_recommended": "120x40"
   },
   "changelog": [
+    {
+      "version": "v529",
+      "date": "2025-11-07 11:52",
+      "description": "Birlikteyiz earthquake map UI/UX overhaul, manual data fetch system, EMSC WebSocket integration",
+      "changes": [
+        "Feature: Manual data fetch buttons in source admin panel (global and per-source)",
+        "Feature: EMSC WebSocket real-time earthquake data source with systemd service",
+        "Feature: Enhanced EarthquakeDataSource model with comprehensive statistics tracking",
+        "UI/UX: Map legend moved inside map with horizontal layout and dark background",
+        "UI/UX: Clickable source badges for instant filtering with active state highlighting",
+        "UI/UX: Improved earthquake list readability with better backgrounds and contrast",
+        "Fix: Map kadraj persistence - geolocation only on first visit using localStorage",
+        "Fix: Deployment script now properly restarts Gunicorn and Nginx services",
+        "Enhancement: fetch_earthquakes command with --source parameter for single source fetch",
+        "Enhancement: Background threading for non-blocking fetch operations"
+      ]
+    },
     {
       "version": "v525",
       "date": "2025-08-13 13:14",

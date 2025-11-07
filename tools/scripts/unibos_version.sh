@@ -305,6 +305,8 @@ create_archive() {
               --exclude='*.sqlite3' --exclude='*.sqlite3.backup' \
               --exclude='*.log' --exclude='apps/web/backend/staticfiles' \
               --exclude='apps/web/backend/logs' \
+              --exclude='apps/mobile/*/build' --exclude='apps/mobile/*/.dart_tool' \
+              --exclude='apps/mobile/*/.flutter-plugins' --exclude='apps/mobile/*/.flutter-plugins-dependencies' \
               . "$ARCHIVE_DIR/$archive_name/"
     
     # Show archive size

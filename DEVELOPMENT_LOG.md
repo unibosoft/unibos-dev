@@ -2000,3 +2000,35 @@ Result:
 - Result: Nginx static files configuration fixed. Path updated to correct location. Permissions set. Tested and working (200 OK). Ready for future local static file usage.
 
 
+## [2025-11-07 11:51] Birlikteyiz: Veri kaynakları yönetim paneline manuel fetch butonları eklendi
+- Completed:
+
+Phase 1 - Source Admin UI Enhancement:
+- Veri kaynakları yönetim paneline '📥 tüm kaynaklardan veri çek' butonu eklendi (header'da)
+- Her kaynak kartına individual '📥 veri çek' butonu eklendi (3 kolonlu buton grid'i)
+- JavaScript fonksiyonları: fetchAllSources() ve fetchSource(sourceId)
+
+Phase 2 - Backend API Endpoints:
+- admin_views.py'a fetch_all_sources() endpoint eklendi
+- admin_views.py'a fetch_single_source(source_id) endpoint eklendi
+- Her iki endpoint de threading ile background'da çalışıyor
+- URL routes eklendi: /admin/fetch-all/ ve /admin/fetch-source/<id>/
+
+Phase 3 - Management Command Enhancement:
+- fetch_earthquakes.py'a --source parametresi desteği eklendi
+- Tek kaynak veya tüm kaynaklardan veri çekme seçeneği
+- add_arguments() metodu ile Django command pattern'i
+
+Phase 4 - Deployment Script İyileştirmesi:
+- rocksteady_deploy.sh'da start_backend() fonksiyonu güncellendi
+- Production'da Gunicorn service detection ve restart
+- Otomatik Nginx restart entegrasyonu
+- Runserver fallback mekanizması
+
+Phase 5 - Production Deployment:
+- Tüm değişiklikler production'a deploy edildi
+- Gunicorn ve Nginx başarıyla yeniden başlatıldı
+- Manuel veri çekme özellikleri aktif
+- Result: Manuel veri çekme butonları başarıyla eklendi ve production'da aktif. Admin panelinden tek tek veya tüm kaynaklardan manuel veri çekme artık mümkün.
+
+
