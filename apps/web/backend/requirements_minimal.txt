@@ -27,3 +27,7 @@ whitenoise==6.6.0
 
 # User agent parsing
 user-agents==2.2.0
+
+# WebSocket client for real-time data
+websockets==12.0
+requests==2.31.0
