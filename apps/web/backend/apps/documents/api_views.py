@@ -517,3 +517,135 @@ def search_documents(request):
             'success': False,
             'error': str(e)
         }, status=500)
+
+
+@login_required
+def get_processing_status(request):
+    """
+    Get current processing status for live updates
+    Returns stats and currently processing document
+    """
+    try:
+        from django.db.models import Q, Count
+
+        # Get stats
+        stats = Document.objects.filter(user=request.user, is_deleted=False).aggregate(
+            total=Count('id'),
+            pending=Count('id', filter=Q(processing_status='pending')),
+            processing=Count('id', filter=Q(processing_status='processing')),
+            completed=Count('id', filter=Q(processing_status='completed')),
+            failed=Count('id', filter=Q(processing_status='failed'))
+        )
+
+        # Get currently processing document
+        current_doc = Document.objects.filter(
+            user=request.user,
+            is_deleted=False,
+            processing_status='processing'
+        ).order_by('uploaded_at').first()
+
+        response_data = {
+            'success': True,
+            'stats': {
+                'total': stats['total'],
+                'pending': stats['pending'],
+                'processing': stats['processing'],
+                'completed': stats['completed'],
+                'failed': stats['failed']
+            }
+        }
+
+        if current_doc:
+            # Get thumbnail URL
+            thumbnail_url = None
+            if current_doc.thumbnail_path:
+                thumbnail_url = current_doc.thumbnail_path.url
+
+            response_data['current_processing'] = {
+                'id': str(current_doc.id),
+                'filename': current_doc.original_filename,
+                'uploaded_at': current_doc.uploaded_at.strftime('%d %b %Y %H:%M'),
+                'thumbnail_url': thumbnail_url
+            }
+        else:
+            response_data['current_processing'] = None
+
+        return JsonResponse(response_data)
+
+    except Exception as e:
+        logger.error(f"Get processing status failed: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_POST
+def ocr_pause(request):
+    """
+    Pause background OCR processing
+    """
+    try:
+        from django.core.cache import cache
+        cache.set('ocr_processing_paused', True, timeout=None)
+
+        logger.info(f"OCR processing paused by user {request.user.username}")
+
+        return JsonResponse({
+            'success': True,
+            'message': 'OCR processing paused',
+            'is_paused': True
+        })
+    except Exception as e:
+        logger.error(f"OCR pause failed: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+@require_POST
+def ocr_resume(request):
+    """
+    Resume background OCR processing
+    """
+    try:
+        from django.core.cache import cache
+        cache.delete('ocr_processing_paused')
+
+        logger.info(f"OCR processing resumed by user {request.user.username}")
+
+        return JsonResponse({
+            'success': True,
+            'message': 'OCR processing resumed',
+            'is_paused': False
+        })
+    except Exception as e:
+        logger.error(f"OCR resume failed: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)
+
+
+@login_required
+def ocr_status(request):
+    """
+    Get current OCR processing pause status
+    """
+    try:
+        from django.core.cache import cache
+        is_paused = cache.get('ocr_processing_paused', False)
+
+        return JsonResponse({
+            'success': True,
+            'is_paused': is_paused
+        })
+    except Exception as e:
+        logger.error(f"OCR status check failed: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

@@ -14,23 +14,33 @@
         margin: 0 auto;
     }
     
-    .movies-header {
+    .module-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
         margin-bottom: 30px;
-        padding-bottom: 20px;
+        padding-bottom: 15px;
         border-bottom: 2px solid var(--orange);
     }
 
-    .movies-header h1 {
+    .module-header h1 {
+        display: block;
         color: var(--orange);
         font-size: 24px;
-        margin-bottom: 5px;
+        font-weight: bold;
         text-transform: lowercase;
+        margin: 0;
+        margin-bottom: 8px;
+        line-height: 1.2;
     }
 
-    .movies-header p {
+    .module-header p {
+        display: block;
         color: var(--gray);
-        font-size: 12px;
+        font-size: 14px;
         text-transform: lowercase;
+        margin: 0;
+        line-height: 1.4;
     }
     
     .movies-stats {
@@ -243,8 +253,8 @@
 
 {% block content %}
 <div class="movies-container">
-    <div class="movies-header">
-        <h1>🎬 movies collection</h1>
+    <div class="module-header">
+        <h1>🎬 movies</h1>
         <p>personal movie and series collection management</p>
     </div>
     

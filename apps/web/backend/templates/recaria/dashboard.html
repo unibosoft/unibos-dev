@@ -9,9 +9,8 @@
 {% block content %}
 <div class="module-container">
     <div class="module-header">
-        <span class="module-icon">{{ module_icon }}</span>
-        <h1>{{ module_name }}</h1>
-        <span class="module-status">coming soon</span>
+        <h1>🪐 recaria</h1>
+        <p class="module-subtitle">ultima online tabanlı çevrimiçi rol yapma oyunu</p>
     </div>
     
     <div class="module-content">
@@ -70,29 +69,31 @@
 
 .module-header {
     display: flex;
-    align-items: center;
-    gap: 15px;
-    margin-bottom: 20px;
-    padding-bottom: 10px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.module-icon {
-    font-size: 32px;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--orange);
 }
 
 .module-header h1 {
-    color: #ff6b35;
+    display: block;
+    color: var(--orange);
     margin: 0;
-    flex: 1;
+    margin-bottom: 8px;
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: lowercase;
+    line-height: 1.2;
 }
 
-.module-status {
-    background: #444;
-    color: #ffa500;
-    padding: 5px 15px;
-    border-radius: 20px;
-    font-size: 12px;
+.module-subtitle {
+    display: block;
+    font-size: 14px;
+    color: var(--gray);
+    text-transform: lowercase;
+    margin: 0;
+    line-height: 1.4;
 }
 
 .info-box {
@@ -105,8 +106,10 @@
 
 .features-grid h2,
 .stats-grid h2 {
-    color: #ff6b35;
+    color: var(--orange);
     margin-bottom: 20px;
+    text-transform: lowercase;
+    font-size: 18px;
 }
 
 .feature-cards {

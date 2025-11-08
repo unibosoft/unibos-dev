@@ -9,8 +9,10 @@ from .views import (
     DocumentUploadView,
     DocumentDetailView,
     DocumentViewerView,
+    RecycleBinView,
     CreditCardManagementView,
-    SubscriptionManagementView
+    SubscriptionManagementView,
+    select_ocr_method
 )
 from .api_views import (
     trigger_ocr,
@@ -20,11 +22,16 @@ from .api_views import (
     batch_regenerate_thumbnails,
     search_documents,
     test_structured_data,
-    ai_batch_process
+    ai_batch_process,
+    get_processing_status,
+    ocr_pause,
+    ocr_resume,
+    ocr_status
 )
 from .bulk_views import (
     BulkDeleteView,
     BulkReprocessView,
+    BulkReprocessPendingView,
     RecycleBinView,
     RestoreDocumentView,
     PermanentDeleteView,
@@ -45,12 +52,14 @@ except ImportError:
 urlpatterns = [
     # Main dashboard
     path('', DocumentsDashboardView.as_view(), name='dashboard'),
-    
+
     # Document management
     path('list/', DocumentListView.as_view(), name='document_list'),
     path('upload/', DocumentUploadView.as_view(), name='upload'),
+    path('recycle-bin/', RecycleBinView.as_view(), name='recycle_bin'),
     path('document/<uuid:document_id>/', DocumentDetailView.as_view(), name='document_detail'),
     path('document/<uuid:document_id>/view/', DocumentViewerView.as_view(), name='document_view'),
+    path('document/<uuid:document_id>/select-ocr/', select_ocr_method, name='select_ocr_method'),
     
     # Financial tools
     path('credit-cards/', CreditCardManagementView.as_view(), name='credit_cards'),
@@ -66,10 +75,15 @@ urlpatterns = [
     path('api/search/', search_documents, name='api_search'),
     path('api/ai-batch-process/', ai_batch_process, name='ai_batch_process'),
     path('api/receipt/<uuid:receipt_id>/', receipt_processing_views.get_receipt_detail, name='api_receipt_detail'),
-    
+    path('api/processing-status/', get_processing_status, name='api_processing_status'),
+    path('api/ocr-pause/', ocr_pause, name='api_ocr_pause'),
+    path('api/ocr-resume/', ocr_resume, name='api_ocr_resume'),
+    path('api/ocr-status/', ocr_status, name='api_ocr_status'),
+
     # Bulk operations
     path('bulk/delete/', BulkDeleteView.as_view(), name='bulk_delete'),
     path('bulk/reprocess/', BulkReprocessView.as_view(), name='bulk_reprocess'),
+    path('bulk/reprocess-pending/', BulkReprocessPendingView.as_view(), name='bulk_reprocess_pending'),
     path('bulk/export/', DocumentExportView.as_view(), name='export'),
     
     # Recycle bin

@@ -10,26 +10,17 @@
         margin: 0;
     }
     
-    .earthquake-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 30px;
-        padding-bottom: 15px;
-        border-bottom: 2px solid #333;
-    }
-    
-    .earthquake-title {
-        font-size: 24px;
-        color: var(--orange);
-        font-weight: bold;
-        text-transform: lowercase;
-    }
+    /* Header styles inherited from base_birlikteyiz.html */
     
     .earthquake-filters {
         display: flex;
         gap: 15px;
         align-items: center;
+        margin-bottom: 20px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 5px;
+        border: 1px solid var(--dark-gray);
     }
     
     .filter-item {
@@ -191,57 +182,58 @@
 </style>
 
 <div class="earthquake-container">
-    <div class="earthquake-header">
-        <h1 class="earthquake-title">🌍 güncel depremler</h1>
-        
-        <div class="earthquake-filters">
-            <form method="get" style="display: flex; gap: 15px;">
-                <div class="filter-item">
-                    <span class="filter-label">minimum büyüklük</span>
-                    <input type="number" 
-                           name="magnitude_min" 
-                           class="filter-input" 
-                           value="{{ filter_magnitude }}"
-                           min="1" max="9" step="0.1"
-                           placeholder="2.5">
-                </div>
-                
-                <div class="filter-item">
-                    <span class="filter-label">kaynak</span>
-                    <select name="source" class="filter-input">
-                        <option value="">tümü</option>
-                        <option value="KANDILLI" {% if filter_source == 'KANDILLI' %}selected{% endif %}>kandilli</option>
-                        <option value="AFAD" {% if filter_source == 'AFAD' %}selected{% endif %}>afad</option>
-                        <option value="USGS" {% if filter_source == 'USGS' %}selected{% endif %}>usgs</option>
-                        <option value="EMSC" {% if filter_source == 'EMSC' %}selected{% endif %}>emsc</option>
-                    </select>
-                </div>
-                
-                <div class="filter-item">
-                    <span class="filter-label">şehir</span>
-                    <input type="text" 
-                           name="city" 
-                           class="filter-input"
-                           value="{{ filter_city }}"
-                           placeholder="istanbul">
-                </div>
-                
-                <div class="filter-item">
-                    <span class="filter-label">son (gün)</span>
-                    <select name="days" class="filter-input">
-                        <option value="1" {% if filter_days == 1 %}selected{% endif %}>1 gün</option>
-                        <option value="7" {% if filter_days == 7 %}selected{% endif %}>7 gün</option>
-                        <option value="30" {% if filter_days == 30 %}selected{% endif %}>30 gün</option>
-                    </select>
-                </div>
-                
-                <div class="filter-item" style="align-self: flex-end;">
-                    <button type="submit" class="filter-input" style="background: var(--orange); color: var(--bg-black); border: none; cursor: pointer; font-weight: bold;">
-                        filtrele
-                    </button>
-                </div>
-            </form>
-        </div>
+    <div class="module-header">
+        <h1>🌍 güncel depremler</h1>
+        <p>acil durum yanıt ve deprem takip sistemi</p>
+    </div>
+
+    <div class="earthquake-filters">
+        <form method="get" style="display: flex; gap: 15px; width: 100%;">
+            <div class="filter-item">
+                <span class="filter-label">minimum büyüklük</span>
+                <input type="number"
+                       name="magnitude_min"
+                       class="filter-input"
+                       value="{{ filter_magnitude }}"
+                       min="1" max="9" step="0.1"
+                       placeholder="2.5">
+            </div>
+
+            <div class="filter-item">
+                <span class="filter-label">kaynak</span>
+                <select name="source" class="filter-input">
+                    <option value="">tümü</option>
+                    <option value="KANDILLI" {% if filter_source == 'KANDILLI' %}selected{% endif %}>kandilli</option>
+                    <option value="AFAD" {% if filter_source == 'AFAD' %}selected{% endif %}>afad</option>
+                    <option value="USGS" {% if filter_source == 'USGS' %}selected{% endif %}>usgs</option>
+                    <option value="EMSC" {% if filter_source == 'EMSC' %}selected{% endif %}>emsc</option>
+                </select>
+            </div>
+
+            <div class="filter-item">
+                <span class="filter-label">şehir</span>
+                <input type="text"
+                       name="city"
+                       class="filter-input"
+                       value="{{ filter_city }}"
+                       placeholder="istanbul">
+            </div>
+
+            <div class="filter-item">
+                <span class="filter-label">son (gün)</span>
+                <select name="days" class="filter-input">
+                    <option value="1" {% if filter_days == 1 %}selected{% endif %}>1 gün</option>
+                    <option value="7" {% if filter_days == 7 %}selected{% endif %}>7 gün</option>
+                    <option value="30" {% if filter_days == 30 %}selected{% endif %}>30 gün</option>
+                </select>
+            </div>
+
+            <div class="filter-item" style="align-self: flex-end;">
+                <button type="submit" class="filter-input" style="background: var(--orange); color: var(--bg-black); border: none; cursor: pointer; font-weight: bold;">
+                    filtrele
+                </button>
+            </div>
+        </form>
     </div>
     
     <!-- Data Sources Status -->

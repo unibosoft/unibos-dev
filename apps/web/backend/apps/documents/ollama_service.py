@@ -1,6 +1,7 @@
 """
 Ollama Integration Service for Intelligent Receipt Processing
-Uses Gemma3 and Llama2 models for advanced OCR analysis
+Uses MiniCPM-v (8B), Gemma3, and Llama2 models for advanced OCR analysis
+MiniCPM-v 2.6: Top OCRBench performer, beats GPT-4o, supports 30+ languages
 """
 
 import requests
@@ -33,18 +34,19 @@ class ReceiptField:
 class OllamaService:
     """
     Service for integrating with Ollama models
-    Supports Gemma3 and Llama2 for Turkish receipt processing
+    Supports MiniCPM-v 2.6, Gemma3, and Llama2 for multilingual receipt processing
     """
-    
+
     def __init__(self, base_url: str = "http://localhost:11434"):
         self.base_url = base_url
         self.models = {
+            'minicpm-v': 'minicpm-v:latest',  # Top OCRBench performer, 30+ languages
             'gemma3': 'gemma3:latest',
             'llama2': 'llama2:latest',
             'mistral': 'mistral:latest'  # Fallback option
         }
-        self.current_model = 'gemma3'
-        self.timeout = 30
+        self.current_model = 'minicpm-v'  # Changed from 'gemma3' to 'minicpm-v'
+        self.timeout = 180  # Increased for MiniCPM-v processing (was 120)
         
         # Turkish receipt prompts
         self.prompts = {
@@ -79,43 +81,64 @@ class OllamaService:
         except Exception as e:
             logger.error(f"Ollama not available: {e}")
             return False
-    
+
+    def is_available(self) -> bool:
+        """Check if Ollama service is available"""
+        return self.available
+
     def analyze_receipt(self, ocr_text: str, image_base64: Optional[str] = None) -> Dict:
         """
         Analyze receipt using Ollama model
-        
+
         Args:
-            ocr_text: Raw OCR text from receipt
-            image_base64: Optional base64 encoded image for vision models
-            
+            ocr_text: Raw OCR text from receipt (optional - can be empty for vision mode)
+            image_base64: Base64 encoded image for vision models
+
         Returns:
             Structured receipt data with confidence scores
         """
         if not self.available:
             return {'error': 'Ollama service not available'}
-        
+
         try:
-            # Prepare the prompt
-            prompt = self.prompts['extract_receipt'].format(ocr_text=ocr_text)
-            
-            # Call Ollama
+            # Use vision mode if image provided and no OCR text
+            if image_base64 and not ocr_text:
+                # Optimized prompt for MiniCPM-v vision OCR
+                if self.current_model == 'minicpm-v':
+                    prompt = """Perform complete OCR on this document image. Extract every word, number, and symbol visible in the image.
+Start from the very top and continue to the very bottom. Include all transaction details, codes, and footer information.
+Do not summarize or skip anything - transcribe EVERYTHING you can see."""
+                else:
+                    prompt = """Transcribe all text from this image:"""
+            else:
+                # Use OCR text if available
+                prompt = self.prompts['extract_receipt'].format(ocr_text=ocr_text or '')
+
+            # Call Ollama with vision
             response = self._call_ollama(prompt, image_base64)
-            
+
             if response.get('error'):
                 return response
-            
+
+            # Get the raw text response
+            raw_response = response.get('response', '')
+
             # Parse the response
-            parsed_data = self._parse_ollama_response(response.get('response', ''))
-            
+            parsed_data = self._parse_ollama_response(raw_response)
+
             # Add metadata
             parsed_data['model_used'] = self.current_model
             parsed_data['processing_time'] = response.get('processing_time', 0)
-            
+
             # Validate and enhance data
             validated_data = self.validate_extracted_data(parsed_data, ocr_text)
-            
+
+            # Add success flag
+            validated_data['success'] = True
+            validated_data['raw_response'] = raw_response
+
             return validated_data
-            
+
         except Exception as e:
             logger.error(f"Error analyzing receipt with Ollama: {e}")
             return {'error': str(e)}
@@ -124,20 +147,36 @@ class OllamaService:
         """Make API call to Ollama"""
         try:
             start_time = datetime.now()
-            
+
+            # Model-specific parameters optimized for OCR performance
+            if self.current_model == 'minicpm-v':
+                # MiniCPM-v optimal parameters for OCR tasks
+                options = {
+                    'temperature': 0.1,    # Low temperature for precise OCR (accuracy over creativity)
+                    'top_p': 0.8,          # Focused sampling for better text recognition
+                    'top_k': 40,           # Conservative vocabulary selection
+                    'num_predict': 8000,   # Higher limit for comprehensive document OCR
+                    'repeat_penalty': 1.1  # Slight penalty to reduce repetition in long texts
+                }
+            else:
+                # Gemma3/other models - previous optimized settings
+                options = {
+                    'temperature': 0.7,  # Optimized for better completeness
+                    'top_p': 0.95,       # Official Gemma3 recommendation
+                    'top_k': 64,         # Official Gemma3 recommendation
+                    'num_predict': 6000, # Increased for longer receipts
+                    'repeat_penalty': 1.0  # Disabled for Gemma3
+                }
+
             payload = {
                 'model': self.models[self.current_model],
                 'prompt': prompt,
                 'stream': False,
-                'options': {
-                    'temperature': 0.3,  # Lower temperature for more consistent results
-                    'top_p': 0.9,
-                    'num_predict': 2048
-                }
+                'options': options
             }
-            
+
             # Add image if available (for vision models)
-            if image_base64 and self.current_model in ['gemma3']:
+            if image_base64:
                 payload['images'] = [image_base64]
             
             response = requests.post(
@@ -466,7 +505,7 @@ Return as JSON array of items.
                 }
             }
             
-            if image_base64 and self.current_model in ['gemma3']:
+            if image_base64 and self.current_model in ['minicpm-v', 'gemma3']:
                 payload['images'] = [image_base64]
             
             async with session.post(

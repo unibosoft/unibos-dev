@@ -123,7 +123,37 @@
         background: rgba(255, 0, 0, 0.2);
         color: #ff6666;
     }
-    
+
+    .ocr-tab {
+        flex: 1;
+        padding: 10px;
+        background: var(--bg-dark);
+        border: 2px solid var(--dark-gray);
+        color: var(--white);
+        cursor: pointer;
+        border-radius: 5px;
+        text-align: center;
+        transition: all 0.2s;
+    }
+
+    .ocr-tab:hover {
+        border-color: var(--orange);
+        background: rgba(255, 140, 0, 0.1);
+    }
+
+    .ocr-tab.active {
+        border-color: var(--orange);
+        background: rgba(255, 140, 0, 0.2);
+    }
+
+    .ocr-result {
+        display: none;
+    }
+
+    .ocr-result.active {
+        display: block;
+    }
+
     .tabs {
         display: none;
     }
@@ -185,14 +215,18 @@
 </div>
 
 <div class="document-viewer">
-    <!-- Sol Kolon: Orijinal Fiş -->
+    <!-- original document -->
     <div class="document-preview">
-        <h2 style="color: var(--orange); font-size: 16px; margin-bottom: 10px;">📷 orijinal fiş</h2>
-        
+        <h2 style="color: var(--orange); font-size: 16px; margin-bottom: 10px;">📷 orijinal doküman</h2>
+
         <div class="preview-container">
-            {% if document.document_type == 'receipt' or document.document_type == 'invoice' %}
-                {% if document.file_path %}
-                    <img src="{{ document.file_path.url }}" 
+            {% if document.file_path %}
+                {% if document.file_path.name|slice:"-4:" == '.pdf' %}
+                    <iframe src="{{ document.file_path.url }}"
+                            style="width: 100%; height: 100%; border: none;">
+                    </iframe>
+                {% else %}
+                    <img src="{{ document.file_path.url }}"
                          alt="{{ document.original_filename }}"
                          style="max-width: 100%; max-height: 100%; object-fit: contain;"
                          onerror="this.style.display='none'; document.getElementById('preview-error').style.display='block';">
@@ -200,43 +234,101 @@
                         <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
                         <div>preview not available</div>
                         <div style="margin-top: 10px;">
-                            <a href="{{ document.file_path.url }}" target="_blank" 
+                            <a href="{{ document.file_path.url }}" target="_blank"
                                style="color: var(--orange);">open in new tab</a>
                         </div>
                     </div>
-                {% else %}
-                    <div style="color: var(--gray); text-align: center;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
-                        <div>no file available</div>
-                    </div>
                 {% endif %}
             {% else %}
-                {% if document.file_path %}
-                    <iframe src="{{ document.file_path.url }}"></iframe>
-                {% else %}
-                    <div style="color: var(--gray); text-align: center;">
-                        <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
-                        <div>no file available</div>
-                    </div>
-                {% endif %}
+                <div style="color: var(--gray); text-align: center;">
+                    <div style="font-size: 48px; margin-bottom: 10px;">📄</div>
+                    <div>no file available</div>
+                </div>
             {% endif %}
         </div>
     </div>
-    
-    <!-- Orta Kolon: Ham OCR Metni -->
+
+    <!-- middle column: dual OCR comparison -->
     <div class="document-info">
-        <h2 style="color: var(--orange); font-size: 16px; margin-bottom: 20px;">📝 ham ocr metni</h2>
-        
-        {% if document.ocr_text %}
-        <div class="ocr-text" style="height: calc(100% - 40px);">
-            {{ formatted_ocr|default:document.ocr_text|linebreaksbr }}
+        <h2 style="color: var(--orange); font-size: 16px; margin-bottom: 15px;">📝 dual ocr comparison</h2>
+
+        {% if document.tesseract_text or document.ollama_text %}
+        <!-- Dual OCR tabs -->
+        <div style="display: flex; gap: 5px; margin-bottom: 15px;">
+            <button id="tab-tesseract" class="ocr-tab active" onclick="switchOCRTab('tesseract')">
+                <div style="font-size: 11px; color: var(--gray);">tesseract</div>
+                <div style="font-size: 14px; font-weight: bold;">
+                    {% if document.tesseract_confidence %}
+                        {{ document.tesseract_confidence|floatformat:0 }}%
+                    {% else %}
+                        --
+                    {% endif %}
+                </div>
+                {% if document.preferred_ocr_method == 'tesseract' %}
+                <div style="font-size: 10px; color: var(--green);">✓ aktif</div>
+                {% endif %}
+            </button>
+
+            <button id="tab-ollama" class="ocr-tab" onclick="switchOCRTab('ollama')">
+                <div style="font-size: 11px; color: var(--gray);">
+                    ollama {% if document.ollama_model %}({{ document.ollama_model }}){% endif %}
+                </div>
+                <div style="font-size: 14px; font-weight: bold;">
+                    {% if document.ollama_confidence %}
+                        {{ document.ollama_confidence|floatformat:0 }}%
+                    {% else %}
+                        --
+                    {% endif %}
+                </div>
+                {% if document.preferred_ocr_method == 'ollama' %}
+                <div style="font-size: 10px; color: var(--green);">✓ aktif</div>
+                {% endif %}
+            </button>
         </div>
+
+        <!-- Tesseract result -->
+        <div id="ocr-tesseract" class="ocr-result active">
+            {% if document.tesseract_text %}
+            <div class="ocr-text" style="height: calc(100% - 140px); margin-bottom: 10px;">
+                {{ document.tesseract_text|linebreaksbr }}
+            </div>
+            <button class="btn" onclick="selectOCR('tesseract')"
+                    style="width: 100%; background: var(--green); color: #000;">
+                ✓ bu sonucu kullan
+            </button>
+            {% else %}
+            <div style="text-align: center; padding: 20px; color: var(--gray);">
+                <div style="font-size: 24px;">⚠️</div>
+                <div>tesseract sonucu yok</div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Ollama result -->
+        <div id="ocr-ollama" class="ocr-result">
+            {% if document.ollama_text %}
+            <div class="ocr-text" style="height: calc(100% - 140px); margin-bottom: 10px;">
+                {{ document.ollama_text|linebreaksbr }}
+            </div>
+            <button class="btn" onclick="selectOCR('ollama')"
+                    style="width: 100%; background: var(--green); color: #000;">
+                ✓ bu sonucu kullan
+            </button>
+            {% else %}
+            <div style="text-align: center; padding: 20px; color: var(--gray);">
+                <div style="font-size: 24px;">⚠️</div>
+                <div>ollama sonucu yok</div>
+                <div style="font-size: 11px; margin-top: 5px;">ollama servis çalışmıyor olabilir</div>
+            </div>
+            {% endif %}
+        </div>
+
         {% else %}
         <div style="text-align: center; padding: 40px; color: var(--gray);">
             <div style="font-size: 48px; margin-bottom: 10px;">🔍</div>
-            <div>no ocr text available</div>
+            <div>henüz ocr sonucu yok</div>
             {% if document.processing_status == 'pending' %}
-                <div style="margin-top: 10px; color: var(--yellow);">processing...</div>
+                <div style="margin-top: 10px; color: var(--yellow);">işleniyor...</div>
             {% endif %}
         </div>
         {% endif %}
@@ -478,6 +570,50 @@
 
 
 <script>
+// OCR tab switching
+function switchOCRTab(method) {
+    // Update tab buttons
+    document.querySelectorAll('.ocr-tab').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    document.getElementById(`tab-${method}`).classList.add('active');
+
+    // Update content
+    document.querySelectorAll('.ocr-result').forEach(result => {
+        result.classList.remove('active');
+    });
+    document.getElementById(`ocr-${method}`).classList.add('active');
+}
+
+// Select OCR method
+function selectOCR(method) {
+    if (!confirm(`"${method}" sonucunu kullanmak istediğinizden emin misiniz?\n\nBu, bu doküman için tercih edilen OCR yöntemi olarak kaydedilecek.`)) {
+        return;
+    }
+
+    fetch('{% url "documents:select_ocr_method" document.id %}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}'
+        },
+        body: JSON.stringify({ method: method })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(`✓ ${method} sonucu aktif olarak ayarlandı!`);
+            location.reload();
+        } else {
+            alert(`Hata: ${data.error || 'Bilinmeyen hata'}`);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Bir hata oluştu');
+    });
+}
+
 function reprocessOCR() {
     if (confirm('Reprocess OCR for this document?')) {
         // TODO: Implement OCR reprocessing

@@ -99,7 +99,8 @@ class OCRProcessor:
         self.tesseract_available = TESSERACT_AVAILABLE
         self.cv2_available = CV2_AVAILABLE
         self.ai_enhancer = None
-        
+        self.ollama_service = None
+
         # Initialize AI enhancer if available
         if AI_ENHANCER_AVAILABLE:
             try:
@@ -109,13 +110,27 @@ class OCRProcessor:
             except Exception as e:
                 logger.warning(f"Failed to initialize AI enhancer: {e}")
                 self.ai_enhancer = None
+
+        # Initialize Ollama service for direct LLM OCR
+        try:
+            from .ollama_service import OllamaService
+            self.ollama_service = OllamaService()
+            if self.ollama_service.is_available():
+                logger.info(f"Ollama service initialized with models: {self.ollama_service.models}")
+            else:
+                logger.info("Ollama service not available")
+                self.ollama_service = None
+        except Exception as e:
+            logger.warning(f"Failed to initialize Ollama service: {e}")
+            self.ollama_service = None
     
     def process_document(self, image_path: str, document_type: str = 'receipt', force_ocr: bool = False, force_enhance: bool = False, document_instance=None) -> Dict:
         """
         Main entry point for OCR processing - processes ALL document types
+        Now runs BOTH Tesseract and Ollama in parallel for comparison
         """
-        logger.info(f"Starting OCR processing for: {image_path}, type: {document_type}")
-        
+        logger.info(f"Starting DUAL OCR processing for: {image_path}, type: {document_type}")
+
         try:
             # Ensure file exists
             if not os.path.exists(image_path):
@@ -127,76 +142,149 @@ class OCRProcessor:
                     'parsed_data': {},
                     'confidence': 0
                 }
-            
+
             # Preprocess image if OpenCV available
             if self.cv2_available:
                 # Use forced enhancement if this is a rescan
                 processed_image = self.preprocess_image(image_path, force_enhance=force_ocr or force_enhance)
             else:
                 processed_image = image_path
-            
-            # Always try to extract text for ALL document types
+
+            # === PARALLEL PROCESSING: Run both Tesseract and Ollama independently ===
+            tesseract_result = self._process_with_tesseract(processed_image, image_path, document_type)
+            ollama_result = self._process_with_ollama(image_path, document_type)
+
+            # Store both results in document instance if provided
+            if document_instance:
+                # Save Tesseract results
+                document_instance.tesseract_text = tesseract_result.get('text', '')
+                document_instance.tesseract_confidence = tesseract_result.get('confidence', 0)
+                document_instance.tesseract_parsed_data = tesseract_result.get('parsed_data', {})
+
+                # Save Ollama results
+                document_instance.ollama_text = ollama_result.get('text', '')
+                document_instance.ollama_confidence = ollama_result.get('confidence', 0)
+                document_instance.ollama_parsed_data = ollama_result.get('parsed_data', {})
+                document_instance.ollama_model = ollama_result.get('model', '')
+
+                # Set default OCR text based on preferred method or best confidence
+                if document_instance.preferred_ocr_method == 'tesseract':
+                    document_instance.ocr_text = tesseract_result.get('text', '')
+                    document_instance.ocr_confidence = tesseract_result.get('confidence', 0)
+                    ocr_method = 'tesseract (preferred)'
+                elif document_instance.preferred_ocr_method == 'ollama':
+                    document_instance.ocr_text = ollama_result.get('text', '')
+                    document_instance.ocr_confidence = ollama_result.get('confidence', 0)
+                    ocr_method = 'ollama (preferred)'
+                else:
+                    # Auto-select best result
+                    if ollama_result.get('confidence', 0) > tesseract_result.get('confidence', 0):
+                        document_instance.ocr_text = ollama_result.get('text', '')
+                        document_instance.ocr_confidence = ollama_result.get('confidence', 0)
+                        ocr_method = 'ollama (auto-selected)'
+                    else:
+                        document_instance.ocr_text = tesseract_result.get('text', '')
+                        document_instance.ocr_confidence = tesseract_result.get('confidence', 0)
+                        ocr_method = 'tesseract (auto-selected)'
+
+                # Mark as completed
+                from django.utils import timezone
+                document_instance.processing_status = 'completed'
+                document_instance.ocr_processed_at = timezone.now()
+
+                # Save the document
+                document_instance.save()
+
+                logger.info(f"Dual OCR complete - Tesseract: {len(tesseract_result.get('text', ''))} chars, "
+                           f"Ollama: {len(ollama_result.get('text', ''))} chars - Using: {ocr_method}")
+
+            # Use preferred or best result for parsed_data
+            if ollama_result.get('success') and ollama_result.get('confidence', 0) > tesseract_result.get('confidence', 0):
+                parsed_data = ollama_result.get('parsed_data', {})
+                confidence = ollama_result.get('confidence', 0)
+                ocr_text = ollama_result.get('text', '')
+            else:
+                parsed_data = tesseract_result.get('parsed_data', {})
+                confidence = tesseract_result.get('confidence', 0)
+                ocr_text = tesseract_result.get('text', '')
+
+            # Create ParsedReceipt if document instance is provided and type is receipt
+            if document_instance and document_type == 'receipt' and parsed_data and ocr_text:
+                self.create_parsed_receipt(document_instance, parsed_data)
+
+            return {
+                'success': True,
+                'ocr_text': ocr_text,
+                'parsed_data': parsed_data,
+                'confidence': confidence,
+                'ocr_method': ocr_method if document_instance else 'dual',
+                'text_length': len(ocr_text),
+                'tesseract_result': tesseract_result,
+                'ollama_result': ollama_result
+            }
+
+        except Exception as e:
+            logger.error(f"OCR processing failed with exception: {str(e)}", exc_info=True)
+            return {
+                'success': False,
+                'error': str(e),
+                'ocr_text': '',
+                'parsed_data': {},
+                'confidence': 0
+            }
+
+    def _process_with_tesseract(self, processed_image: str, original_image: str, document_type: str) -> Dict:
+        """Process document using Tesseract OCR"""
+        try:
             ocr_text = ""
             ocr_method = "none"
-            
+
             if self.tesseract_available:
                 try:
                     ocr_text = self.extract_text_tesseract(processed_image)
                     ocr_method = "tesseract"
-                    logger.info(f"OCR successful using Tesseract, extracted {len(ocr_text)} characters")
+                    logger.info(f"Tesseract extracted {len(ocr_text)} characters")
                 except Exception as e:
                     logger.error(f"Tesseract failed: {e}, trying enhanced method")
-                    # Try enhanced extraction
-                    ocr_text = self.extract_text_enhanced(image_path)
+                    ocr_text = self.extract_text_enhanced(original_image)
                     ocr_method = "enhanced"
             else:
-                # Fallback to basic extraction
                 logger.warning("Tesseract not available, using fallback OCR")
-                ocr_text = self.fallback_ocr(image_path)
+                ocr_text = self.fallback_ocr(original_image)
                 ocr_method = "fallback"
-            
-            # Log OCR result
-            if ocr_text:
-                logger.info(f"OCR extracted {len(ocr_text)} characters using {ocr_method}")
-            else:
-                logger.warning("No text extracted from image")
-            
-            # Parse the extracted text based on document type
+
+            # Parse the extracted text
             parsed_data = {}
             ai_enhanced_data = {}
-            
-            # Try AI enhancement if available and OCR text exists
+
+            # Try AI enhancement if available
             if self.ai_enhancer and ocr_text and len(ocr_text) > 50:
                 try:
-                    logger.info("Attempting AI enhancement of OCR text...")
+                    logger.info("Attempting AI enhancement of Tesseract OCR text...")
                     ai_enhanced_data = self.ai_enhancer.analyze_receipt_with_ai(
-                        ocr_text, 
+                        ocr_text,
                         enhance_mode='full' if document_type == 'receipt' else 'quick'
                     )
-                    
+
                     if ai_enhanced_data and ai_enhanced_data.get('store_info'):
                         logger.info("AI enhancement successful")
                         parsed_data['ai_enhanced'] = True
-                        parsed_data['ai_confidence'] = 0.85  # High confidence for AI
+                        parsed_data['ai_confidence'] = 0.85
                 except Exception as e:
                     logger.warning(f"AI enhancement failed: {e}")
                     ai_enhanced_data = {}
-            
+
             if document_type == 'receipt':
-                # Try advanced parser first if available
                 if ADVANCED_PARSER_AVAILABLE:
                     try:
                         advanced_parser = TurkishReceiptParser()
                         advanced_result = advanced_parser.parse(ocr_text)
                         if advanced_result.get('success'):
-                            # Convert to our format
                             parsed_data = OCRProcessorHelper._convert_advanced_result(advanced_result)
                             parsed_data['needs_review'] = True
                             parsed_data['confidence_score'] = OCRProcessorHelper._calculate_confidence(advanced_result)
                             parsed_data['validation'] = advanced_result.get('validation', {})
-                            logger.info("Used advanced parser successfully")
                         else:
-                            # Fallback to simple parser
                             parsed_data = self.parse_receipt(ocr_text)
                             parsed_data['needs_review'] = True
                     except Exception as e:
@@ -206,8 +294,7 @@ class OCRProcessor:
                 else:
                     parsed_data = self.parse_receipt(ocr_text)
                     parsed_data['needs_review'] = True
-                
-                # Merge AI enhanced data if available
+
                 if ai_enhanced_data:
                     parsed_data = self._merge_ai_data(parsed_data, ai_enhanced_data)
             elif document_type == 'invoice':
@@ -215,37 +302,108 @@ class OCRProcessor:
             elif document_type in ['bank_statement', 'cc_statement']:
                 parsed_data = self.parse_statement(ocr_text)
             else:
-                # For other types, provide basic structure
                 parsed_data = {
                     'raw_text': ocr_text,
                     'document_type': document_type,
                     'lines': ocr_text.split('\n') if ocr_text else [],
                     'word_count': len(ocr_text.split()) if ocr_text else 0
                 }
-            
+
             confidence = self.calculate_confidence(parsed_data) if ocr_text else 0
-            
-            # Create ParsedReceipt if document instance is provided and type is receipt
-            if document_instance and document_type == 'receipt' and parsed_data and ocr_text:
-                self.create_parsed_receipt(document_instance, parsed_data)
-            
+
             return {
-                'success': True,
-                'ocr_text': ocr_text,
+                'success': bool(ocr_text),
+                'text': ocr_text,
                 'parsed_data': parsed_data,
                 'confidence': confidence,
-                'ocr_method': ocr_method,
-                'text_length': len(ocr_text)
+                'method': ocr_method
             }
-            
         except Exception as e:
-            logger.error(f"OCR processing failed with exception: {str(e)}", exc_info=True)
+            logger.error(f"Tesseract processing failed: {e}")
             return {
                 'success': False,
-                'error': str(e),
-                'ocr_text': '',
+                'text': '',
                 'parsed_data': {},
-                'confidence': 0
+                'confidence': 0,
+                'error': str(e)
+            }
+
+    def _process_with_ollama(self, image_path: str, document_type: str) -> Dict:
+        """Process document using Ollama LLM - completely independent vision-based OCR"""
+        try:
+            if not self.ollama_service or not self.ollama_service.is_available():
+                logger.info("Ollama service not available, skipping")
+                return {
+                    'success': False,
+                    'text': '',
+                    'parsed_data': {},
+                    'confidence': 0,
+                    'model': ''
+                }
+
+            # Use Ollama to read the image directly with vision model
+            logger.info("Processing with Ollama vision model (independent from Tesseract)...")
+
+            # Read image and convert to base64
+            import base64
+            with open(image_path, 'rb') as f:
+                image_data = f.read()
+            image_base64 = base64.b64encode(image_data).decode('utf-8')
+
+            # Analyze with Ollama - NO OCR text, let it read the image itself
+            ollama_result = self.ollama_service.analyze_receipt(
+                ocr_text='',  # Empty - Ollama will read image directly
+                image_base64=image_base64
+            )
+
+            if ollama_result and ollama_result.get('success'):
+                logger.info(f"Ollama processing successful with model {self.ollama_service.current_model}")
+
+                # Get the raw OCR text from Ollama's vision output
+                raw_text = ollama_result.get('raw_response', '').strip()
+
+                # Extract structured data (if available from parsing)
+                parsed_data = {
+                    'store_name': ollama_result.get('store_info', {}).get('name', ''),
+                    'store_address': ollama_result.get('store_info', {}).get('address', ''),
+                    'transaction_date': ollama_result.get('transaction_info', {}).get('date', ''),
+                    'total_amount': ollama_result.get('transaction_info', {}).get('total', 0),
+                    'items': ollama_result.get('items', []),
+                    'payment_method': ollama_result.get('transaction_info', {}).get('payment_method', ''),
+                    'raw_ollama_data': ollama_result,
+                    'needs_review': False
+                }
+
+                # Get confidence from Ollama (default to 85% for vision OCR)
+                confidence = ollama_result.get('confidence', 85.0)
+                # If confidence is between 0-1, convert to percentage
+                if confidence <= 1.0:
+                    confidence = confidence * 100
+
+                return {
+                    'success': True,
+                    'text': raw_text,  # Direct OCR text from vision model
+                    'parsed_data': parsed_data,
+                    'confidence': confidence,
+                    'model': self.ollama_service.current_model
+                }
+            else:
+                logger.warning("Ollama processing returned no results")
+                return {
+                    'success': False,
+                    'text': '',
+                    'parsed_data': {},
+                    'confidence': 0,
+                    'model': self.ollama_service.current_model
+                }
+        except Exception as e:
+            logger.error(f"Ollama processing failed: {e}")
+            return {
+                'success': False,
+                'text': '',
+                'parsed_data': {},
+                'confidence': 0,
+                'error': str(e)
             }
     
     def preprocess_image(self, image_path: str, force_enhance: bool = False) -> str:

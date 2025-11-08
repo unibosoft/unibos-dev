@@ -10,7 +10,7 @@
 <div class="module-container">
     <div class="module-header">
         <h1>💰 currencies - exchange rates</h1>
-        <p>real-time currency exchange and portfolio management</p>
+        <p>gerçek zamanlı döviz ve portföy yönetimi</p>
     </div>
 
     {% if user.is_authenticated %}
@@ -284,22 +284,32 @@
 }
 
 .module-header {
-    text-align: center;
-    margin-bottom: 20px;
-    padding: 0;
-    background: linear-gradient(135deg, rgba(255, 140, 0, 0.1) 0%, transparent 100%);
-    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--orange);
 }
 
 .module-header h1 {
+    display: block;
     color: var(--orange);
-    font-size: 28px;
-    margin-bottom: 10px;
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: lowercase;
+    margin: 0;
+    margin-bottom: 8px;
+    line-height: 1.2;
 }
 
 .module-header p {
+    display: block;
     color: var(--gray);
     font-size: 14px;
+    text-transform: lowercase;
+    margin: 0;
+    line-height: 1.4;
 }
 
 .section {
@@ -311,8 +321,9 @@
 }
 
 .section h2 {
-    color: var(--cyan);
+    color: var(--orange);
     font-size: 18px;
+    font-weight: bold;
     margin-bottom: 15px;
     text-transform: lowercase;
 }

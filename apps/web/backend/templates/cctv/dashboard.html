@@ -9,9 +9,38 @@
 {% block extra_css %}
 <style>
     .cctv-container {
-        padding: 20px;
-        background: #0a0a0a;
-        min-height: calc(100vh - 120px);
+        padding: 0;
+        max-width: 100%;
+        margin: 0;
+    }
+
+    .module-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        margin-bottom: 30px;
+        padding-bottom: 15px;
+        border-bottom: 2px solid var(--orange);
+    }
+
+    .module-header h1 {
+        display: block;
+        color: var(--orange);
+        font-size: 24px;
+        font-weight: bold;
+        text-transform: lowercase;
+        margin: 0;
+        margin-bottom: 8px;
+        line-height: 1.2;
+    }
+
+    .module-subtitle {
+        display: block;
+        color: var(--gray);
+        font-size: 14px;
+        text-transform: lowercase;
+        margin: 0;
+        line-height: 1.4;
     }
     
     .stats-grid {
@@ -20,31 +49,25 @@
         gap: 15px;
         margin-bottom: 30px;
     }
-    
+
     .stat-card {
-        background: #1a1a1a;
+        background: rgba(20, 20, 20, 0.5);
         border: 1px solid #333;
-        border-radius: 8px;
-        padding: 20px;
+        padding: 15px;
+        border-radius: 4px;
         text-align: center;
-        transition: all 0.3s ease;
     }
-    
-    .stat-card:hover {
-        border-color: #ff8c00;
-        transform: translateY(-2px);
-    }
-    
+
     .stat-value {
-        font-size: 2.5em;
-        color: #ff8c00;
+        font-size: 24px;
+        color: var(--orange);
         font-weight: bold;
         margin: 10px 0;
     }
-    
+
     .stat-label {
-        color: #888;
-        font-size: 0.9em;
+        color: var(--gray);
+        font-size: 12px;
         text-transform: lowercase;
     }
     
@@ -56,16 +79,10 @@
     }
     
     .camera-card {
-        background: #1a1a1a;
+        background: rgba(20, 20, 20, 0.5);
         border: 1px solid #333;
-        border-radius: 8px;
+        border-radius: 4px;
         overflow: hidden;
-        transition: all 0.3s ease;
-    }
-    
-    .camera-card:hover {
-        border-color: #ff8c00;
-        box-shadow: 0 4px 8px rgba(255, 140, 0, 0.2);
     }
     
     .camera-preview {
@@ -170,10 +187,10 @@
     }
     
     .alerts-section {
-        background: #1a1a1a;
+        background: rgba(20, 20, 20, 0.5);
         border: 1px solid #333;
-        border-radius: 8px;
-        padding: 20px;
+        padding: 15px;
+        border-radius: 4px;
         margin-bottom: 30px;
     }
     
@@ -185,11 +202,12 @@
         padding-bottom: 10px;
         border-bottom: 1px solid #333;
     }
-    
+
     .section-title {
-        color: #ff8c00;
-        font-size: 1.2em;
+        color: var(--orange);
+        font-size: 18px;
         text-transform: lowercase;
+        margin: 0;
     }
     
     .alert-item {
@@ -257,24 +275,25 @@
         display: flex;
         gap: 10px;
         margin-bottom: 30px;
+        flex-wrap: wrap;
     }
-    
+
     .btn-action {
-        padding: 10px 20px;
-        background: #ff8c00;
-        color: #000;
-        border: none;
+        padding: 8px 16px;
+        background: transparent;
+        color: var(--orange);
+        border: 1px solid var(--orange);
         border-radius: 4px;
         cursor: pointer;
-        font-weight: bold;
         text-transform: lowercase;
-        transition: all 0.2s ease;
         text-decoration: none;
         display: inline-block;
+        transition: all 0.3s;
     }
-    
+
     .btn-action:hover {
-        background: #ffa500;
+        background: var(--orange);
+        color: #000;
         transform: translateY(-2px);
     }
     
@@ -301,6 +320,11 @@
 
 {% block content %}
 <div class="cctv-container">
+    <div class="module-header">
+        <h1>📹 cctv</h1>
+        <p class="module-subtitle">surveillance & monitoring dashboard</p>
+    </div>
+
     <!-- Statistics -->
     <div class="stats-grid">
         <div class="stat-card">

@@ -20,22 +20,32 @@
     
     /* Module Header */
     .module-header {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
         margin-bottom: 30px;
-        padding-bottom: 20px;
+        padding-bottom: 15px;
         border-bottom: 2px solid var(--orange);
     }
-    
+
     .module-header h1 {
+        display: block;
         color: var(--orange);
         font-size: 24px;
-        margin-bottom: 5px;
+        font-weight: bold;
         text-transform: lowercase;
+        margin: 0;
+        margin-bottom: 8px;
+        line-height: 1.2;
     }
-    
+
     .module-header p {
+        display: block;
         color: var(--gray);
-        font-size: 12px;
+        font-size: 14px;
         text-transform: lowercase;
+        margin: 0;
+        line-height: 1.4;
     }
     
     /* Navigation Tabs */

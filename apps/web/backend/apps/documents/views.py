@@ -33,7 +33,7 @@ logger = logging.getLogger('documents.views')
 
 class DocumentsDashboardView(LoginRequiredMixin, BaseUIView):
     """Main documents dashboard with enhanced features"""
-    template_name = 'documents/dashboard_fixed.html'
+    template_name = 'documents/dashboard.html'
     
     def get(self, request, *args, **kwargs):
         context = self.get_context_data()
@@ -95,6 +95,13 @@ class DocumentsDashboardView(LoginRequiredMixin, BaseUIView):
         context['processed_documents'] = stats['completed']
         context['failed_documents'] = stats['failed']
         context['manual_review_documents'] = stats['manual_review']
+
+        # Get currently processing document (oldest first - being processed now)
+        context['current_processing_doc'] = Document.objects.filter(
+            user=user,
+            is_deleted=False,
+            processing_status='processing'
+        ).order_by('uploaded_at').first()
         
         # Use original documents with file_path
         context['documents'] = page_obj
@@ -210,47 +217,53 @@ class DocumentUploadView(LoginRequiredMixin, BaseUIView):
     
     def post(self, request, *args, **kwargs):
         """Handle file upload with enhanced OCR and thumbnail generation"""
+        # Check if this is an AJAX request (from dashboard quick upload)
+        is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'multipart/form-data'
+
         if 'files' not in request.FILES:
+            if is_ajax:
+                return JsonResponse({'success': False, 'error': 'No files selected'}, status=400)
             messages.error(request, 'No files selected')
             return redirect('documents:upload')
-        
+
         files = request.FILES.getlist('files')
         batch_name = request.POST.get('batch_name', f'Batch {timezone.now().strftime("%Y%m%d_%H%M")}')
         auto_ocr = request.POST.get('auto_ocr', 'true') == 'true'
-        
-        # Create batch
+        upload_only = request.POST.get('upload_only', 'false') == 'true'  # Quick upload mode - always process with OCR in background
+
+        # Create batch - always start with processing status for background OCR
         batch = DocumentBatch.objects.create(
             user=request.user,
             batch_name=batch_name,
             total_documents=len(files),
             status='processing'
         )
-        
+
         # Initialize processors
-        ocr_processor = OCRProcessor()
         thumbnail_generator = ThumbnailGenerator()
+        uploaded = 0
         processed = 0
         failed = 0
         ocr_errors = []
-        
+
         for file in files:
             try:
                 # Get unique filename to avoid overwriting
                 unique_filename = DocumentHelper.get_unique_filename(request.user, file.name)
-                
-                # Save document
+
+                # Save document with 'processing' status - will be processed by background task
                 document = Document.objects.create(
                     user=request.user,
                     document_type=request.POST.get('document_type', 'receipt'),
                     original_filename=unique_filename,
                     file_path=file,
-                    processing_status='processing'
+                    processing_status='processing'  # Always processing for background OCR
                 )
-                
-                # Generate thumbnail
+
+                # Generate thumbnail (quick operation)
                 try:
                     thumb_file = thumbnail_generator.generate_thumbnail_from_django_file(
-                        document.file_path, 
+                        document.file_path,
                         str(document.id)
                     )
                     if thumb_file:
@@ -258,101 +271,45 @@ class DocumentUploadView(LoginRequiredMixin, BaseUIView):
                         logger.info(f"Thumbnail generated for document {document.id}")
                 except Exception as e:
                     logger.error(f"Thumbnail generation failed for {document.id}: {e}")
-                
-                # Process OCR for ALL document types if auto_ocr is enabled
-                if auto_ocr:
-                    logger.info(f"Processing OCR for document {document.id}, type: {document.document_type}")
-                    
-                    try:
-                        result = ocr_processor.process_document(
-                            document.file_path.path,
-                            document_type=document.document_type,
-                            force_ocr=True,
-                            document_instance=document
-                        )
-                        
-                        if result['success'] and result.get('ocr_text'):
-                            # Save OCR results
-                            document.ocr_text = result['ocr_text']
-                            document.ocr_confidence = result.get('confidence', 0)
-                            document.processing_status = 'completed'
-                            document.ocr_processed_at = timezone.now()
-                            
-                            # Save custom metadata
-                            document.custom_metadata = {
-                                'ocr_method': result.get('ocr_method', 'unknown'),
-                                'text_length': result.get('text_length', 0),
-                                'processing_time': str(timezone.now())
-                            }
-                            
-                            # Parse and save structured data for receipts
-                            if document.document_type == 'receipt' and result.get('parsed_data'):
-                                self.save_parsed_receipt(document, result['parsed_data'])
-                            
-                            logger.info(f"OCR successful for document {document.id}: {len(result['ocr_text'])} chars")
-                            processed += 1
-                        else:
-                            # OCR failed or returned no text
-                            document.processing_status = 'manual_review'
-                            document.custom_metadata = {
-                                'ocr_error': result.get('error', 'No text extracted'),
-                                'requires_manual_ocr': True
-                            }
-                            ocr_errors.append(f"{file.name}: {result.get('error', 'No text extracted')}")
-                            logger.warning(f"OCR failed for document {document.id}: {result.get('error')}")
-                            failed += 1
-                    
-                    except Exception as ocr_exception:
-                        # OCR processing exception
-                        document.processing_status = 'failed'
-                        document.custom_metadata = {
-                            'ocr_error': str(ocr_exception),
-                            'requires_manual_ocr': True
-                        }
-                        ocr_errors.append(f"{file.name}: {str(ocr_exception)}")
-                        logger.error(f"OCR exception for document {document.id}: {ocr_exception}")
-                        failed += 1
-                else:
-                    # Manual OCR mode
-                    document.processing_status = 'pending'
-                    document.custom_metadata = {'auto_ocr_disabled': True}
-                    processed += 1
-                
-                # Save document with all updates
+
+                uploaded += 1
                 document.save()
+
+                # OCR will be processed in background automatically
                     
             except Exception as e:
                 failed += 1
                 logger.error(f'Error processing {file.name}: {str(e)}')
                 messages.error(request, f'Error processing {file.name}: {str(e)}')
         
-        # Update batch
-        batch.processed_documents = processed
-        batch.failed_documents = failed
-        batch.status = 'completed' if failed == 0 else 'partial' if processed > 0 else 'failed'
-        batch.completed_at = timezone.now()
+        # Update batch - leave as processing for background OCR
+        batch.status = 'processing'
         batch.save()
-        
-        # Cross-module integration (only for successfully processed documents)
-        if processed > 0:
-            try:
-                self.integrate_with_modules(batch)
-            except Exception as e:
-                logger.error(f"Module integration failed: {e}")
-        
-        # Provide detailed feedback
-        if processed > 0:
-            messages.success(request, f'Successfully processed {processed} document(s)')
-        
+
+        logger.info(f"uploaded {uploaded} documents for user {request.user.id}, ocr will process in background")
+
+        # Prepare response data
+        response_data = {
+            'success': uploaded > 0,
+            'total': len(files),
+            'uploaded': uploaded,
+            'processing': uploaded,  # All uploaded files are now processing
+            'failed': failed,
+            'batch_id': str(batch.id),
+            'batch_name': batch_name,
+        }
+
+        # Return JSON for AJAX requests
+        if is_ajax:
+            return JsonResponse(response_data)
+
+        # Provide detailed feedback for regular form submissions
+        if uploaded > 0:
+            messages.success(request, f'successfully uploaded {uploaded} document(s) - ocr processing started in background')
+
         if failed > 0:
-            messages.warning(request, f'{failed} document(s) require manual review')
-            if ocr_errors:
-                # Show first 3 errors
-                for error in ocr_errors[:3]:
-                    messages.error(request, f'OCR Error: {error}')
-                if len(ocr_errors) > 3:
-                    messages.error(request, f'... and {len(ocr_errors) - 3} more errors')
-        
+            messages.warning(request, f'{failed} document(s) failed to upload')
+
         return redirect('documents:dashboard')
     
     def save_parsed_receipt(self, document, parsed_data):
@@ -1300,3 +1257,83 @@ class SubscriptionManagementView(LoginRequiredMixin, BaseUIView):
         
         messages.success(request, f'Subscription {subscription.service_name} added')
         return redirect('documents:subscriptions')
+
+class RecycleBinView(LoginRequiredMixin, BaseUIView):
+    """View deleted documents (soft delete)"""
+    template_name = 'documents/recycle_bin.html'
+
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data()
+
+        # Get deleted documents
+        deleted_docs = Document.objects.filter(
+            user=request.user,
+            is_deleted=True
+        ).order_by('-deleted_at')
+
+        context.update({
+            'deleted_documents': deleted_docs,
+            'total_deleted': deleted_docs.count()
+        })
+
+        return render(request, self.template_name, context)
+
+
+@require_POST
+def select_ocr_method(request, document_id):
+    """Select preferred OCR method for a document"""
+    try:
+        document = get_object_or_404(Document, id=document_id, user=request.user)
+
+        # Get method from request body
+        import json
+        data = json.loads(request.body)
+        method = data.get('method', '').lower()
+
+        if method not in ['tesseract', 'ollama']:
+            return JsonResponse({
+                'success': False,
+                'error': 'Invalid OCR method. Must be "tesseract" or "ollama"'
+            }, status=400)
+
+        # Update preferred method
+        document.preferred_ocr_method = method
+
+        # Update main OCR fields based on selected method
+        if method == 'tesseract':
+            document.ocr_text = document.tesseract_text or ''
+            document.ocr_confidence = document.tesseract_confidence or 0
+            # Update parsed data from tesseract
+            if document.tesseract_parsed_data:
+                # Create or update ParsedReceipt based on tesseract data
+                if document.document_type == 'receipt':
+                    from .ocr_service import OCRProcessor
+                    processor = OCRProcessor()
+                    processor.create_parsed_receipt(document, document.tesseract_parsed_data)
+        elif method == 'ollama':
+            document.ocr_text = document.ollama_text or ''
+            document.ocr_confidence = document.ollama_confidence or 0
+            # Update parsed data from ollama
+            if document.ollama_parsed_data:
+                # Create or update ParsedReceipt based on ollama data
+                if document.document_type == 'receipt':
+                    from .ocr_service import OCRProcessor
+                    processor = OCRProcessor()
+                    processor.create_parsed_receipt(document, document.ollama_parsed_data)
+
+        document.save()
+
+        logger.info(f"User {request.user.username} selected {method} as preferred OCR method for document {document_id}")
+
+        return JsonResponse({
+            'success': True,
+            'method': method,
+            'message': f'{method.capitalize()} selected as preferred OCR method'
+        })
+
+    except Exception as e:
+        logger.error(f"Error selecting OCR method for document {document_id}: {e}")
+        return JsonResponse({
+            'success': False,
+            'error': str(e)
+        }, status=500)

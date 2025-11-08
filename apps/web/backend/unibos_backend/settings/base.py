@@ -77,6 +77,7 @@ LOCAL_APPS = [
     'apps.restopos',  # Restaurant POS system
     'apps.wimm',  # Where Is My Money - Personal finance tracker
     'apps.wims',  # Where Is My Stuff - Inventory management
+    'store',  # Store - Marketplace Integration & Order Management
     'apps.logging',  # System and activity logging
 ]
 

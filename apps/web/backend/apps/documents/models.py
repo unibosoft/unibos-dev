@@ -14,6 +14,7 @@ import os
 
 
 class DocumentType(models.TextChoices):
+    UNKNOWN = 'unknown', 'Unknown (Auto-detect)'
     RECEIPT = 'receipt', 'Receipt/Fiş'
     INVOICE = 'invoice', 'Invoice/Fatura'
     BANK_STATEMENT = 'bank_statement', 'Bank Statement'
@@ -42,11 +43,24 @@ class Document(models.Model):
     thumbnail_path = models.FileField(upload_to='documents/thumbnails/%Y/%m/', null=True, blank=True)
     
     # Processing status
-    processing_status = models.CharField(max_length=20, choices=ProcessingStatus.choices, default=ProcessingStatus.PENDING)
+    processing_status = models.CharField(max_length=20, choices=ProcessingStatus.choices, default=ProcessingStatus.PROCESSING)
     ocr_text = models.TextField(blank=True, null=True)
     ocr_confidence = models.FloatField(null=True, blank=True)
     ocr_processed_at = models.DateTimeField(null=True, blank=True)
-    
+
+    # Dual OCR storage - Tesseract and Ollama results
+    tesseract_text = models.TextField(blank=True, null=True)
+    tesseract_confidence = models.FloatField(null=True, blank=True)
+    tesseract_parsed_data = models.JSONField(null=True, blank=True)
+
+    ollama_text = models.TextField(blank=True, null=True)
+    ollama_confidence = models.FloatField(null=True, blank=True)
+    ollama_parsed_data = models.JSONField(null=True, blank=True)
+    ollama_model = models.CharField(max_length=50, blank=True, default='')  # gemma3, llama2, etc.
+
+    # User's preferred OCR method for this document
+    preferred_ocr_method = models.CharField(max_length=20, blank=True, default='')  # 'tesseract', 'ollama', or empty for not selected
+
     # AI Enhancement fields
     ai_processed = models.BooleanField(default=False)
     ai_parsed_data = models.JSONField(null=True, blank=True)

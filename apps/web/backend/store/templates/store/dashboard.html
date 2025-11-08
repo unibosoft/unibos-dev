@@ -4,20 +4,23 @@
 
 {% block content %}
 <div class="store-dashboard">
-    <!-- Page Header -->
-    <div class="dashboard-header">
-        <h1>store dashboard</h1>
-        <div class="header-actions">
-            <button onclick="window.location.href='{% url 'store:marketplace_add' %}'" class="action-button">
-                + add marketplace
-            </button>
-            <button onclick="window.location.href='{% url 'store:order_list' %}'" class="action-button">
-                📦 all orders
-            </button>
-            <button onclick="window.location.href='{% url 'store:product_list' %}'" class="action-button">
-                📋 all products
-            </button>
-        </div>
+    <!-- Module Header -->
+    <div class="module-header">
+        <h1>🛍️ store</h1>
+        <p class="module-subtitle">marketplace integration & order management</p>
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="header-actions">
+        <button onclick="window.location.href='{% url 'store:marketplace_add' %}'" class="action-button">
+            + add marketplace
+        </button>
+        <button onclick="window.location.href='{% url 'store:order_list' %}'" class="action-button">
+            📦 all orders
+        </button>
+        <button onclick="window.location.href='{% url 'store:product_list' %}'" class="action-button">
+            📋 all products
+        </button>
     </div>
 
     <!-- Statistics Grid -->
@@ -204,72 +207,83 @@
 
 <style>
 .store-dashboard {
-    padding: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
-}
-
-.dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    padding-bottom: 1rem;
-    border-bottom: 2px solid var(--border-color);
-}
-
-.dashboard-header h1 {
-    font-size: 2rem;
-    color: var(--text-color);
+    padding: 0;
+    max-width: 100%;
     margin: 0;
+}
+
+.module-header {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    margin-bottom: 30px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid var(--orange);
+}
+
+.module-header h1 {
+    display: block;
+    color: var(--orange);
+    font-size: 24px;
+    font-weight: bold;
+    text-transform: lowercase;
+    margin: 0;
+    margin-bottom: 8px;
+    line-height: 1.2;
+}
+
+.module-subtitle {
+    display: block;
+    color: var(--gray);
+    font-size: 14px;
+    text-transform: lowercase;
+    margin: 0;
+    line-height: 1.4;
 }
 
 .header-actions {
     display: flex;
-    gap: 1rem;
+    gap: 10px;
+    margin-bottom: 30px;
+    flex-wrap: wrap;
 }
 
 .action-button {
-    padding: 0.5rem 1rem;
-    background: var(--primary-color);
-    color: white;
-    border: none;
+    padding: 8px 16px;
+    background: transparent;
+    color: var(--orange);
+    border: 1px solid var(--orange);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
+    text-transform: lowercase;
+    transition: all 0.3s;
 }
 
 .action-button:hover {
-    background: var(--primary-hover);
+    background: var(--orange);
+    color: #000;
     transform: translateY(-2px);
 }
 
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 3rem;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
 }
 
 .stat-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1.5rem;
+    background: rgba(20, 20, 20, 0.5);
+    border: 1px solid #333;
+    padding: 15px;
+    border-radius: 4px;
     display: flex;
     align-items: center;
     gap: 1rem;
-    transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .stat-icon {
-    font-size: 2.5rem;
+    font-size: 24px;
 }
 
 .stat-content {
@@ -277,39 +291,45 @@
 }
 
 .stat-value {
-    font-size: 2rem;
+    font-size: 24px;
     font-weight: bold;
-    color: var(--text-color);
+    color: var(--orange);
 }
 
 .stat-label {
-    font-size: 0.9rem;
-    color: var(--text-secondary);
-    margin-top: 0.25rem;
+    font-size: 12px;
+    color: var(--gray);
+    text-transform: lowercase;
+    margin-top: 5px;
 }
 
 .stat-revenue {
-    font-size: 1.1rem;
-    color: var(--success-color);
-    margin-top: 0.5rem;
+    font-size: 14px;
+    color: #4caf50;
+    margin-top: 5px;
 }
 
 .stat-sublabel {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-top: 0.25rem;
+    font-size: 12px;
+    color: var(--gray);
+    margin-top: 5px;
 }
 
 .dashboard-section {
-    margin-bottom: 3rem;
+    background: rgba(20, 20, 20, 0.5);
+    border: 1px solid #333;
+    padding: 15px;
+    border-radius: 4px;
+    margin-bottom: 30px;
 }
 
 .dashboard-section h2 {
-    font-size: 1.3rem;
-    color: var(--text-color);
-    margin-bottom: 1.5rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 1px solid var(--border-color);
+    font-size: 18px;
+    color: var(--orange);
+    text-transform: lowercase;
+    margin: 0 0 15px 0;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #333;
 }
 
 .marketplace-grid {
@@ -319,16 +339,10 @@
 }
 
 .marketplace-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1.5rem;
-    transition: all 0.3s ease;
-}
-
-.marketplace-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #333;
+    padding: 15px;
+    border-radius: 4px;
 }
 
 .marketplace-header {
@@ -340,7 +354,8 @@
 
 .marketplace-platform {
     font-weight: bold;
-    color: var(--text-color);
+    color: var(--orange);
+    text-transform: lowercase;
 }
 
 .status-badge {
@@ -382,9 +397,10 @@
 }
 
 .marketplace-name {
-    font-size: 1.1rem;
-    color: var(--text-color);
-    margin-bottom: 1rem;
+    font-size: 16px;
+    color: #fff;
+    margin-bottom: 10px;
+    text-transform: lowercase;
 }
 
 .marketplace-stats {
@@ -394,9 +410,9 @@
 .stat-row {
     display: flex;
     justify-content: space-between;
-    padding: 0.25rem 0;
-    font-size: 0.9rem;
-    color: var(--text-secondary);
+    padding: 5px 0;
+    font-size: 12px;
+    color: var(--gray);
 }
 
 .marketplace-actions {
@@ -405,31 +421,33 @@
 
 .sync-button {
     width: 100%;
-    padding: 0.5rem;
-    background: var(--secondary-color);
-    color: white;
-    border: none;
+    padding: 8px;
+    background: transparent;
+    color: var(--orange);
+    border: 1px solid var(--orange);
     border-radius: 4px;
     cursor: pointer;
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
+    font-size: 12px;
+    text-transform: lowercase;
+    transition: all 0.3s;
 }
 
 .sync-button:hover {
-    background: var(--secondary-hover);
+    background: var(--orange);
+    color: #000;
 }
 
 .last-sync {
-    margin-top: 0.5rem;
-    font-size: 0.75rem;
-    color: var(--text-secondary);
+    margin-top: 5px;
+    font-size: 10px;
+    color: var(--gray);
     text-align: center;
 }
 
 .orders-table {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #333;
+    border-radius: 4px;
     overflow: hidden;
 }
 
@@ -439,28 +457,25 @@
 }
 
 .orders-table th {
-    background: var(--header-bg);
-    padding: 1rem;
+    background: rgba(255, 140, 0, 0.1);
+    padding: 8px;
     text-align: left;
-    font-weight: bold;
-    color: var(--text-color);
-    border-bottom: 2px solid var(--border-color);
+    color: var(--orange);
+    border: 1px solid #333;
+    text-transform: lowercase;
+    font-size: 12px;
 }
 
 .orders-table td {
-    padding: 1rem;
-    border-bottom: 1px solid var(--border-color);
-    color: var(--text-color);
-}
-
-.orders-table tr:hover {
-    background: var(--hover-bg);
+    padding: 8px;
+    border: 1px solid #333;
+    color: #ccc;
+    font-size: 12px;
 }
 
 .view-link {
-    color: var(--primary-color);
+    color: var(--orange);
     text-decoration: none;
-    font-weight: bold;
 }
 
 .view-link:hover {
@@ -468,33 +483,34 @@
 }
 
 .table-footer {
-    padding: 1rem;
+    padding: 10px;
     text-align: center;
-    background: var(--header-bg);
+    background: rgba(255, 140, 0, 0.1);
+    border-top: 1px solid #333;
 }
 
 .view-all-link {
-    color: var(--primary-color);
+    color: var(--orange);
     text-decoration: none;
-    font-weight: bold;
+    font-size: 12px;
 }
 
 .empty-state {
     text-align: center;
-    padding: 3rem;
-    color: var(--text-secondary);
+    padding: 40px;
+    color: var(--gray);
 }
 
 .empty-icon {
-    font-size: 4rem;
-    margin-bottom: 1rem;
+    font-size: 48px;
+    margin-bottom: 10px;
 }
 
 .alert-section {
-    background: #fff9e6;
-    border: 2px solid #ffc107;
-    border-radius: 8px;
-    padding: 1.5rem;
+    background: rgba(255, 204, 0, 0.1);
+    border: 1px solid #ffcc00;
+    padding: 15px;
+    border-radius: 4px;
 }
 
 .low-stock-list {
@@ -506,8 +522,9 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 0.75rem;
-    background: white;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #333;
     border-radius: 4px;
 }
 
@@ -518,12 +535,13 @@
 
 .product-title {
     font-weight: bold;
-    color: var(--text-color);
+    color: var(--orange);
+    font-size: 14px;
 }
 
 .product-sku {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
+    font-size: 11px;
+    color: var(--gray);
 }
 
 .stock-info {
@@ -559,91 +577,37 @@
 }
 
 .best-seller-card {
-    background: var(--card-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 1rem;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid #333;
+    padding: 15px;
+    border-radius: 4px;
     text-align: center;
-    transition: all 0.3s ease;
-}
-
-.best-seller-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
 }
 
 .rank {
-    font-size: 1.5rem;
+    font-size: 20px;
     font-weight: bold;
-    color: var(--primary-color);
-    margin-bottom: 0.5rem;
+    color: var(--orange);
+    margin-bottom: 5px;
 }
 
 .product-name {
-    font-size: 0.9rem;
-    color: var(--text-color);
-    margin-bottom: 0.5rem;
+    font-size: 13px;
+    color: #fff;
+    margin-bottom: 5px;
+    text-transform: lowercase;
 }
 
 .sales-count {
-    font-size: 0.85rem;
-    color: var(--text-secondary);
-    margin-bottom: 0.25rem;
+    font-size: 11px;
+    color: var(--gray);
+    margin-bottom: 3px;
 }
 
 .revenue {
-    font-size: 1rem;
+    font-size: 14px;
     font-weight: bold;
-    color: var(--success-color);
-}
-
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    :root {
-        --card-bg: #2a2a2a;
-        --border-color: #444;
-        --text-color: #e0e0e0;
-        --text-secondary: #999;
-        --header-bg: #333;
-        --hover-bg: #3a3a3a;
-        --primary-color: #4a9eff;
-        --primary-hover: #3a8eef;
-        --secondary-color: #6c757d;
-        --secondary-hover: #5c656d;
-        --success-color: #28a745;
-        --success-bg: rgba(40, 167, 69, 0.1);
-        --warning-color: #ffc107;
-        --warning-bg: rgba(255, 193, 7, 0.1);
-    }
-    
-    .alert-section {
-        background: #3a3a2a;
-        border-color: #886600;
-    }
-    
-    .low-stock-item {
-        background: #2a2a2a;
-    }
-}
-
-/* Light mode */
-@media (prefers-color-scheme: light) {
-    :root {
-        --card-bg: white;
-        --border-color: #dee2e6;
-        --text-color: #212529;
-        --text-secondary: #6c757d;
-        --header-bg: #f8f9fa;
-        --hover-bg: #f1f3f5;
-        --primary-color: #007bff;
-        --primary-hover: #0056b3;
-        --secondary-color: #6c757d;
-        --secondary-hover: #545b62;
-        --success-color: #28a745;
-        --success-bg: rgba(40, 167, 69, 0.1);
-        --warning-color: #ffc107;
-        --warning-bg: rgba(255, 193, 7, 0.1);
-    }
+    color: #4caf50;
 }
 
 /* Responsive design */

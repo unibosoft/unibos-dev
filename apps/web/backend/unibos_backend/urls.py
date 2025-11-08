@@ -46,9 +46,12 @@ urlpatterns = [
     
     # CCTV Module (separate from API for web interface)
     path('cctv/', include('apps.cctv.urls', namespace='cctv')),
-    
+
     # Documents Module (Recaria OCR & Document Management)
     path('documents/', include('apps.documents.urls', namespace='documents')),
+
+    # Store Module - Marketplace Integration & Order Management
+    path('store/', include('store.urls', namespace='store')),
     
     # Version Manager Module
     path('version-manager/', include('apps.version_manager.urls', namespace='version_manager')),

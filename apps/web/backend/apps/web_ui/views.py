@@ -131,13 +131,9 @@ class ModuleView(BaseUIView):
         if module_id == 'recaria':
             return redirect('recaria:dashboard')
         
-        # Handle store module (placeholder for now)
+        # Redirect Store to its own app
         if module_id == 'store':
-            return render(request, 'web_ui/module_placeholder.html', {
-                'module_name': 'store',
-                'module_icon': '🛍️',
-                'message': 'store module is under development'
-            })
+            return redirect('store:dashboard')
         
         return super().dispatch(request, *args, **kwargs)
     

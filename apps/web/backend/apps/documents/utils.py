@@ -343,25 +343,30 @@ class DocumentHelper:
 
 class PaginationHelper:
     """Helper for dynamic pagination"""
-    
-    ALLOWED_PAGE_SIZES = [10, 25, 50, 100]
+
+    ALLOWED_PAGE_SIZES = [10, 20, 50, 100, 250]
     DEFAULT_PAGE_SIZE = 20
-    
+
     @staticmethod
     def get_page_size(request, default: int = None) -> int:
         """
         Get page size from request
+        Accepts both 'page_size' and 'per_page' parameters
         """
         default = default or PaginationHelper.DEFAULT_PAGE_SIZE
-        
+
         try:
-            page_size = int(request.GET.get('page_size', default))
-            # Validate against allowed sizes
-            if page_size in PaginationHelper.ALLOWED_PAGE_SIZES:
-                return page_size
-            # Find closest allowed size
-            return min(PaginationHelper.ALLOWED_PAGE_SIZES, 
-                      key=lambda x: abs(x - page_size))
+            # Check both 'per_page' and 'page_size' parameters
+            page_size = request.GET.get('per_page') or request.GET.get('page_size')
+            if page_size:
+                page_size = int(page_size)
+                # Validate against allowed sizes
+                if page_size in PaginationHelper.ALLOWED_PAGE_SIZES:
+                    return page_size
+                # Find closest allowed size
+                return min(PaginationHelper.ALLOWED_PAGE_SIZES,
+                          key=lambda x: abs(x - page_size))
+            return default
         except (ValueError, TypeError):
             return default
     
@@ -391,6 +396,16 @@ class PaginationHelper:
         if 'page' in query_params:
             query_params.pop('page')
         
+        # Get current page size (check both per_page and page_size)
+        current_page_size = request.GET.get('per_page') or request.GET.get('page_size')
+        if current_page_size:
+            try:
+                current_page_size = int(current_page_size)
+            except (ValueError, TypeError):
+                current_page_size = PaginationHelper.DEFAULT_PAGE_SIZE
+        else:
+            current_page_size = PaginationHelper.DEFAULT_PAGE_SIZE
+
         return {
             'page_range': page_range,
             'current_page': current_page,
@@ -400,7 +415,8 @@ class PaginationHelper:
             'previous_page_number': page_obj.previous_page_number() if page_obj.has_previous() else None,
             'next_page_number': page_obj.next_page_number() if page_obj.has_next() else None,
             'total_items': paginator.count,
-            'page_size': int(request.GET.get('page_size', PaginationHelper.DEFAULT_PAGE_SIZE)),
+            'page_size': current_page_size,
+            'per_page': current_page_size,  # Add this for template compatibility
             'allowed_page_sizes': PaginationHelper.ALLOWED_PAGE_SIZES,
             'query_params': query_params.urlencode() if query_params else '',
             'start_index': page_obj.start_index(),

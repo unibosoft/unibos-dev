@@ -45,10 +45,10 @@ class BulkDeleteView(LoginRequiredMixin, View):
                 )
             
             logger.info(f"User {request.user.id} soft deleted {deleted_count} documents")
-            
+
             return JsonResponse({
                 'success': True,
-                'deleted_count': deleted_count
+                'deleted': deleted_count
             })
             
         except Exception as e:
@@ -58,39 +58,137 @@ class BulkDeleteView(LoginRequiredMixin, View):
 
 class BulkReprocessView(LoginRequiredMixin, View):
     """Handle bulk OCR reprocessing"""
-    
+
     def post(self, request):
         try:
             data = json.loads(request.body)
             document_ids = data.get('document_ids', [])
-            
+
             if not document_ids:
-                return JsonResponse({'success': False, 'error': 'No documents selected'})
-            
-            # Queue documents for reprocessing
-            with transaction.atomic():
-                queued_count = Document.objects.filter(
-                    id__in=document_ids,
-                    user=request.user,
-                    is_deleted=False
-                ).update(
-                    processing_status='pending',
-                    ocr_text='',
-                    ocr_confidence=None,
-                    ocr_processed_at=None
-                )
-            
-            logger.info(f"User {request.user.id} queued {queued_count} documents for OCR reprocessing")
-            
-            # TODO: Trigger OCR processing task
-            
+                return JsonResponse({'success': False, 'error': 'no documents selected'})
+
+            # Get documents to process
+            documents = Document.objects.filter(
+                id__in=document_ids,
+                user=request.user,
+                is_deleted=False
+            )
+
+            processed = 0
+            failed = 0
+
+            # Import OCR processor
+            from .ocr_service import OCRProcessor
+            ocr_processor = OCRProcessor()
+
+            # Process each document
+            for doc in documents:
+                try:
+                    # Process with OCR
+                    result = ocr_processor.process_document(
+                        doc.file_path.path,
+                        document_type=doc.document_type,
+                        force_ocr=True,
+                        document_instance=doc
+                    )
+
+                    if result and result.get('success'):
+                        # OCR processor already saved the document with dual results
+                        # Just refresh from DB to get updated values
+                        doc.refresh_from_db()
+
+                        # Check if document was deleted during processing
+                        if doc.is_deleted:
+                            logger.info(f"document {doc.id} was deleted during processing, skipping")
+                            continue
+
+                        processed += 1
+                    else:
+                        doc.processing_status = 'failed'
+                        doc.save()
+                        failed += 1
+
+                except Exception as e:
+                    logger.error(f"error processing document {doc.id}: {e}")
+                    doc.processing_status = 'failed'
+                    doc.save()
+                    failed += 1
+
+            logger.info(f"user {request.user.id} processed {processed} documents, {failed} failed")
+
             return JsonResponse({
                 'success': True,
-                'queued_count': queued_count
+                'processed': processed,
+                'failed': failed
             })
-            
+
         except Exception as e:
-            logger.error(f"Bulk reprocess error: {e}")
+            logger.error(f"bulk reprocess error: {e}")
+            return JsonResponse({'success': False, 'error': str(e)})
+
+
+class BulkReprocessPendingView(LoginRequiredMixin, View):
+    """Handle bulk OCR reprocessing for all pending documents"""
+
+    def post(self, request):
+        try:
+            # Get all pending documents for user
+            documents = Document.objects.filter(
+                user=request.user,
+                is_deleted=False,
+                processing_status='pending'
+            )
+
+            processed = 0
+            failed = 0
+
+            # Import OCR processor
+            from .ocr_service import OCRProcessor
+            ocr_processor = OCRProcessor()
+
+            # Process each document
+            for doc in documents:
+                try:
+                    # Process with OCR
+                    result = ocr_processor.process_document(
+                        doc.file_path.path,
+                        document_type=doc.document_type,
+                        force_ocr=True,
+                        document_instance=doc
+                    )
+
+                    if result and result.get('success'):
+                        # OCR processor already saved the document with dual results
+                        # Just refresh from DB to get updated values
+                        doc.refresh_from_db()
+
+                        # Check if document was deleted during processing
+                        if doc.is_deleted:
+                            logger.info(f"document {doc.id} was deleted during processing, skipping")
+                            continue
+
+                        processed += 1
+                    else:
+                        doc.processing_status = 'failed'
+                        doc.save()
+                        failed += 1
+
+                except Exception as e:
+                    logger.error(f"error processing document {doc.id}: {e}")
+                    doc.processing_status = 'failed'
+                    doc.save()
+                    failed += 1
+
+            logger.info(f"user {request.user.id} processed {processed} pending documents, {failed} failed")
+
+            return JsonResponse({
+                'success': True,
+                'processed': processed,
+                'failed': failed
+            })
+
+        except Exception as e:
+            logger.error(f"bulk reprocess pending error: {e}")
             return JsonResponse({'success': False, 'error': str(e)})
 
 
