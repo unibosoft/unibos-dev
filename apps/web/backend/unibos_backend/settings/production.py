@@ -26,13 +26,13 @@ DATABASES = {
     }
 }
 
-# Static files
+# Static files - production uses same structure as development for consistency
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
-MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Import base settings FIRST
+# Import base settings - MEDIA_ROOT will be inherited from base.py
+# Production uses BASE_DIR.parent / 'data_db' / 'media' (same as development)
+# This ensures local/production parity for media file handling
 from .base import *
 
 # Security - AFTER base import to override
