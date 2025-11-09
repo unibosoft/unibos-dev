@@ -219,9 +219,11 @@ STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-# Media files
+# Media files - Universal Data Directory
+# All media files stored in centralized /data directory structure
 MEDIA_URL = '/media/'
-MEDIA_ROOT = BASE_DIR.parent / 'data_db' / 'media'
+DATA_DIR = BASE_DIR.parent.parent.parent / 'data'
+MEDIA_ROOT = DATA_DIR / 'runtime' / 'media'
 
 # Default primary key field type
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'

@@ -30,9 +30,11 @@ DATABASES = {
 STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
-# Import base settings - MEDIA_ROOT will be inherited from base.py
-# Production uses BASE_DIR.parent / 'data_db' / 'media' (same as development)
-# This ensures local/production parity for media file handling
+# Import base settings - MEDIA_ROOT and DATA_DIR will be inherited from base.py
+# Universal Data Directory Structure:
+#   Local: /Users/berkhatirli/Desktop/unibos/data/
+#   Production: /var/www/unibos/data/
+# This ensures local/production parity for all data file handling
 from .base import *
 
 # Security - AFTER base import to override
