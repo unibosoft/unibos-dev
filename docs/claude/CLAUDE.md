@@ -1,241 +1,178 @@
-# CLAUDE Development Guidelines for UNIBOS
+# 📚 CLAUDE Documentation Index for UNIBOS
 
-## 🎯 Purpose
-This document defines the rules and guidelines Claude should follow when working on the UNIBOS project. These guidelines ensure consistency, quality, and proper documentation across all development sessions.
+> **Note**: This is an index file. All detailed rules have been reorganized into a hierarchical system for better maintainability.
 
 ---
 
-## 📝 Development Logging
+## 🎯 Rule System Hierarchy
 
-### Every Session Must:
-1. **Log all significant changes** to `DEVELOPMENT_LOG.md`
-2. **Use the format**: `[YYYY-MM-DD HH:MM] Category: Title`
-3. **Include details**: What was done, why, and the result
-4. **Update immediately** after completing each feature/fix
+UNIBOS uses a hierarchical rule system that prevents rules from degrading over time:
 
-### Log Categories:
-- **Version Manager**: Version control and release management
-- **UI/UX**: User interface improvements  
-- **Modules**: Individual module development
-- **Navigation**: Menu and navigation improvements
-- **Backend**: Django backend changes
-- **Bug Fix**: Error corrections
-- **Performance**: Optimization improvements
-- **Archive System**: Backup and archiving
-- **Development Tools**: Scripts and automation
+```
+RULES.md (Ana dizin - Yönlendirme)
+    ↓
+VERSIONING_WORKFLOW.md (Hızlı referans)
+    ↓
+docs/development/
+    ├── VERSIONING_RULES.md (Detaylı kurallar)
+    ├── DEVELOPMENT_LOG.md (Geliştirme kaydı)
+    └── [diğer dokümanlar]
+    ↓
+tools/scripts/
+    ├── unibos_version.sh (Versiyonlama master script)
+    ├── backup_database.sh
+    ├── verify_database_backup.sh
+    └── rocksteady_deploy.sh
+```
 
-### Using the Log Script:
+---
+
+## 🚨 START HERE - FIRST STEPS
+
+### Her Oturumda İlk İşlem:
+
+1. **[RULES.md](../../RULES.md)** ← Ana yönlendirme dosyası (ANA DİZİNDE!)
+2. **İlgili detay dosyasına git** (aşağıdaki linklerden)
+3. **Script'i çalıştır** (manuel komut YOK!)
+
+---
+
+## 📂 Detaylı Kural Dosyaları
+
+### Versiyonlama ve Deployment:
+- **[VERSIONING_WORKFLOW.md](../../VERSIONING_WORKFLOW.md)** - Hızlı workflow özeti
+- **[VERSIONING_RULES.md](../development/VERSIONING_RULES.md)** - Detaylı versiyonlama kuralları
+  - Versiyonlama workflow
+  - Archive exclusion kuralları
+  - Database backup sistemi
+  - Deployment kuralları
+  - Recursive self-validation
+
+### Geliştirme ve Loglama:
+- **[DEVELOPMENT_LOG.md](../development/DEVELOPMENT_LOG.md)** - Tüm geliştirme aktiviteleri
+  - Log formatı ve kategorileri
+  - Her oturum sonrası güncellenmeli
+  - Script: `./tools/scripts/add_dev_log.sh`
+
+### Arşivlenen Eski Sistem (v525):
+- **[Old CLAUDE_* files](../archive/claude_old_system_v525/)** - Deprecated, sadece referans için
+  - CLAUDE_RULES.md (36KB - artık kullanılmıyor)
+  - CLAUDE_CORE.md
+  - CLAUDE_INSTRUCTIONS.md
+  - CLAUDE_MANAGEMENT.md
+  - CLAUDE_MODULES.md
+  - CLAUDE_SUGGESTIONS.md
+  - CLAUDE_TECH.md
+  - CLAUDE_VERSION.md
+  - CLAUDE_ARCHIVE.md
+
+---
+
+## 🔄 Recursive Self-Validation
+
+Yeni kural sistemi **kendini koruyan** bir yapıya sahip:
+
+### Validation Matrix
+| Değişiklik Yapılan | Kontrol Edilmesi Gerekenler | Güncellenmesi Gerekenler |
+|-------------------|---------------------------|------------------------|
+| **RULES.md** | VERSIONING_WORKFLOW.md, VERSIONING_RULES.md | Script header comment'leri |
+| **unibos_version.sh** | VERSIONING_RULES.md workflow bölümü | Script header, kural dökümanları |
+| **VERSIONING_RULES.md** | unibos_version.sh, backup_database.sh | VERSIONING_WORKFLOW.md örnekleri |
+
+### Atomik Commit Kuralı
+Kural değişti → Script + Dokümantasyon birlikte commit edilmeli!
+
+Detaylar için: **[RULES.md](../../RULES.md) - Recursive Self-Validation bölümü**
+
+---
+
+## 🛠️ Scriptler
+
+Tüm scriptler `tools/scripts/` altında:
+
+- `unibos_version.sh` - Versiyonlama master script
+- `backup_database.sh` - Database backup
+- `verify_database_backup.sh` - Backup doğrulama
+- `rocksteady_deploy.sh` - Production deployment
+- `add_dev_log.sh` - Development log helper
+
+**Kural**: Manuel işlem YOK, her zaman script kullan!
+
+---
+
+## 📋 Hızlı Başvuru
+
+### Versiyonlama Yapacaksan:
 ```bash
-./add_dev_log.sh "Category" "Title" "Details" "Result"
+./tools/scripts/unibos_version.sh
+# Options menüsünden seç:
+# 1. Full cycle (archive + bump + commit + push)
+# 2. Archive only
+# 3. Version bump only
+# 4. Git operations only
+# 5. Database backup
+```
+
+### Database Backup Yapacaksan:
+```bash
+./tools/scripts/backup_database.sh
+```
+
+### Deployment Yapacaksan:
+```bash
+./tools/scripts/rocksteady_deploy.sh deploy
 ```
 
 ---
 
-## 🔤 UI Text Standards
+## 🔗 Proje Yapısı
 
-### All UI Text Must Be:
-- **lowercase** - No uppercase text in web UI or CLI interfaces
-- **consistent** - Same style across all interfaces (web and CLI)
-- **minimal** - Short, clear labels
-- **no title case** - "version manager" not "Version Manager"
-
-### Examples:
-✅ Correct:
-- version manager
-- archive analyzer  
-- git status
-- total archives
-- klondike solitaire
-- screen locked - enter password
-- congratulations! you won!
-
-❌ Incorrect:
-- Version Manager
-- Archive Analyzer
-- Git Status
-- Total Archives
-- KLONDIKE SOLITAIRE
-- Screen Locked - Enter Password
-- CONGRATULATIONS! YOU WON!
-
----
-
-## 🔧 Version Management
-
-### Before Creating New Version:
-1. **Check current version** from VERSION.json
-2. **Verify no gaps** in version sequence
-3. **Update DEVELOPMENT_LOG.md** with changes
-4. **Use auto-commit messages** from recent logs
-
-### Version Release Process:
-1. Update VERSION.json
-2. Update Django files if needed
-3. Create archive (no ZIP, only folders)
-4. Perform git operations
-5. Log the release in DEVELOPMENT_LOG.md
-
----
-
-## 💾 Code Standards
-
-### Python Code:
-- Follow PEP 8
-- Add docstrings to all functions
-- Handle exceptions properly
-- Use type hints where appropriate
-
-### JavaScript:
-- Use modern ES6+ syntax
-- Add JSDoc comments
-- Handle async operations properly
-- Consistent error handling
-
-### Django Templates:
-- Use lowercase for all text
-- Semantic HTML5 elements
-- Accessible markup (ARIA labels)
-- Mobile-responsive design
-
-### CLI Interface:
-- All text must be lowercase (game titles, messages, prompts)
-- Consistent prompt formatting: "enter password:" not "Enter Password:"
-- Error messages in lowercase: "incorrect password!" not "Incorrect password!"
-- Game text in lowercase: "klondike solitaire" not "KLONDIKE SOLITAIRE"
-
-### Documentation (README.md, etc):
-- **ALL text must be lowercase**
-- No title case anywhere
-- Remove motivational quotes
-- Keep professional but minimal
-
----
-
-## 🧪 Testing Requirements
-
-### Before Committing:
-1. **Test all changes** manually
-2. **Check for console errors** in browser
-3. **Verify CLI still works** after changes
-4. **Test on different screen sizes** for web UI
-
-### Critical Areas:
-- Version manager operations
-- Archive creation
-- Git operations
-- Navigation (arrow keys, enter, q)
-- Web UI responsiveness
-
----
-
-## 📁 File Organization
-
-### Directory Structure:
+### Monorepo Structure (v528+):
 ```
-/backend/           # Django backend
-  /unibos_backend/
-    /settings/      # Django settings (NOT single file!)
-      __init__.py
-      base.py       # Base settings
-      development.py # Dev settings (DEFAULT)
-      production.py  # Production settings
-/src/              # CLI source code
-/archive/          # Version archives
-/DEVELOPMENT_LOG.md # Development history
-/CLAUDE.md         # This file
-/add_dev_log.sh    # Log helper script
+apps/
+  ├── cli/src/           # CLI source code
+  ├── web/backend/       # Django backend
+  └── mobile/birlikteyiz/ # Flutter mobile app
+docs/
+  ├── architecture/      # System design docs
+  ├── development/       # Development rules & logs
+  ├── features/          # Feature documentation
+  ├── deployment/        # Deployment guides
+  ├── claude/            # Claude-specific docs (bu dosya)
+  └── archive/           # Archived documentation
+tools/
+  └── scripts/           # All automation scripts
+archive/
+  ├── versions/          # Version archives
+  └── database_backups/  # Database backups (son 3)
 ```
 
-### ⚠️ CRITICAL: Django Settings Structure
-- **Settings is a DIRECTORY**, not a single file!
-- Path: `/backend/unibos_backend/settings/`
-- Default: `unibos_backend.settings.development`
-- manage.py uses: `DJANGO_SETTINGS_MODULE='unibos_backend.settings.development'`
+---
 
-### Naming Conventions:
-- Python files: `snake_case.py`
-- JavaScript: `camelCase.js`
-- Templates: `snake_case.html`
-- CSS: `kebab-case.css`
+## ⚠️ KRİTİK HATIRLATMALAR
+
+1. **HİÇBİR ZAMAN MANUEL İŞLEM YAPMA**
+   - ❌ rsync, git commit, deployment manuel komutları
+   - ✅ Script'leri kullan (tools/scripts/)
+
+2. **HER OTURUMDA KURALLARI OKU**
+   - İlk iş: RULES.md
+   - İkinci iş: İlgili detay dosyası
+   - Son iş: Script'i çalıştır
+
+3. **DEĞİŞİKLİKLER ATOMİK OLMALI**
+   - Kural değişti → Script + Dokümantasyon birlikte güncelle
+   - Script değişti → Kurallar + Dokümantasyon birlikte güncelle
 
 ---
 
-## 🚫 Never Do
+## 📝 Son Güncelleme
 
-1. **Never skip logging** development activities
-2. **Never use uppercase** in web UI or CLI text
-3. **Never create ZIP archives** (only folders)
-4. **Never commit without testing**
-5. **Never delete DEVELOPMENT_LOG.md**
-6. **Never change version numbers manually** (use scripts)
+**Tarih:** 2025-11-09
+**Değişiklik:** CLAUDE.md artık bir index dosyası. Tüm detaylı kurallar yeni hiyerarşiye taşındı.
+**Eski Sistem:** v525 CLAUDE_* dosyaları `docs/archive/claude_old_system_v525/` altında arşivlendi.
+**Yeni Sistem:** RULES.md → VERSIONING_WORKFLOW.md → VERSIONING_RULES.md hiyerarşisi
 
 ---
 
-## ✅ Always Do
-
-1. **Always update DEVELOPMENT_LOG.md** after changes
-2. **Always use lowercase** in web UI and CLI
-3. **Always test before committing**
-4. **Always handle errors gracefully**
-5. **Always document complex logic**
-6. **Always preserve user data**
-
----
-
-## 🔄 Session Handover
-
-### At End of Each Session:
-1. **Summary of changes** in DEVELOPMENT_LOG.md
-2. **List any pending tasks** clearly
-3. **Note any known issues** or bugs
-4. **Update this file** if new patterns emerge
-
-### Starting New Session:
-1. **Read DEVELOPMENT_LOG.md** for recent changes
-2. **Check VERSION.json** for current version
-3. **Review pending tasks** from previous session
-4. **Test critical features** still work
-
----
-
-## 📊 Performance Guidelines
-
-### Optimization Priorities:
-1. **CLI responsiveness** < 100ms for navigation
-2. **Web page loads** < 2 seconds
-3. **Archive creation** < 30 seconds
-4. **Database queries** optimized with indexes
-
----
-
-## 🌍 Localization
-
-### Language Support:
-- Primary: English (en)
-- Secondary: Turkish (tr)
-- All text should be localizable
-- Use translation keys, not hardcoded text
-
----
-
-## 📈 Z-Score Reference
-
-### For Archive Size Anomaly Detection:
-- **Normal**: Z-Score between -1 and 1
-- **Warning**: Z-Score between 1 and 2
-- **Anomaly**: Z-Score > 2 or < -2
-
----
-
-## 🔗 Related Documentation
-
-- [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md) - Track all changes here
-- [VERSION_MANAGEMENT.md](VERSION_MANAGEMENT.md) - Version system details
-- [CLAUDE_INSTRUCTIONS.md](CLAUDE_INSTRUCTIONS.md) - Detailed Claude instructions
-- [ARCHIVE_GUIDE.md](ARCHIVE_GUIDE.md) - Archive protection protocols
-
----
-
-Last Updated: 2025-08-12
-Author: Claude & Berk Hatırlı
-Version: 2.0
+**🎯 Sonraki Adım:** [RULES.md](../../RULES.md) dosyasını oku!

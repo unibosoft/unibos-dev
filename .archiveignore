@@ -152,3 +152,7 @@ apps/mobile/birlikteyiz/windows/build/
 apps/mobile/birlikteyiz/linux/build/
 apps/mobile/birlikteyiz/.packages
 apps/mobile/birlikteyiz/pubspec.lock
+
+# Database backups (managed separately by backup_database.sh)
+# Ref: docs/development/VERSIONING_RULES.md - Database Backup System
+archive/database_backups/

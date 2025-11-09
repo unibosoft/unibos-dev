@@ -92,10 +92,83 @@ tools/scripts/
 
 ---
 
+## 🔄 RECURSIVE SELF-VALIDATION SYSTEM
+
+### Kendini Koruyan Kurallar Prensibi
+
+**Amaç**: Kuralların zamanla bozulmasını önlemek, her değişiklikte tutarlılığı sağlamak.
+
+### Validation Matrix
+
+| Değişiklik Yapılan | Kontrol Edilmesi Gerekenler | Güncellenmesi Gerekenler |
+|-------------------|---------------------------|------------------------|
+| **RULES.md** | VERSIONING_WORKFLOW.md, VERSIONING_RULES.md | Script header comment'leri |
+| **unibos_version.sh** | VERSIONING_RULES.md workflow bölümü | Script header, kural dökümanları |
+| **VERSIONING_RULES.md** | unibos_version.sh, backup_database.sh | VERSIONING_WORKFLOW.md örnekleri |
+| **.archiveignore** | .gitignore tutarlılığı | VERSIONING_RULES.md exclusion listesi |
+
+### Atomik Commit Kuralı
+
+```bash
+# ❌ YANLIŞ: Sadece script değişti
+git add tools/scripts/unibos_version.sh
+git commit -m "Updated versioning script"
+
+# ✅ DOĞRU: Script + İlgili kurallar + Dökümanlar birlikte
+git add tools/scripts/unibos_version.sh
+git add docs/development/VERSIONING_RULES.md
+git add VERSIONING_WORKFLOW.md
+git commit -m "refactor(versioning): update workflow order
+
+- Updated unibos_version.sh to archive before version bump
+- Updated VERSIONING_RULES.md with correct workflow
+- Updated VERSIONING_WORKFLOW.md examples
+
+Refs: #recursive-validation"
+```
+
+### Self-Check Süreci
+
+Her değişiklik sonrası kendine şu soruları sor:
+
+1. **Kural değişti mi?**
+   - Etkilenen script'ler tespit edildi mi?
+   - Script header'ları güncellendi mi?
+   - İlgili dökümanlar senkronize edildi mi?
+
+2. **Script değişti mi?**
+   - Script header'daki rule referansları doğru mu?
+   - İlgili kural dosyaları güncellendi mi?
+   - Workflow örnekleri hala geçerli mi?
+
+3. **Değişiklik atomik mi?**
+   - Tüm ilgili dosyalar aynı commit'te mi?
+   - Commit mesajı ne değiştiğini açıklıyor mu?
+   - Cross-reference'lar bozulmadı mı?
+
+### Gelecek: Otomatik Validation
+
+```bash
+# TODO: tools/scripts/validate_rules.sh oluşturulacak
+# Bu script otomatik olarak:
+# 1. Kural dosyalarının varlığını kontrol eder
+# 2. Çapraz referansları doğrular
+# 3. Script header'larındaki rule linklerini validate eder
+# 4. Tutarsızlıkları rapor eder
+```
+
+---
+
 ## 📝 Son Güncelleme
 
 **Tarih:** 2025-11-09
-**Neden:** Script workflow hatası düzeltmesi, yönlendirici kural sistemi
+**Neden:** Recursive self-validation sistemi eklendi, kural çakışmaları giderildi
+**Değişiklikler:**
+- ✅ Recursive self-validation system eklendi
+- ✅ .archiveignore'a database_backups/ eklendi
+- ✅ Atomik commit kuralları netleştirildi
+- ✅ Validation matrix oluşturuldu
+
 **Sonraki Gözden Geçirme:** Her major script değişikliğinde
 
 ---
