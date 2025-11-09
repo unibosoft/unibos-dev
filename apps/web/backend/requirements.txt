@@ -70,6 +70,25 @@ pytesseract==0.3.10
 opencv-python==4.9.0.80
 numpy==1.26.3
 
+# Advanced OCR Libraries
+paddleocr==2.9.2
+paddlepaddle==3.0.0b2
+torch==2.5.1
+torchvision==0.20.1
+transformers==4.57.1
+sentencepiece==0.2.0
+protobuf==5.29.3
+
+# Additional OCR Tools
+easyocr==1.7.2
+surya-ocr==0.9.0
+python-doctr[torch]==0.9.0
+pdf2image==1.17.0
+pypdfium2==4.30.0
+
+# Ollama Integration (optional - requires local Ollama installation)
+# Ollama modelleri: ollama pull llama3.2-vision
+
 # Production Server
 gunicorn==21.2.0
 whitenoise==6.6.0
