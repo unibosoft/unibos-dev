@@ -28,6 +28,52 @@ Script değişti → Kurallar + Dokümantasyon birlikte güncelle
 
 ---
 
+## 🎬 HER OTURUM BAŞLANGICI - ZORUNLU CHECKLIST
+
+**⚠️ MUTLAKA YAP:** Claude, her yeni oturuma başlarken bu checklist'i takip et!
+
+### 1️⃣ Otomatik Kontroller (İlk 30 saniye)
+
+```bash
+# A. Screenshot kontrolü
+ls -la *.png Screenshot*.png 2>/dev/null
+# → VARSA: SCREENSHOT_MANAGEMENT.md oku ve işle
+# → YOKSA: Devam et
+
+# B. Istanbul timezone doğrulama
+TZ='Europe/Istanbul' date '+%Y-%m-%d %H:%M:%S %z'
+# → "+03:00" görmeli sin - YOKSA HATA!
+
+# C. Git status
+git status --short
+# → Uncommitted changes varsa: Not et, kullanıcıya bildir
+
+# D. Current version
+grep '"version"' apps/cli/src/VERSION.json | head -1
+```
+
+### 2️⃣ Detaylı Protokol (Oku ve Uygula)
+
+- **[docs/development/CLAUDE_SESSION_PROTOCOL.md](docs/development/CLAUDE_SESSION_PROTOCOL.md)** ← Oturum protokolü (MUTLAKA OKU!)
+- **[docs/development/SCREENSHOT_MANAGEMENT.md](docs/development/SCREENSHOT_MANAGEMENT.md)** ← SS varsa işle
+- **[docs/development/CODE_QUALITY_STANDARDS.md](docs/development/CODE_QUALITY_STANDARDS.md)** ← Kod standartları
+
+### 3️⃣ Kullanıcıya Karşılama (Türkçe)
+
+```
+Merhaba Berk! 👋
+
+✅ Projeyi taradım ve hazırım.
+📸 Screenshot: [VAR: dosya adı / YOK]
+⏰ Istanbul: [YYYY-MM-DD HH:MM:SS +03:00]
+🔧 Git status: [Clean / X files changed]
+📌 Version: [vXXX]
+
+Ne üzerinde çalışmamı istersin?
+```
+
+---
+
 ## 📂 KURAL DOSYALARI - BURAYA GIT!
 
 ### Versiyonlama Yapacaksan:
@@ -102,10 +148,13 @@ tools/scripts/
 
 | Değişiklik Yapılan | Kontrol Edilmesi Gerekenler | Güncellenmesi Gerekenler |
 |-------------------|---------------------------|------------------------|
-| **RULES.md** | VERSIONING_WORKFLOW.md, VERSIONING_RULES.md | Script header comment'leri |
+| **RULES.md** | VERSIONING_WORKFLOW.md, VERSIONING_RULES.md, CLAUDE_SESSION_PROTOCOL.md | Script header comment'leri, CLAUDE.md index |
 | **unibos_version.sh** | VERSIONING_RULES.md workflow bölümü | Script header, kural dökümanları |
 | **VERSIONING_RULES.md** | unibos_version.sh, backup_database.sh | VERSIONING_WORKFLOW.md örnekleri |
 | **.archiveignore** | .gitignore tutarlılığı | VERSIONING_RULES.md exclusion listesi |
+| **CLAUDE_SESSION_PROTOCOL.md** | SCREENSHOT_MANAGEMENT.md, CODE_QUALITY_STANDARDS.md | RULES.md checklist, CLAUDE.md index |
+| **SCREENSHOT_MANAGEMENT.md** | CLAUDE_SESSION_PROTOCOL.md | .archiveignore screenshot path'leri |
+| **CODE_QUALITY_STANDARDS.md** | CLAUDE_SESSION_PROTOCOL.md | Kod değişikliklerinde uyumluluk |
 
 ### Atomik Commit Kuralı
 
@@ -162,14 +211,18 @@ Her değişiklik sonrası kendine şu soruları sor:
 ## 📝 Son Güncelleme
 
 **Tarih:** 2025-11-09
-**Neden:** Recursive self-validation sistemi eklendi, kural çakışmaları giderildi
+**Neden:** Claude oturum protokolü ve kod kalitesi standartları eklendi
 **Değişiklikler:**
+- ✅ Oturum başlangıç checklist eklendi (screenshot, timezone, git status, version)
+- ✅ CLAUDE_SESSION_PROTOCOL.md oluşturuldu (oturum start/end prosedürleri)
+- ✅ SCREENSHOT_MANAGEMENT.md oluşturuldu (screenshot tespit ve arşivleme)
+- ✅ CODE_QUALITY_STANDARDS.md oluşturuldu (timezone, crash prevention, Django best practices)
+- ✅ Validation matrix genişletildi (yeni döküman dosyaları için)
 - ✅ Recursive self-validation system eklendi
 - ✅ .archiveignore'a database_backups/ eklendi
 - ✅ Atomik commit kuralları netleştirildi
-- ✅ Validation matrix oluşturuldu
 
-**Sonraki Gözden Geçirme:** Her major script değişikliğinde
+**Sonraki Gözden Geçirme:** Her major script veya kural değişikliğinde
 
 ---
 

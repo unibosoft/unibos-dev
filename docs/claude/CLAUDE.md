@@ -54,6 +54,27 @@ tools/scripts/
   - Her oturum sonrası güncellenmeli
   - Script: `./tools/scripts/add_dev_log.sh`
 
+### Claude Oturum Protokolleri:
+- **[CLAUDE_SESSION_PROTOCOL.md](../development/CLAUDE_SESSION_PROTOCOL.md)** - Oturum başlangıç ve bitiş prosedürleri
+  - Screenshot kontrolü
+  - Istanbul timezone doğrulama
+  - Git status kontrolü
+  - Türkçe karşılama formatı
+  - Development log güncelleme zorunluluğu
+
+- **[SCREENSHOT_MANAGEMENT.md](../development/SCREENSHOT_MANAGEMENT.md)** - Screenshot tespit ve arşivleme
+  - Otomatik tespit protokolü
+  - İşleme workflow
+  - Arşivleme kuralları (Istanbul timezone ile)
+  - archive/media/screenshots/ yönetimi
+
+- **[CODE_QUALITY_STANDARDS.md](../development/CODE_QUALITY_STANDARDS.md)** - Kod kalitesi ve güvenlik
+  - Istanbul timezone enforcement (KRİTİK!)
+  - Crash prevention (null checks, try-except)
+  - Django best practices
+  - Security checklist (SQL injection, XSS, CSRF)
+  - Server restart kuralları
+
 ### Arşivlenen Eski Sistem (v525):
 - **[Old CLAUDE_* files](../archive/claude_old_system_v525/)** - Deprecated, sadece referans için
   - CLAUDE_RULES.md (36KB - artık kullanılmıyor)
@@ -169,9 +190,16 @@ archive/
 ## 📝 Son Güncelleme
 
 **Tarih:** 2025-11-09
-**Değişiklik:** CLAUDE.md artık bir index dosyası. Tüm detaylı kurallar yeni hiyerarşiye taşındı.
+**Değişiklik:** Claude oturum protokolleri eklendi - session start/end, screenshot, kod kalitesi
+**Eklenenler:**
+- ✅ CLAUDE_SESSION_PROTOCOL.md (oturum başlangıç ve bitiş prosedürleri)
+- ✅ SCREENSHOT_MANAGEMENT.md (screenshot tespit, işleme, arşivleme)
+- ✅ CODE_QUALITY_STANDARDS.md (timezone, crash prevention, Django best practices)
+- ✅ RULES.md'ye oturum başlangıç checklist eklendi
+- ✅ Validation matrix genişletildi
+
 **Eski Sistem:** v525 CLAUDE_* dosyaları `docs/archive/claude_old_system_v525/` altında arşivlendi.
-**Yeni Sistem:** RULES.md → VERSIONING_WORKFLOW.md → VERSIONING_RULES.md hiyerarşisi
+**Aktif Sistem:** RULES.md → [VERSIONING_WORKFLOW.md, CLAUDE_SESSION_PROTOCOL.md] → Detaylı protokoller
 
 ---
 
