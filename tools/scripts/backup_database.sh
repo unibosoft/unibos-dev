@@ -1,6 +1,6 @@
 #!/bin/bash
 # Database Backup Script for UNIBOS
-# Creates timestamped SQL dumps and maintains last 3 versions
+# Creates timestamped SQL dumps using pg_dump
 # These backups are SEPARATE from version archives
 
 set -e  # Exit on error
@@ -15,9 +15,15 @@ NC='\033[0m' # No Color
 # Configuration
 PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BACKUP_DIR="$PROJECT_ROOT/archive/database_backups"
-DJANGO_DIR="$PROJECT_ROOT/apps/web/backend"
-SETTINGS_MODULE="unibos_backend.settings.development"
+VERSION_FILE="$PROJECT_ROOT/apps/cli/src/VERSION.json"
 KEEP_BACKUPS=3  # Keep last 3 backups
+
+# PostgreSQL connection details (from development settings)
+DB_NAME="unibos_db"
+DB_USER="unibos_user"
+DB_PASSWORD="unibos_password"
+DB_HOST="localhost"
+DB_PORT="5432"
 
 # Create backup directory
 mkdir -p "$BACKUP_DIR"
@@ -27,10 +33,10 @@ echo -e "${CYAN}║ UNIBOS Database Backup System                       ║${NC}
 echo -e "${CYAN}╚══════════════════════════════════════════════════════╝${NC}"
 echo ""
 
-# Get version info
+# Get version info from correct location
 VERSION=""
-if [ -f "$DJANGO_DIR/VERSION.json" ]; then
-    VERSION=$(grep '"version"' "$DJANGO_DIR/VERSION.json" | head -1 | sed 's/.*"v/v/' | sed 's/".*//')
+if [ -f "$VERSION_FILE" ]; then
+    VERSION=$(grep '"version"' "$VERSION_FILE" | head -1 | sed 's/.*"v/v/' | sed 's/".*//')
 fi
 
 # Generate timestamp
@@ -43,27 +49,29 @@ else
     BACKUP_FILE="${BACKUP_DIR}/unibos_backup_${TIMESTAMP}.sql"
 fi
 
-echo -e "${CYAN}📦 Creating database backup...${NC}"
+echo -e "${CYAN}📦 Creating PostgreSQL database backup...${NC}"
+echo -e "${YELLOW}   Database: ${DB_NAME}${NC}"
 echo -e "${YELLOW}   File: ${BACKUP_FILE}${NC}"
 echo ""
 
-# Check if we're in development or production
-if [ -d "$DJANGO_DIR/venv" ]; then
-    PYTHON="$DJANGO_DIR/venv/bin/python"
-else
-    PYTHON="python3"
+# Check if PostgreSQL is accessible
+if ! pg_isready -h "$DB_HOST" -p "$DB_PORT" -U "$DB_USER" >/dev/null 2>&1; then
+    echo -e "${RED}❌ PostgreSQL is not accessible!${NC}"
+    echo -e "${YELLOW}   Make sure PostgreSQL is running: brew services start postgresql@15${NC}"
+    exit 1
 fi
 
-# Create the backup using Django's dumpdata
-cd "$DJANGO_DIR"
-DJANGO_SETTINGS_MODULE="$SETTINGS_MODULE" $PYTHON manage.py dumpdata \
-    --natural-foreign \
-    --natural-primary \
-    --indent 2 \
-    --exclude contenttypes \
-    --exclude auth.permission \
-    --exclude sessions.session \
-    > "$BACKUP_FILE"
+# Create the backup using pg_dump (avoids Django import issues)
+PGPASSWORD="$DB_PASSWORD" pg_dump \
+    -h "$DB_HOST" \
+    -p "$DB_PORT" \
+    -U "$DB_USER" \
+    -d "$DB_NAME" \
+    --clean \
+    --if-exists \
+    --no-owner \
+    --no-privileges \
+    -f "$BACKUP_FILE"
 
 # Check if backup was successful
 if [ -f "$BACKUP_FILE" ]; then
