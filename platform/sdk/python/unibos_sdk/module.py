@@ -85,5 +85,41 @@ class UnibosModule:
         """
         return self.manifest
 
+    def get_storage_path(self, subpath: str = '') -> Path:
+        """
+        Get module-specific storage path
+
+        Args:
+            subpath: Optional subdirectory within module storage
+
+        Returns:
+            Path object for module storage location
+        """
+        from pathlib import Path
+        from django.conf import settings
+
+        # Module storage: data/modules/{module_id}/{subpath}
+        module_storage = Path(settings.DATA_DIR) / 'modules' / self.module_id / subpath
+        module_storage.mkdir(parents=True, exist_ok=True)
+        return module_storage
+
+    def get_cache_path(self) -> Path:
+        """
+        Get module-specific cache directory
+
+        Returns:
+            Path object for module cache location
+        """
+        return self.get_storage_path('cache')
+
+    def get_logs_path(self) -> Path:
+        """
+        Get module-specific logs directory
+
+        Returns:
+            Path object for module logs location
+        """
+        return self.get_storage_path('logs')
+
     def __repr__(self) -> str:
         return f"UnibosModule(id={self.module_id}, version={self.manifest.get('version', 'unknown')})"
