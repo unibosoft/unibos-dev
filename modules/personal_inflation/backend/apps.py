@@ -34,7 +34,7 @@ class PersonalInflationConfig(AppConfig):
         try:
             # Get project root (from modules/personal_inflation/backend -> go up 3 levels)
             module_dir = Path(__file__).resolve().parent.parent.parent.parent
-            sdk_path = module_dir / 'shared' / 'python'
+            sdk_path = module_dir / 'platform' / 'sdk' / 'python'
 
             if sdk_path.exists() and str(sdk_path) not in sys.path:
                 sys.path.insert(0, str(sdk_path))

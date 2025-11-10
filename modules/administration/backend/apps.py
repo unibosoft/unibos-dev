@@ -16,7 +16,7 @@ class AdministrationConfig(AppConfig):
     def _add_sdk_to_path(self):
         try:
             module_dir = Path(__file__).resolve().parent.parent.parent.parent
-            sdk_path = module_dir / 'shared' / 'python'
+            sdk_path = module_dir / 'platform' / 'sdk' / 'python'
             if sdk_path.exists() and str(sdk_path) not in sys.path:
                 sys.path.insert(0, str(sdk_path))
         except Exception as e:
