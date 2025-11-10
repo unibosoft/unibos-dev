@@ -337,6 +337,10 @@ create_archive() {
               --exclude='apps/web/backend/logs' \
               --exclude='apps/mobile/*/build' --exclude='apps/mobile/*/.dart_tool' \
               --exclude='apps/mobile/*/.flutter-plugins' --exclude='apps/mobile/*/.flutter-plugins-dependencies' \
+              --exclude='modules/*/mobile/build' --exclude='modules/*/mobile/.dart_tool' \
+              --exclude='modules/*/mobile/.flutter-plugins' --exclude='modules/*/mobile/.flutter-plugins-dependencies' \
+              --exclude='modules/*/backend/staticfiles' --exclude='modules/*/backend/logs' \
+              --exclude='modules/*/backend/media' --exclude='modules/*/backend/uploads' \
               . "$ARCHIVE_DIR/$archive_name/"
     
     # Show archive size
@@ -500,7 +504,7 @@ generate_commit_message() {
     local md_files=$(echo "$all_files" | grep "\.md$" | wc -l | xargs)
     local css_files=$(echo "$all_files" | grep "\.css$" | wc -l | xargs)
     
-    # Analyze Django apps changes
+    # Analyze Django apps changes (v532+: both old apps/ and new modules/ structure)
     if echo "$all_files" | grep -q "apps/web/backend/apps/"; then
         local modules=$(echo "$all_files" | grep "apps/web/backend/apps/" | cut -d'/' -f5 | sort -u)
         for module in $modules; do
@@ -515,6 +519,27 @@ generate_commit_message() {
                 wimm) details+=("WIMM module updates") ;;
                 wims) details+=("WIMS module updates") ;;
                 cctv) details+=("CCTV module improvements") ;;
+                *) details+=("$module module changes") ;;
+            esac
+        done
+    elif echo "$all_files" | grep -q "modules/.*/backend/"; then
+        # v532+: Extract module names from modules/{module}/backend/ path
+        local modules=$(echo "$all_files" | grep "modules/.*/backend/" | sed -E 's|modules/([^/]+)/backend/.*|\1|' | sort -u)
+        for module in $modules; do
+            case $module in
+                movies) details+=("Movies module updates") ;;
+                music) details+=("Music module updates") ;;
+                restopos) details+=("RestoPOS module updates") ;;
+                documents) details+=("Documents module improvements") ;;
+                currencies) details+=("Currencies module updates") ;;
+                authentication) details+=("Authentication system changes") ;;
+                web_ui) details+=("Web UI enhancements") ;;
+                wimm) details+=("WIMM module updates") ;;
+                wims) details+=("WIMS module updates") ;;
+                cctv) details+=("CCTV module improvements") ;;
+                birlikteyiz) details+=("Birlikteyiz emergency system updates") ;;
+                personal_inflation) details+=("Personal Inflation module updates") ;;
+                recaria) details+=("Recaria game module updates") ;;
                 *) details+=("$module module changes") ;;
             esac
         done
@@ -844,11 +869,11 @@ main() {
                 
                 # Restart services to apply new version
                 print_color "$YELLOW" "\n🔄 Restarting services with new version..."
-                
-                # Restart web core (Django backend)
-                if [ -f "backend/start_backend.sh" ]; then
+
+                # Restart web core (Django backend) - v532+: apps/web/backend/
+                if [ -f "apps/web/backend/start_backend.sh" ]; then
                     print_color "$CYAN" "   Restarting web core..."
-                    ./backend/start_backend.sh restart
+                    ./apps/web/backend/start_backend.sh restart
                     sleep 2
                     print_color "$GREEN" "   ✅ Web core restarted"
                 else
