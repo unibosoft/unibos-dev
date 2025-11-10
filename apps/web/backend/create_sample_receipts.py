@@ -18,7 +18,9 @@ django.setup()
 
 from modules.documents.backend.models import Document
 from modules.documents.backend.utils import ThumbnailGenerator
-from apps.auth_system.models import User
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 def create_receipt_image(store_name, receipt_number, width=400, height=600):
     """Create a simple receipt image with store name at top"""

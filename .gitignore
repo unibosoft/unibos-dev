@@ -38,8 +38,9 @@ logs/
 # ===== DJANGO =====
 staticfiles/
 apps/web/backend/staticfiles/
-apps/web/backend/media/
-apps/web/backend/documents/2025/
+modules/*/backend/staticfiles/
+modules/*/backend/media/
+modules/*/backend/uploads/
 
 # ===== ORTAM DOSYALARI =====
 .env
