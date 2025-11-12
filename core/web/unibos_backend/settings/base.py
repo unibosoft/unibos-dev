@@ -18,7 +18,13 @@ from datetime import timedelta
 import environ
 
 # Build paths inside the project
+# This file is in: core/web/unibos_backend/settings/base.py
+# BASE_DIR = core/web/
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
+
+# UNIBOS root directory (contains core/, modules/, data/)
+# From: core/web/unibos_backend/settings/ -> 4 levels up
+UNIBOS_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 
 # Environment variables
 env = environ.Env(
@@ -261,20 +267,36 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 STATIC_URL = '/static/'
-STATIC_ROOT = BASE_DIR / 'staticfiles'
+# STATIC_ROOT is defined below with DATA_DIR (v533)
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-# Media files - Universal Data Directory
-# All media files stored in centralized /data directory structure
+# Media files - Universal Data Directory (v533)
+# All media files stored in centralized /data directory structure at UNIBOS root
 MEDIA_URL = '/media/'
-DATA_DIR = BASE_DIR.parent.parent.parent / 'data'
-MEDIA_ROOT = DATA_DIR / 'runtime' / 'media'
+DATA_DIR = UNIBOS_ROOT / 'data'
+MEDIA_ROOT = DATA_DIR / 'shared' / 'media'
+
+# Static files root (v533)
+STATIC_ROOT = DATA_DIR / 'shared' / 'static'
+
+# Module-specific data directories (v533)
+# Each module stores its data in data/modules/<module_name>/
+MODULES_DATA_DIR = DATA_DIR / 'modules'
+DOCUMENTS_DATA_ROOT = MODULES_DATA_DIR / 'documents'
+WIMM_DATA_ROOT = MODULES_DATA_DIR / 'wimm'
+RECARIA_DATA_ROOT = MODULES_DATA_DIR / 'recaria'
+BIRLIKTEYIZ_DATA_ROOT = MODULES_DATA_DIR / 'birlikteyiz'
+MOVIES_DATA_ROOT = MODULES_DATA_DIR / 'movies'
+MUSIC_DATA_ROOT = MODULES_DATA_DIR / 'music'
+CCTV_DATA_ROOT = MODULES_DATA_DIR / 'cctv'
+RESTOPOS_DATA_ROOT = MODULES_DATA_DIR / 'restopos'
+STORE_DATA_ROOT = MODULES_DATA_DIR / 'store'
 
 # UNIBOS Module System Configuration
-# Project root directory (contains modules/, core/, shared/)
-PROJECT_ROOT = BASE_DIR.parent.parent.parent
+# Project root directory (contains modules/, core/, data/)
+PROJECT_ROOT = UNIBOS_ROOT
 MODULES_DIR = PROJECT_ROOT / 'modules'
 
 # Add UNIBOS project root to Python path (for core/ and modules/ imports)

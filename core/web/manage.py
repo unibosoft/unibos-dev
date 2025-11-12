@@ -8,9 +8,9 @@ from pathlib import Path
 def main():
     """Run administrative tasks."""
     # Add UNIBOS root directory to Python path so modules/ can be imported
-    # manage.py is in: core/backend/
-    # UNIBOS root is 2 levels up
-    unibos_root = Path(__file__).resolve().parent.parent
+    # manage.py is in: core/runtime/web/ (after migration)
+    # UNIBOS root is 3 levels up
+    unibos_root = Path(__file__).resolve().parent.parent.parent
     if str(unibos_root) not in sys.path:
         sys.path.insert(0, str(unibos_root))
 

@@ -3,6 +3,23 @@ data_db/
 data_db_backup*/
 data/
 
+# ===== CORE DATA (Selective Ignore) =====
+# Ignore runtime data but keep configs
+core/data/postgres/data/**
+core/data/postgres/backup/daily/**
+core/data/postgres/backup/weekly/**
+core/data/storage/**
+core/data/redis/**
+core/data/logs/**
+
+# Keep these configs and scripts in git
+!core/data/postgres/config/
+!core/data/postgres/init/
+!core/data/postgres/backup/scripts/
+!core/data/postgres/replication/
+!core/data/.gitkeep
+!core/data/README.md
+
 # ===== ARŞİVLER =====
 archive/
 archive_backup*/
