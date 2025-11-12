@@ -8,9 +8,36 @@ from django.conf import settings
 from django.core.files.storage import default_storage
 from django.utils import timezone
 from decimal import Decimal
+from pathlib import Path
 import json
 import uuid
 import os
+
+
+def document_upload_path(instance, filename):
+    """
+    Returns upload path for document files.
+    Path structure: documents/uploads/{document_type}/{year}/{month}/{filename}
+    Example: documents/uploads/receipts/2025/11/invoice_123.pdf
+    Actual storage: /data/modules/documents/uploads/receipts/2025/11/invoice_123.pdf
+    """
+    from datetime import datetime
+    now = datetime.now()
+    doc_type = instance.document_type if instance.document_type else 'unknown'
+    return str(Path('documents') / 'uploads' / doc_type / str(now.year) / f'{now.month:02d}' / filename)
+
+
+def document_thumbnail_path(instance, filename):
+    """
+    Returns upload path for document thumbnails.
+    Path structure: documents/thumbnails/{document_type}/{year}/{month}/{filename}
+    Example: documents/thumbnails/receipts/2025/11/thumb_invoice_123.jpg
+    Actual storage: /data/modules/documents/thumbnails/receipts/2025/11/thumb_invoice_123.jpg
+    """
+    from datetime import datetime
+    now = datetime.now()
+    doc_type = instance.document_type if instance.document_type else 'unknown'
+    return str(Path('documents') / 'thumbnails' / doc_type / str(now.year) / f'{now.month:02d}' / filename)
 
 
 class DocumentType(models.TextChoices):
@@ -39,8 +66,8 @@ class Document(models.Model):
     # Document metadata
     document_type = models.CharField(max_length=20, choices=DocumentType.choices, default=DocumentType.RECEIPT)
     original_filename = models.CharField(max_length=255)
-    file_path = models.FileField(upload_to='documents/%Y/%m/')
-    thumbnail_path = models.FileField(upload_to='documents/thumbnails/%Y/%m/', null=True, blank=True)
+    file_path = models.FileField(upload_to=document_upload_path)
+    thumbnail_path = models.FileField(upload_to=document_thumbnail_path, null=True, blank=True)
     
     # Processing status
     processing_status = models.CharField(max_length=20, choices=ProcessingStatus.choices, default=ProcessingStatus.PROCESSING)

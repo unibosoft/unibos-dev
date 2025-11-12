@@ -10,11 +10,36 @@ from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator, MaxValueValidator
 from django.utils import timezone
 from django.db.models import Q, Count, Sum
+from pathlib import Path
 import uuid
 from typing import Optional
 from datetime import timedelta
 
 User = get_user_model()
+
+
+def music_artwork_path(instance, filename):
+    """
+    Returns upload path for album artwork files.
+    Path structure: music/artwork/{artist_slug}/{album_id}/{filename}
+    Example: music/artwork/taylor-swift/album-uuid/cover.jpg
+    Actual storage: /data/modules/music/artwork/taylor-swift/album-uuid/cover.jpg
+    """
+    artist_slug = instance.artist.slug if hasattr(instance, 'artist') else 'unknown'
+    album_id = str(instance.id)[:8]  # Use first 8 chars of UUID
+    return str(Path('music') / 'artwork' / artist_slug / album_id / filename)
+
+
+def playlist_cover_path(instance, filename):
+    """
+    Returns upload path for playlist cover images.
+    Path structure: music/playlists/{user_id}/{playlist_id}/{filename}
+    Example: music/playlists/user-uuid/playlist-uuid/cover.jpg
+    Actual storage: /data/modules/music/playlists/user-uuid/playlist-uuid/cover.jpg
+    """
+    user_id = str(instance.user.id)[:8] if instance.user else 'unknown'
+    playlist_id = str(instance.id)[:8]
+    return str(Path('music') / 'playlists' / user_id / playlist_id / filename)
 
 
 class Artist(models.Model):
@@ -126,7 +151,7 @@ class Album(models.Model):
     spotify_data = models.JSONField(default=dict, blank=True)
     
     # Open source artwork support
-    artwork_file = models.FileField(upload_to='music/artwork/', null=True, blank=True)
+    artwork_file = models.FileField(upload_to=music_artwork_path, null=True, blank=True)
     artwork_source = models.CharField(max_length=200, blank=True, help_text="Source of open artwork")
     artwork_license = models.CharField(max_length=100, blank=True)
     
@@ -371,9 +396,9 @@ class Playlist(models.Model):
     
     # Content
     tracks = models.ManyToManyField(Track, through='PlaylistTrack', related_name='in_playlists')
-    
+
     # Metadata
-    cover_image = models.ImageField(upload_to='playlists/', null=True, blank=True)
+    cover_image = models.ImageField(upload_to=playlist_cover_path, null=True, blank=True)
     tags = models.JSONField(
         default=list,
         blank=True

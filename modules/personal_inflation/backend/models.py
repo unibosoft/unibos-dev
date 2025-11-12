@@ -7,6 +7,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from decimal import Decimal
+from pathlib import Path
 import uuid
 import json
 
@@ -22,6 +23,19 @@ except ImportError:
     GinIndex = None
 
 User = get_user_model()
+
+
+def receipt_image_path(instance, filename):
+    """
+    Returns upload path for receipt images in WIMM module.
+    Path structure: wimm/receipts/{user_id}/{year}/{month}/{filename}
+    Example: wimm/receipts/user-uuid/2025/11/receipt_123.jpg
+    Actual storage: /data/modules/wimm/receipts/user-uuid/2025/11/receipt_123.jpg
+    """
+    from datetime import datetime
+    now = instance.recorded_at if hasattr(instance, 'recorded_at') and instance.recorded_at else datetime.now()
+    user_id = str(instance.user.id)[:8] if instance.user else 'anonymous'
+    return str(Path('wimm') / 'receipts' / user_id / str(now.year) / f'{now.month:02d}' / filename)
 
 
 class ProductCategory(models.Model):
@@ -305,7 +319,7 @@ class PriceRecord(models.Model):
     
     # Metadata
     notes = models.TextField(blank=True)
-    receipt_image = models.FileField(upload_to='receipts/', blank=True, null=True)
+    receipt_image = models.FileField(upload_to=receipt_image_path, blank=True, null=True)
     
     # Timestamps
     recorded_at = models.DateTimeField(default=timezone.now, db_index=True)
