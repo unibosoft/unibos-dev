@@ -8,8 +8,8 @@ from .emergency import *
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'unibos_db',
-        'USER': 'unibos_user',
+        'NAME': 'unibos_dev',  # Development database
+        'USER': 'unibos_dev_user',
         'PASSWORD': 'unibos_pass',
         'HOST': 'localhost',
         'PORT': '5432',

@@ -10,8 +10,8 @@ ALLOWED_HOSTS = ['*']
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'unibos_db',
-        'USER': 'unibos_user',
+        'NAME': 'unibos_dev',  # Development database
+        'USER': 'unibos_dev_user',
         'PASSWORD': 'unibos_password',
         'HOST': 'localhost',
         'PORT': '5432',

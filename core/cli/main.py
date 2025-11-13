@@ -17,6 +17,7 @@ from core.cli.commands.deploy import deploy_group
 from core.cli.commands.dev import dev_group
 from core.cli.commands.db import db_group
 from core.cli.commands.status import status_command
+from core.cli.commands.git import git_group
 
 
 @click.group()
@@ -34,6 +35,8 @@ def cli(ctx, no_splash):
         unibos dev run             # Start development server
         unibos deploy rocksteady   # Deploy to production
         unibos db backup           # Create database backup
+        unibos git push-dev        # Push to dev repository
+        unibos git sync-prod       # Sync to local prod directory
     """
     # Store context for subcommands
     ctx.ensure_object(dict)
@@ -54,6 +57,7 @@ cli.add_command(deploy_group)
 cli.add_command(dev_group)
 cli.add_command(db_group)
 cli.add_command(status_command)
+cli.add_command(git_group)
 
 
 def main():

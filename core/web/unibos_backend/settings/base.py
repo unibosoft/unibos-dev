@@ -30,7 +30,7 @@ UNIBOS_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
 env = environ.Env(
     DEBUG=(bool, False),
     ALLOWED_HOSTS=(list, []),
-    DATABASE_URL=(str, 'postgresql://unibos:unibos@localhost:5432/unibos'),
+    DATABASE_URL=(str, 'postgresql://unibos_db_user:unibos@localhost:5432/unibos_db'),  # Default prod DB
     REDIS_URL=(str, 'redis://localhost:6379/0'),
     SECRET_KEY=(str, None),
 )
