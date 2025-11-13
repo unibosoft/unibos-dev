@@ -33,7 +33,17 @@ def run_command(cmd: list, cwd: Optional[Path] = None, check: bool = True) -> su
 
 
 def get_project_root() -> Path:
-    """Get the project root directory"""
+    """Get the project root directory (git repository root)"""
+    # Use git to find repository root (works from anywhere in the repo)
+    result = subprocess.run(
+        ['git', 'rev-parse', '--show-toplevel'],
+        capture_output=True,
+        text=True,
+        check=False
+    )
+    if result.returncode == 0:
+        return Path(result.stdout.strip())
+    # Fallback to __file__ based path (for development)
     return Path(__file__).parent.parent.parent.parent
 
 
