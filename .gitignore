@@ -128,3 +128,6 @@ modules/*/mobile/.flutter-plugins
 modules/*/mobile/.flutter-plugins-dependencies
 modules/*/mobile/.packages
 
+
+# Module status markers (user-specific)
+modules/*/.enabled
