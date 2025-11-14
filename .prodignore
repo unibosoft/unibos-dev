@@ -10,6 +10,14 @@ RULES.md
 docs/rules/
 docs/design/decisions/
 
+# Developer CLI (security critical - keep out of production)
+core/cli-dev/
+setup-dev.py
+
+# Server CLI (only for rocksteady)
+core/cli-server/
+setup-server.py
+
 # Claude session data
 .claude/
 CLAUDE_COMMUNICATION_LOG_*.md

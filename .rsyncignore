@@ -2,6 +2,12 @@
 .git/
 .gitignore
 
+# Development CLIs (security critical)
+core/cli-dev/
+setup-dev.py
+core/cli-server/
+setup-server.py
+
 # Python
 __pycache__/
 *.py[cod]
