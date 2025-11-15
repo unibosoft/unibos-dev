@@ -9,8 +9,8 @@ Provides cross-platform detection and capability identification for:
 - Service Management (systemd, launchd, supervisor)
 """
 
-from core.platform.detector import PlatformDetector, PlatformInfo
-from core.platform.service_manager import (
+from core.base.platform.detector import PlatformDetector, PlatformInfo
+from core.base.platform.service_manager import (
     PlatformServiceManager,
     ServiceInfo,
     ServiceStatus,

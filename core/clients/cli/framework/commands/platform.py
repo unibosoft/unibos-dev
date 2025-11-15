@@ -5,7 +5,7 @@ Display platform and hardware information.
 """
 
 import click
-from core.platform import PlatformDetector
+from core.base.platform import PlatformDetector
 
 
 @click.command(name='platform')

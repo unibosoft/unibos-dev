@@ -5,7 +5,7 @@ Node identity and registration management.
 """
 import click
 import json
-from core.instance import get_instance_identity, NodeType
+from core.base.identity import get_instance_identity, NodeType
 
 
 @click.group(name='node')

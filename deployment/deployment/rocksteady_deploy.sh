@@ -30,9 +30,9 @@ if [ -f "$LOCAL_DIR/core/version.py" ]; then
 fi
 
 # v1.0.0 structure (fixed paths)
-BACKEND_PATH="core/web"
-VENV_PATH="$REMOTE_DIR/core/web/venv"
-MANAGE_PY_PATH="$REMOTE_DIR/core/web"
+BACKEND_PATH="core/clients/web"
+VENV_PATH="$REMOTE_DIR/core/clients/web/venv"
+MANAGE_PY_PATH="$REMOTE_DIR/core/clients/web"
 
 # Print functions
 print_header() {
@@ -328,7 +328,7 @@ PYTHON_EOF
 "
 
     # Run the check
-    local check_result=$(ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/web && source $VENV_PATH/bin/activate && cat $requirements_file | $VENV_PATH/bin/python3 /tmp/check_deps.py")
+    local check_result=$(ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/clients/web && source $VENV_PATH/bin/activate && cat $requirements_file | $VENV_PATH/bin/python3 /tmp/check_deps.py")
 
     if echo "$check_result" | grep -q "ALL_OK"; then
         print_success "All $deps_type dependencies are installed"
@@ -339,7 +339,7 @@ PYTHON_EOF
         echo ""
 
         print_step "Installing missing dependencies..."
-        if ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/web && source $VENV_PATH/bin/activate && pip install -r $requirements_file"; then
+        if ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/clients/web && source $VENV_PATH/bin/activate && pip install -r $requirements_file"; then
             print_success "$deps_type dependencies installed"
             return 0
         else
@@ -391,7 +391,7 @@ REMOTE_SCRIPT
 
     local ocr_packages="pytesseract opencv-python numpy paddleocr paddlepaddle torch torchvision transformers easyocr surya-ocr"
 
-    local missing_ocr=$(ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/web && source $VENV_PATH/bin/activate && python3 -c \"
+    local missing_ocr=$(ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/clients/web && source $VENV_PATH/bin/activate && python3 -c \"
 import sys
 missing = []
 for pkg in '$ocr_packages'.split():
@@ -410,7 +410,7 @@ if missing:
         print_warning "Missing OCR packages: $missing_ocr"
         print_step "Installing from requirements.txt..."
 
-        ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/web && source $VENV_PATH/bin/activate && pip install pytesseract opencv-python numpy paddleocr paddlepaddle==2.6.2 torch==2.6.0 torchvision==0.21.0 transformers easyocr surya-ocr"
+        ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/clients/web && source $VENV_PATH/bin/activate && pip install pytesseract opencv-python numpy paddleocr paddlepaddle==2.6.2 torch==2.6.0 torchvision==0.21.0 transformers easyocr surya-ocr"
 
         print_success "OCR dependencies installed"
     fi
@@ -422,7 +422,7 @@ run_migrations() {
 
     print_step "Checking for pending migrations..."
 
-    local pending=$(ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/web && PYTHONPATH=$REMOTE_DIR/core/web:$REMOTE_DIR DJANGO_SETTINGS_MODULE=unibos_backend.settings.production $VENV_PATH/bin/python3 manage.py showmigrations --plan 2>/dev/null | grep '\[ \]' | wc -l")
+    local pending=$(ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/clients/web && PYTHONPATH=$REMOTE_DIR/core/clients/web:$REMOTE_DIR DJANGO_SETTINGS_MODULE=unibos_backend.settings.production $VENV_PATH/bin/python3 manage.py showmigrations --plan 2>/dev/null | grep '\[ \]' | wc -l")
 
     if [ "$pending" -eq "0" ]; then
         print_success "No pending migrations"
@@ -430,7 +430,7 @@ run_migrations() {
     else
         print_step "Found $pending pending migrations, applying..."
 
-        if ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/web && PYTHONPATH=$REMOTE_DIR/core/web:$REMOTE_DIR DJANGO_SETTINGS_MODULE=unibos_backend.settings.production $VENV_PATH/bin/python3 manage.py migrate"; then
+        if ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/clients/web && PYTHONPATH=$REMOTE_DIR/core/clients/web:$REMOTE_DIR DJANGO_SETTINGS_MODULE=unibos_backend.settings.production $VENV_PATH/bin/python3 manage.py migrate"; then
             print_success "Migrations applied successfully"
             return 0
         else
@@ -514,11 +514,11 @@ full_deploy() {
     sync_files || exit 1
 
     # Check dependencies
-    check_and_install_deps "$REMOTE_DIR/core/web/requirements.txt" "core" || exit 1
+    check_and_install_deps "$REMOTE_DIR/core/clients/web/requirements.txt" "core" || exit 1
 
     # Check uvicorn (required for gunicorn workers)
     print_step "Ensuring uvicorn is installed..."
-    ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/web && source $VENV_PATH/bin/activate && pip install 'uvicorn[standard]'" || exit 1
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR/core/clients/web && source $VENV_PATH/bin/activate && pip install 'uvicorn[standard]'" || exit 1
 
     # Run migrations
     run_migrations || exit 1
@@ -582,7 +582,7 @@ case "$ACTION" in
         health_check
         ;;
     install-deps)
-        check_and_install_deps "$REMOTE_DIR/core/web/requirements.txt" "core"
+        check_and_install_deps "$REMOTE_DIR/core/clients/web/requirements.txt" "core"
         ;;
     install-ocr)
         install_ocr_deps

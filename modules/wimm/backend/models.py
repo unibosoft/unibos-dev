@@ -6,7 +6,7 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from decimal import Decimal
-from core.models.base import BaseModel, Item, Account
+from core.base.models.base import BaseModel, Item, Account
 
 
 class TransactionCategory(BaseModel):

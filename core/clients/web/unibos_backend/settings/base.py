@@ -95,7 +95,7 @@ def get_dynamic_modules():
     Falls back to hardcoded list if registry unavailable.
     """
     try:
-        from core.modules import get_module_registry
+        from core.base.registry import get_module_registry
         registry = get_module_registry()
         return registry.get_django_apps()
     except Exception as e:

@@ -435,7 +435,7 @@ class DocumentUploadView(LoginRequiredMixin, BaseUIView):
     def create_wimm_transaction(self, user, transaction_data, document=None):
         """Create WIMM transaction from receipt with enhanced data"""
         from modules.wimm.backend.models import Transaction, TransactionCategory
-        from core.models.base import Account
+        from core.base.models.base import Account
         
         # Get appropriate account based on payment method
         payment_method = transaction_data.get('payment_method', 'cash')

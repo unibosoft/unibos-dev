@@ -163,7 +163,7 @@ class InstanceIdentity:
     def _create_identity(self) -> NodeIdentity:
         """Create new node identity"""
         import socket
-        from core.platform import PlatformDetector
+        from core.base.platform import PlatformDetector
 
         # Detect platform
         detector = PlatformDetector()

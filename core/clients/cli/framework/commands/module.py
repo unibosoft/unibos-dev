@@ -5,7 +5,7 @@ Module discovery, management, and information.
 """
 import click
 import json
-from core.modules import get_module_registry
+from core.base.registry import get_module_registry
 
 
 @click.group(name='module')

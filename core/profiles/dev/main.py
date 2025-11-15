@@ -12,13 +12,13 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.cli_dev.ui.splash import show_splash_screen, show_compact_header
-from core.cli_dev.commands.deploy import deploy_group
-from core.cli_dev.commands.dev import dev_group
-from core.cli_dev.commands.db import db_group
-from core.cli_dev.commands.status import status_command
-from core.cli_dev.commands.git import git_group
-from core.cli_dev.commands.platform import platform_command
+from core.profiles.dev.ui.splash import show_splash_screen, show_compact_header
+from core.profiles.dev.commands.deploy import deploy_group
+from core.profiles.dev.commands.dev import dev_group
+from core.profiles.dev.commands.db import db_group
+from core.profiles.dev.commands.status import status_command
+from core.profiles.dev.commands.git import git_group
+from core.profiles.dev.commands.platform import platform_command
 from core.version import __version__
 
 
@@ -75,7 +75,7 @@ def main():
     if len(sys.argv) == 1:
         # No arguments - run interactive TUI mode
         try:
-            from core.cli_dev.interactive import run_interactive
+            from core.profiles.dev.interactive import run_interactive
             run_interactive()
         except KeyboardInterrupt:
             click.echo("\n\n👋 Goodbye!")

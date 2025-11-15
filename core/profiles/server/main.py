@@ -53,7 +53,7 @@ def main():
     if len(sys.argv) == 1:
         # No arguments - run interactive TUI mode
         try:
-            from core.cli_server.interactive import run_interactive
+            from core.profiles.server.interactive import run_interactive
             run_interactive()
         except KeyboardInterrupt:
             click.echo("\n\n👋 goodbye!")

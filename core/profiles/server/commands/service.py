@@ -4,7 +4,7 @@ UNIBOS Server CLI - Service Management Commands
 Cross-platform service management using the platform abstraction layer.
 """
 import click
-from core.platform import get_service_manager, ServiceStatus
+from core.base.platform import get_service_manager, ServiceStatus
 
 
 @click.group(name='service')
