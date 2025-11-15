@@ -16,32 +16,23 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Configuration - Auto-detected from repository structure
+# Configuration
 REMOTE_HOST="rocksteady"
 REMOTE_USER="ubuntu"
 REMOTE_DIR="/home/ubuntu/unibos"
 # Navigate up two levels from core/deployment to get repository root
 LOCAL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 
-# Auto-detect current version from VERSION.json if exists
+# Get current version from core/version.py
 CURRENT_VERSION="unknown"
-if [ -f "$LOCAL_DIR/VERSION.json" ]; then
-    CURRENT_VERSION=$(grep -o '"version": *"[^"]*"' "$LOCAL_DIR/VERSION.json" | cut -d'"' -f4 || echo "unknown")
+if [ -f "$LOCAL_DIR/core/version.py" ]; then
+    CURRENT_VERSION=$(grep -o '__version__ = "[^"]*"' "$LOCAL_DIR/core/version.py" | cut -d'"' -f2 || echo "unknown")
 fi
 
-# Auto-detect architecture (detect core/web vs platform/runtime/web/backend)
-if [ -d "$LOCAL_DIR/core/web" ]; then
-    BACKEND_PATH="core/web"
-    VENV_PATH="$REMOTE_DIR/core/web/venv"
-    MANAGE_PY_PATH="$REMOTE_DIR/core/web"
-elif [ -d "$LOCAL_DIR/platform/runtime/web/backend" ]; then
-    BACKEND_PATH="platform/runtime/web/backend"
-    VENV_PATH="$REMOTE_DIR/platform/runtime/web/backend/venv"
-    MANAGE_PY_PATH="$REMOTE_DIR/platform/runtime/web/backend"
-else
-    echo -e "${RED}Error: Cannot detect backend structure${NC}"
-    exit 1
-fi
+# v1.0.0 structure (fixed paths)
+BACKEND_PATH="core/web"
+VENV_PATH="$REMOTE_DIR/core/web/venv"
+MANAGE_PY_PATH="$REMOTE_DIR/core/web"
 
 # Print functions
 print_header() {
@@ -64,6 +55,59 @@ print_warning() {
 
 print_error() {
     echo -e "${RED}✗${NC} $1"
+}
+
+# Initial setup (first-time deployment)
+initial_setup() {
+    print_header "Initial Setup - First Deployment"
+
+    # Check if remote directory exists
+    if ssh "$REMOTE_HOST" "[ -d '$REMOTE_DIR' ]"; then
+        print_warning "Remote directory already exists: $REMOTE_DIR"
+        read -p "Continue with existing directory? (y/N) " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            print_error "Setup cancelled"
+            exit 1
+        fi
+        return 0
+    fi
+
+    print_step "Creating remote directory..."
+    ssh "$REMOTE_HOST" "mkdir -p $REMOTE_DIR"
+
+    print_step "Cloning repository..."
+    ssh "$REMOTE_HOST" "git clone https://github.com/unibosoft/unibos_dev.git $REMOTE_DIR"
+
+    print_step "Checking out v$CURRENT_VERSION..."
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR && git checkout v$CURRENT_VERSION"
+
+    print_step "Creating Python virtual environment..."
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR/$BACKEND_PATH && python3 -m venv venv"
+
+    print_step "Installing base dependencies..."
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR/$BACKEND_PATH && source venv/bin/activate && pip install --upgrade pip setuptools wheel"
+
+    print_step "Installing UNIBOS dependencies..."
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR/$BACKEND_PATH && source venv/bin/activate && pip install -r requirements.txt"
+
+    print_step "Installing unibos-server CLI..."
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR && pip install --user -e . -f setup-server.py"
+
+    print_step "Verifying unibos-server installation..."
+    if ssh "$REMOTE_HOST" "~/.local/bin/unibos-server --version"; then
+        print_success "unibos-server CLI installed successfully"
+    else
+        print_error "Failed to install unibos-server CLI"
+        return 1
+    fi
+
+    print_success "Initial setup complete"
+    print_step "Next steps:"
+    print_step "  1. Configure Django settings (production)"
+    print_step "  2. Run: unibos-server service setup"
+    print_step "  3. Enable modules: unibos-server module enable <name>"
+    return 0
 }
 
 # Check local repository size before transfer
@@ -446,6 +490,12 @@ health_check() {
 full_deploy() {
     print_header "Starting UNIBOS Deployment"
 
+    # Check if this is first deployment
+    if ! ssh "$REMOTE_HOST" "[ -d '$REMOTE_DIR' ]"; then
+        print_warning "Remote directory does not exist. Running initial setup..."
+        initial_setup || exit 1
+    fi
+
     # Pre-flight checks
     check_local_size || exit 1
 
@@ -480,6 +530,7 @@ UNIBOS Rocksteady Deployment Script
 Usage: $0 [action]
 
 Actions:
+  setup           Initial setup (first-time deployment)
   deploy          Full deployment with all checks (default)
   check           Run health checks only
   install-deps    Check and install Python dependencies
@@ -490,7 +541,8 @@ Actions:
   help            Show this help
 
 Examples:
-  $0                    # Full deployment
+  $0 setup              # First-time setup (git clone + venv + deps)
+  $0                    # Full deployment (auto-setup if needed)
   $0 check              # Health check only
   $0 install-ocr        # Install OCR dependencies
 
@@ -509,6 +561,9 @@ EOF
 ACTION="${1:-deploy}"
 
 case "$ACTION" in
+    setup)
+        initial_setup
+        ;;
     deploy)
         full_deploy
         ;;
