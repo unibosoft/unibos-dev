@@ -77,7 +77,7 @@ initial_setup() {
     ssh "$REMOTE_HOST" "mkdir -p $REMOTE_DIR"
 
     print_step "Cloning repository..."
-    ssh "$REMOTE_HOST" "git clone https://github.com/unibosoft/unibos_dev.git $REMOTE_DIR"
+    ssh "$REMOTE_HOST" "git clone git@github.com:unibosoft/unibos_dev.git $REMOTE_DIR"
 
     print_step "Checking out v$CURRENT_VERSION..."
     ssh "$REMOTE_HOST" "cd $REMOTE_DIR && git checkout v$CURRENT_VERSION"
@@ -91,8 +91,13 @@ initial_setup() {
     print_step "Installing UNIBOS dependencies..."
     ssh "$REMOTE_HOST" "cd $REMOTE_DIR/$BACKEND_PATH && source venv/bin/activate && pip install -r requirements.txt"
 
-    print_step "Installing unibos-server CLI..."
-    ssh "$REMOTE_HOST" "cd $REMOTE_DIR && pip install --user -e . -f setup-server.py"
+    print_step "Installing pipx (if not installed)..."
+    ssh "$REMOTE_HOST" "command -v pipx >/dev/null 2>&1 || sudo apt install -y pipx"
+    ssh "$REMOTE_HOST" "pipx ensurepath" || true
+
+    print_step "Installing unibos-server CLI with pipx..."
+    # Temporary workaround: swap setup.py with setup-server.py for pipx install
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR && cp setup.py setup.py.bak && cp setup-server.py setup.py && mkdir -p build && pipx install --force $REMOTE_DIR && mv setup.py.bak setup.py"
 
     print_step "Verifying unibos-server installation..."
     if ssh "$REMOTE_HOST" "~/.local/bin/unibos-server --version"; then
