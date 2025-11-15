@@ -1,0 +1,316 @@
+"""
+UNIBOS CLI Interactive Mode Base
+Base class for interactive CLI mode with menu navigation
+
+This provides the foundation for the hybrid CLI approach:
+- When arguments provided → Direct Click commands
+- When no arguments → Interactive TUI mode
+
+Extracted and adapted from v527 main.py
+Reference: docs/development/cli_v527_reference.md
+"""
+
+import sys
+import time
+from abc import ABC, abstractmethod
+from typing import List, Dict, Any, Optional, Callable
+
+from .ui import (
+    Colors,
+    clear_screen,
+    get_terminal_size,
+    move_cursor,
+    hide_cursor,
+    show_cursor,
+    wrap_text,
+    print_centered,
+    show_splash_screen,
+    get_single_key,
+    Keys,
+    MenuItem,
+    MenuState,
+)
+
+
+class InteractiveMode(ABC):
+    """
+    Base class for interactive CLI mode
+
+    Subclasses (unibos, unibos-dev, unibos-server) should:
+    1. Override get_sections() to define menu structure
+    2. Override handle_action() to implement menu actions
+    3. Optionally override render_header() and render_footer()
+    """
+
+    def __init__(self, title: str, version: str):
+        """
+        Initialize interactive mode
+
+        Args:
+            title: CLI title (e.g., "UNIBOS Development")
+            version: Version string (e.g., "v1.0.0")
+        """
+        self.title = title
+        self.version = version
+        self.state = MenuState()
+        self.running = False
+
+    @abstractmethod
+    def get_sections(self) -> List[Dict[str, Any]]:
+        """
+        Get menu sections for this CLI
+
+        Returns:
+            List of section dicts with structure:
+            {
+                'id': 'section_id',
+                'label': 'Section Name',
+                'icon': '📦',
+                'items': [MenuItem(...), ...]
+            }
+        """
+        pass
+
+    @abstractmethod
+    def handle_action(self, item: MenuItem) -> bool:
+        """
+        Handle menu item action
+
+        Args:
+            item: Selected menu item
+
+        Returns:
+            True to continue menu loop, False to exit
+        """
+        pass
+
+    def render_header(self):
+        """
+        Render header area
+
+        Override in subclass for custom header
+        """
+        cols, _ = get_terminal_size()
+
+        # Title bar
+        title_text = f" {self.title} {self.version} "
+        padding = (cols - len(title_text)) // 2
+        header = f"{Colors.BG_ORANGE}{Colors.BLACK}{Colors.BOLD}"
+        header += " " * padding + title_text + " " * (cols - padding - len(title_text))
+        header += Colors.RESET
+
+        move_cursor(1, 1)
+        print(header)
+
+        # Section tabs
+        move_cursor(1, 2)
+        tabs = ""
+        for i, section in enumerate(self.state.sections):
+            if i == self.state.current_section:
+                tabs += f"{Colors.BG_CONTENT}{Colors.ORANGE}{Colors.BOLD} {section.get('icon', '')} {section['label']} {Colors.RESET}"
+            else:
+                tabs += f"{Colors.DIM} {section.get('icon', '')} {section['label']} {Colors.RESET}"
+            tabs += "  "
+        print(tabs)
+
+    def render_footer(self):
+        """
+        Render footer with navigation hints
+
+        Override in subclass for custom footer
+        """
+        cols, lines = get_terminal_size()
+
+        hints = f"{Colors.DIM}↑↓: Navigate  ←→: Sections  Enter: Select  ESC: Back/Exit{Colors.RESET}"
+        move_cursor(1, lines)
+        print(f"{Colors.BG_DARK_GRAY}{' ' * cols}{Colors.RESET}")
+        move_cursor(3, lines)
+        print(hints)
+
+    def render_sidebar(self):
+        """
+        Render left sidebar with menu items
+
+        Override in subclass for custom sidebar layout
+        """
+        cols, lines = get_terminal_size()
+        sidebar_width = 35
+        content_y_start = 4
+
+        current_section = self.state.get_current_section()
+        if not current_section:
+            return
+
+        items = current_section.get('items', [])
+
+        for i, item in enumerate(items):
+            y = content_y_start + i
+            if y >= lines - 1:  # Don't overflow into footer
+                break
+
+            # Highlight selected item
+            if i == self.state.selected_index and not self.state.in_submenu:
+                bg = Colors.BG_CONTENT
+                fg = Colors.ORANGE + Colors.BOLD
+            else:
+                bg = ""
+                fg = Colors.DIM if not item.enabled else ""
+
+            # Format item text
+            icon = item.icon + " " if item.icon else ""
+            text = f"{icon}{item.label}"
+            if len(text) > sidebar_width - 4:
+                text = text[:sidebar_width - 7] + "..."
+
+            move_cursor(2, y)
+            print(f"{bg}{fg}{text:<{sidebar_width - 2}}{Colors.RESET}")
+
+    def render_content(self):
+        """
+        Render right content area
+
+        Override in subclass for custom content display
+        """
+        cols, lines = get_terminal_size()
+        sidebar_width = 35
+        content_x = sidebar_width + 2
+        content_width = cols - content_x - 2
+        content_y_start = 4
+
+        # Get selected item
+        item = self.state.get_selected_item()
+        if not item:
+            return
+
+        # Show description if available
+        if item.description:
+            y = content_y_start
+            wrapped = wrap_text(item.description, content_width - 4)
+            for line in wrapped[:lines - content_y_start - 2]:
+                move_cursor(content_x, y)
+                print(f"{Colors.DIM}{line}{Colors.RESET}")
+                y += 1
+
+    def render(self):
+        """Render entire UI"""
+        clear_screen()
+        self.render_header()
+        self.render_sidebar()
+        self.render_content()
+        self.render_footer()
+        sys.stdout.flush()
+
+    def handle_key(self, key: str) -> bool:
+        """
+        Handle keyboard input
+
+        Args:
+            key: Key code from get_single_key()
+
+        Returns:
+            True to continue, False to exit
+        """
+        if key == Keys.UP:
+            current_section = self.state.get_current_section()
+            if current_section:
+                max_items = len(current_section.get('items', []))
+                if self.state.navigate_up():
+                    self.render()
+
+        elif key == Keys.DOWN:
+            current_section = self.state.get_current_section()
+            if current_section:
+                max_items = len(current_section.get('items', []))
+                if self.state.navigate_down(max_items):
+                    self.render()
+
+        elif key == Keys.LEFT:
+            if self.state.navigate_left():
+                self.render()
+            elif not self.state.in_submenu:
+                # At top level, left means exit
+                return False
+
+        elif key == Keys.RIGHT:
+            if self.state.navigate_right(len(self.state.sections)):
+                self.render()
+
+        elif key == Keys.ENTER or key == '\r':
+            item = self.state.get_selected_item()
+            if item and item.enabled:
+                show_cursor()
+                if not self.handle_action(item):
+                    return False
+                hide_cursor()
+                self.render()
+
+        elif key == Keys.ESC or key == '\x1b':
+            if self.state.in_submenu:
+                self.state.exit_submenu()
+                self.render()
+            else:
+                return False
+
+        elif key and key.isdigit():
+            # Quick select by number
+            num = int(key)
+            item = self.state.quick_select(num)
+            if item and item.enabled:
+                show_cursor()
+                if not self.handle_action(item):
+                    return False
+                hide_cursor()
+                self.render()
+
+        # Check for terminal resize
+        cols, lines = get_terminal_size()
+        if self.state.terminal_resized(cols, lines):
+            self.render()
+
+        return True
+
+    def run(self, show_splash: bool = True):
+        """
+        Run interactive mode
+
+        Args:
+            show_splash: Whether to show splash screen (default True)
+        """
+        try:
+            # Show splash screen
+            if show_splash:
+                show_splash_screen(quick=False)
+
+            # Initialize menu structure
+            self.state.sections = self.get_sections()
+
+            # Extract all items from first section for initial state
+            if self.state.sections:
+                self.state.items = self.state.sections[0].get('items', [])
+
+            # Hide cursor for cleaner UI
+            hide_cursor()
+
+            # Initial render
+            self.running = True
+            self.render()
+
+            # Main event loop
+            while self.running:
+                key = get_single_key(timeout=0.1)
+                if key:
+                    if not self.handle_key(key):
+                        break
+                time.sleep(0.01)  # Prevent CPU spinning
+
+        except KeyboardInterrupt:
+            # Handle Ctrl+C gracefully
+            pass
+        finally:
+            # Cleanup
+            show_cursor()
+            clear_screen()
+
+    def exit(self):
+        """Exit interactive mode"""
+        self.running = False
