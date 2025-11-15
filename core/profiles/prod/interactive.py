@@ -184,10 +184,14 @@ class UnibosNodeInteractive(InteractiveMode):
         """
         import subprocess
         import os
+        from pathlib import Path
         from core.clients.cli.framework.ui import clear_screen, Colors
 
+        # Get project root path
+        project_root = Path(__file__).parent.parent.parent
+
         clear_screen()
-        print(f"{Colors.ORANGE}{Colors.BOLD}� {item.label}{Colors.RESET}\n")
+        print(f"{Colors.ORANGE}{Colors.BOLD}▶ {item.label}{Colors.RESET}\n")
 
         try:
             # Node management

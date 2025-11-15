@@ -192,7 +192,11 @@ class UnibosDevInteractive(InteractiveMode):
         """
         import subprocess
         import os
+        from pathlib import Path
         from core.clients.cli.framework.ui import clear_screen, Colors
+
+        # Get project root path
+        project_root = Path(__file__).parent.parent.parent
 
         clear_screen()
         print(f"{Colors.ORANGE}{Colors.BOLD}▶ {item.label}{Colors.RESET}\n")
@@ -212,7 +216,7 @@ class UnibosDevInteractive(InteractiveMode):
             elif item.id == 'dev_shell':
                 print(f"{Colors.DIM}Opening Django shell...{Colors.RESET}\n")
                 # Change to web directory and run shell
-                web_dir = project_root / 'core' / 'web'
+                web_dir = project_root / 'core' / 'clients' / 'web'
                 os.chdir(web_dir)
                 subprocess.run([
                     'python',
