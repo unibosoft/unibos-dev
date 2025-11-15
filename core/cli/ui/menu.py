@@ -90,7 +90,7 @@ class MenuState:
 
     def navigate_up(self) -> bool:
         """
-        Navigate up in the menu
+        Navigate up in the menu (v527 style - wraps to previous section)
 
         Returns:
             True if navigation occurred, False if at top
@@ -101,14 +101,23 @@ class MenuState:
                 return True
         else:
             if self.selected_index > 0:
+                # Move up within current section
                 self.previous_index = self.selected_index
                 self.selected_index -= 1
                 return True
+            elif self.current_section > 0:
+                # At top of section, jump to previous section (last item)
+                self.current_section -= 1
+                prev_section = self.sections[self.current_section] if self.sections else None
+                if prev_section:
+                    self.previous_index = self.selected_index
+                    self.selected_index = len(prev_section.get('items', [])) - 1
+                    return True
         return False
 
     def navigate_down(self, max_items: int) -> bool:
         """
-        Navigate down in the menu
+        Navigate down in the menu (v527 style - wraps to next section)
 
         Args:
             max_items: Maximum number of items in current context
@@ -123,8 +132,15 @@ class MenuState:
                 return True
         else:
             if self.selected_index < max_items - 1:
+                # Move down within current section
                 self.previous_index = self.selected_index
                 self.selected_index += 1
+                return True
+            elif self.current_section < len(self.sections) - 1:
+                # At bottom of section, jump to next section (first item)
+                self.current_section += 1
+                self.previous_index = self.selected_index
+                self.selected_index = 0
                 return True
         return False
 

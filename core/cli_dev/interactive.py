@@ -30,7 +30,7 @@ class UnibosDevInteractive(InteractiveMode):
 
     def __init__(self):
         super().__init__(
-            title="UNIBOS Development",
+            title="unibos development",
             version=__version__
         )
 
@@ -44,117 +44,117 @@ class UnibosDevInteractive(InteractiveMode):
         return [
             {
                 'id': 'dev',
-                'label': 'Development',
+                'label': 'development',
                 'icon': '🔧',
                 'items': [
                     MenuItem(
                         id='dev_run',
-                        label='Start Development Server',
+                        label='start development server',
                         icon='▶️',
-                        description='Start Django development server with hot reload\n\nRuns: python manage.py runserver 0.0.0.0:8000'
+                        description='start django development server with hot reload\n\nRuns: python manage.py runserver 0.0.0.0:8000'
                     ),
                     MenuItem(
                         id='dev_stop',
-                        label='Stop Development Server',
+                        label='stop development server',
                         icon='⏹️',
-                        description='Stop running development server'
+                        description='stop running development server'
                     ),
                     MenuItem(
                         id='dev_status',
-                        label='Show Status',
+                        label='show status',
                         icon='📊',
-                        description='Display system status, services, and module information'
+                        description='display system status, services, and module information'
                     ),
                     MenuItem(
                         id='dev_shell',
-                        label='Django Shell',
+                        label='django shell',
                         icon='🐚',
-                        description='Open Django interactive shell for debugging'
+                        description='open django interactive shell for debugging'
                     ),
                 ]
             },
             {
                 'id': 'git',
-                'label': 'Git & Deploy',
+                'label': 'git & deploy',
                 'icon': '🚀',
                 'items': [
                     MenuItem(
                         id='git_status',
-                        label='Git Status',
+                        label='git status',
                         icon='📋',
-                        description='Show current git repository status'
+                        description='show current git repository status'
                     ),
                     MenuItem(
                         id='git_push_dev',
-                        label='Push to Dev',
+                        label='push to dev',
                         icon='⬆️',
-                        description='Push to development repository (GitHub)'
+                        description='push to development repository (GitHub)'
                     ),
                     MenuItem(
                         id='git_sync_prod',
-                        label='Sync to Prod Directory',
+                        label='sync to prod directory',
                         icon='🔄',
-                        description='Sync code to local production directory'
+                        description='sync code to local production directory'
                     ),
                     MenuItem(
                         id='deploy_rocksteady',
-                        label='Deploy to Rocksteady',
+                        label='deploy to rocksteady',
                         icon='🎯',
-                        description='Deploy to Rocksteady production server\n\nFull deployment with migrations, static files, and service restart'
+                        description='deploy to rocksteady production server\n\nfull deployment with migrations, static files, and service restart'
                     ),
                 ]
             },
             {
                 'id': 'database',
-                'label': 'Database',
+                'label': 'database',
                 'icon': '🗄️',
                 'items': [
                     MenuItem(
                         id='db_backup',
-                        label='Create Backup',
+                        label='create backup',
                         icon='💾',
-                        description='Create database backup to archive/database_backups/'
+                        description='create database backup to archive/database_backups/'
                     ),
                     MenuItem(
                         id='db_restore',
-                        label='Restore Backup',
+                        label='restore backup',
                         icon='📥',
-                        description='Restore database from backup file'
+                        description='restore database from backup file'
                     ),
                     MenuItem(
                         id='db_migrate',
-                        label='Run Migrations',
+                        label='run migrations',
                         icon='🔄',
-                        description='Apply pending database migrations'
+                        description='apply pending database migrations'
                     ),
                     MenuItem(
                         id='db_makemigrations',
-                        label='Make Migrations',
+                        label='make migrations',
                         icon='📝',
-                        description='Generate new migration files from model changes'
+                        description='generate new migration files from model changes'
                     ),
                 ]
             },
             {
                 'id': 'platform',
-                'label': 'Platform',
+                'label': 'platform',
                 'icon': '🌐',
                 'items': [
                     MenuItem(
                         id='platform_modules',
-                        label='List Modules',
+                        label='list modules',
                         icon='📦',
-                        description='Show all registered modules and their status'
+                        description='show all registered modules and their status'
                     ),
                     MenuItem(
                         id='platform_config',
-                        label='Show Configuration',
+                        label='show configuration',
                         icon='⚙️',
                         description='Display current platform configuration'
                     ),
                     MenuItem(
                         id='platform_identity',
-                        label='Node Identity',
+                        label='node identity',
                         icon='🔐',
                         description='Show node identity and persistence information'
                     ),
