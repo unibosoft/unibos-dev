@@ -96,14 +96,20 @@ initial_setup() {
     ssh "$REMOTE_HOST" "pipx ensurepath" || true
 
     print_step "Installing unibos-server CLI with pipx..."
-    # Temporary workaround: swap setup.py with setup-server.py for pipx install
-    ssh "$REMOTE_HOST" "cd $REMOTE_DIR && cp setup.py setup.py.bak && cp setup-server.py setup.py && mkdir -p build && pipx install --force $REMOTE_DIR && mv setup.py.bak setup.py"
+    # Using pyproject.toml for modern packaging (includes all 3 CLIs)
+    ssh "$REMOTE_HOST" "cd $REMOTE_DIR && pipx install --force ."
 
-    print_step "Verifying unibos-server installation..."
+    print_step "Verifying CLI installations..."
+    local all_ok=1
+
     if ssh "$REMOTE_HOST" "~/.local/bin/unibos-server --version"; then
-        print_success "unibos-server CLI installed successfully"
+        print_success "unibos-server CLI installed"
     else
         print_error "Failed to install unibos-server CLI"
+        all_ok=0
+    fi
+
+    if [ $all_ok -eq 0 ]; then
         return 1
     fi
 
