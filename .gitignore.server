@@ -1,0 +1,192 @@
+# =============================================================================
+# UNIBOS-SERVER Repository .gitignore ŞABLONU (TEMPLATE)
+# Production server environment - Rocksteady
+# =============================================================================
+# ⚠️  BU DOSYA ŞABLONDUR - DOĞRUDAN KULLANILMAZ
+#
+# Kullanım: .gitignore dosyasına kopyalanarak kullanılır
+#   cp .gitignore.server .gitignore
+#
+# Bu şablon unibos-server repo'su için tasarlanmıştır.
+# Merkezi production server (rocksteady) için.
+#
+# Repo: https://github.com/unibosoft/unibos-server
+# Purpose: Production server deployment (central hub)
+# Includes: cli_server, cli_node, server/node settings, server deployment
+# Excludes: cli_dev (GÜVENLİK), archive/, data/, dev-only files
+# =============================================================================
+
+# ===== CRITICAL: EXCLUDE DEVELOPMENT CLI (SECURITY) =====
+# Development CLI should NEVER be on production server
+core/cli_dev/
+setup-dev.py
+
+# ===== CRITICAL: NO ARCHIVES ON SERVER =====
+# Archives are development-only, never on production
+archive/
+archive_backup*/
+
+# ===== CRITICAL: NO RUNTIME DATA IN REPO =====
+# All data is managed separately on server
+data/
+data_db/
+data_db_backup*/
+
+# Build artifacts - never on server
+/build/
+/dist/
+
+# ===== EXCLUDE DEV-ONLY FILES =====
+# Claude and development artifacts
+.claude/
+CLAUDE_COMMUNICATION_LOG_*.md
+Screenshot*.png
+*.screenshot.png
+screenshots_archive/
+quarantine/
+berk_claude_file_pool_DONT_DELETE/
+
+# ===== EXCLUDE DEV-ONLY DOCS =====
+TODO.md
+RULES.md
+docs/rules/
+docs/design/decisions/
+
+# ===== PYTHON ENVIRONMENT =====
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ===== PYTHON CACHE & BUILD =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ===== DATABASE FILES =====
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3.backup
+*.db
+*.db.backup
+db.sqlite3*
+
+# ===== LOG FILES =====
+*.log
+*.log.*
+logs/
+core/web/logs/
+
+# ===== DJANGO GENERATED =====
+staticfiles/
+core/web/staticfiles/
+core/web/media/
+modules/*/backend/staticfiles/
+modules/*/backend/media/
+modules/*/backend/uploads/
+
+# ===== ENVIRONMENT & SECRETS =====
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.cert
+*.crt
+.api_keys.json
+secrets/
+credentials/
+
+# ===== SYSTEM FILES =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# ===== PID FILES =====
+*.pid
+.*.pid
+
+# ===== TEMPORARY FILES =====
+*.tmp
+*.temp
+*.bak
+*.backup
+tmp/
+temp/
+
+# ===== BACKUP DIRECTORIES =====
+backup/
+backups/
+
+# ===== NODE.JS =====
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ===== FLUTTER/MOBILE BUILD =====
+modules/*/mobile/build/
+modules/*/mobile/.dart_tool/
+modules/*/mobile/.flutter-plugins
+modules/*/mobile/.flutter-plugins-dependencies
+modules/*/mobile/android/build/
+modules/*/mobile/ios/build/
+modules/*/mobile/ios/Pods/
+
+# ===== TEST FILES =====
+.pytest_cache/
+.coverage
+htmlcov/
+*.test.html
+*_test.html
+test_*.html
+test_*.py
+*_test.py
+
+# ===== LARGE MEDIA =====
+*.mp4
+*.avi
+*.mov
+*.zip
+*.tar.gz
+*.rar
+
+# ===== SQL BACKUPS =====
+*.sql
+*.sql.gz
+
+# ===== TEMPORARY DATA =====
+all_versions.txt
+missing_versions.txt
+pushed_versions.txt
+
+# ===== EXCLUDE DEV-ONLY SETTINGS =====
+# Keep: server.py, node.py, base.py
+# Exclude: development.py, dev_*.py
+core/web/unibos_backend/settings/development.py
+core/web/unibos_backend/settings/dev_*.py
+core/web/unibos_backend/settings/emergency.py
+core/web/unibos_backend/settings/dev_postgres.py
+core/web/unibos_backend/settings/dev_simple.py
+core/web/unibos_backend/settings/dev_no_redis.py
+
+# ===== EXCLUDE NODE DEPLOYMENT (SERVER DOESN'T NEED IT) =====
+# Keep server deployment, exclude node deployment
+# Actually, keep both since server can also be node
+# core/deployment/node.py  # KEEP - server can be node too
+
+# ===== IGNORE FILES (META) =====
+# NOTE: .gitignore.dev, .gitignore.server, .gitignore.prod are templates
+# They SHOULD be in the repo, so they are NOT ignored here
+.archiveignore
+.rsyncignore
+.prodignore

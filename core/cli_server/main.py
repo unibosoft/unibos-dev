@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 UNIBOS Server CLI - Main Entry Point
-Server management and monitoring for Rocksteady
+Production server management and monitoring (rocksteady)
 """
 
 import click
@@ -12,53 +12,65 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
-from core.cli_server.ui.splash import show_splash, show_header
-from core.cli_server.commands.health import health_command
-from core.cli_server.commands.stats import stats_command
-from core.cli_server.commands.service import service_group
 from core.version import __version__
 
 
 @click.group()
 @click.version_option(version=__version__, prog_name='unibos-server')
-@click.option('--no-splash', is_flag=True, help='Skip splash screen')
 @click.pass_context
-def cli(ctx, no_splash):
-    """🖥️  UNIBOS Server - Server Management & Monitoring
+def cli(ctx):
+    """
+    🖥️  unibos-server - production server management
 
-    Production server management CLI for Rocksteady.
+    manages rocksteady production server:
+    - service monitoring and health checks
+    - node registry and coordination
+    - database management
+    - performance monitoring
 
-    Examples:
-        unibos-server health       # Comprehensive health check
-        unibos-server stats        # Performance statistics
-        unibos-server logs django  # View Django logs
+    examples:
+        unibos-server                  # interactive tui mode
+        unibos-server health          # health check
+        unibos-server nodes list      # list registered nodes
+        unibos-server db backup       # backup database
     """
     ctx.ensure_object(dict)
-    ctx.obj['no_splash'] = no_splash
-
-    if ctx.invoked_subcommand is None and not no_splash:
-        show_splash()
-        click.echo("💡 Run 'unibos-server --help' for available commands")
-    elif ctx.invoked_subcommand and not no_splash:
-        show_header()
 
 
-# Register commands
-cli.add_command(health_command)
-cli.add_command(stats_command)
-cli.add_command(service_group)
+# TODO: Add command groups (health, nodes, db, etc.)
+# Will be implemented in later phases
 
 
 def main():
-    """Main entry point"""
-    try:
-        cli(obj={})
-    except KeyboardInterrupt:
-        click.echo("\n\n👋 Goodbye")
-        sys.exit(130)
-    except Exception as e:
-        click.echo(f"\n❌ Error: {e}", err=True)
-        sys.exit(1)
+    """
+    Main entry point for the CLI
+
+    Hybrid mode:
+    - With arguments → Click commands
+    - Without arguments → Interactive TUI mode
+    """
+    # Check if running in interactive mode (no arguments provided)
+    if len(sys.argv) == 1:
+        # No arguments - run interactive TUI mode
+        try:
+            from core.cli_server.interactive import run_interactive
+            run_interactive()
+        except KeyboardInterrupt:
+            click.echo("\n\n👋 goodbye!")
+            sys.exit(0)
+        except Exception as e:
+            click.echo(f"\n❌ error: {e}", err=True)
+            sys.exit(1)
+    else:
+        # Arguments provided - run Click CLI
+        try:
+            cli(obj={})
+        except KeyboardInterrupt:
+            click.echo("\n\n👋 interrupted by user")
+            sys.exit(130)
+        except Exception as e:
+            click.echo(f"\n❌ error: {e}", err=True)
+            sys.exit(1)
 
 
 if __name__ == '__main__':

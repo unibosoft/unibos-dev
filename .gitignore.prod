@@ -1,0 +1,193 @@
+# =============================================================================
+# UNIBOS Repository .gitignore ŞABLONU (TEMPLATE)
+# Production nodes - Raspberry Pi / Local Mac standalone
+# =============================================================================
+# ⚠️  BU DOSYA ŞABLONDUR - DOĞRUDAN KULLANILMAZ
+#
+# Kullanım: .gitignore dosyasına kopyalanarak kullanılır
+#   cp .gitignore.prod .gitignore
+#
+# Bu şablon unibos (production nodes) repo'su için tasarlanmıştır.
+# Standalone node deployment (raspberry pi, local mac) için.
+#
+# Repo: https://github.com/unibosoft/unibos
+# Purpose: Standalone node deployment (offline-first, P2P)
+# Includes: cli_node ONLY, node settings, node deployment, all modules
+# Excludes: cli_dev, cli_server (GÜVENLİK), archive/, data/, dev files
+# =============================================================================
+
+# ===== CRITICAL: EXCLUDE DEV & SERVER CLIs (SECURITY) =====
+# Only node CLI should be on production nodes
+core/cli_dev/
+setup-dev.py
+core/cli_server/
+setup-server.py
+
+# ===== CRITICAL: NO ARCHIVES ON NODES =====
+# Archives are development-only
+archive/
+archive_backup*/
+
+# ===== CRITICAL: NO RUNTIME DATA IN REPO =====
+# All data managed locally on each node
+data/
+data_db/
+data_db_backup*/
+
+# Build artifacts - never on nodes
+/build/
+/dist/
+
+# ===== EXCLUDE DEV-ONLY FILES =====
+.claude/
+CLAUDE_COMMUNICATION_LOG_*.md
+Screenshot*.png
+*.screenshot.png
+screenshots_archive/
+quarantine/
+berk_claude_file_pool_DONT_DELETE/
+
+# ===== EXCLUDE DEV-ONLY DOCS =====
+TODO.md
+RULES.md
+docs/rules/
+docs/design/decisions/
+
+# ===== PYTHON ENVIRONMENT =====
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ===== PYTHON CACHE & BUILD =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ===== DATABASE FILES =====
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3.backup
+*.db
+*.db.backup
+db.sqlite3*
+
+# ===== LOG FILES =====
+*.log
+*.log.*
+logs/
+
+# ===== DJANGO GENERATED =====
+staticfiles/
+core/web/staticfiles/
+core/web/media/
+modules/*/backend/staticfiles/
+modules/*/backend/media/
+modules/*/backend/uploads/
+
+# ===== ENVIRONMENT & SECRETS =====
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.cert
+*.crt
+.api_keys.json
+secrets/
+credentials/
+
+# ===== SYSTEM FILES =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# ===== PID FILES =====
+*.pid
+.*.pid
+
+# ===== TEMPORARY FILES =====
+*.tmp
+*.temp
+*.bak
+*.backup
+tmp/
+temp/
+
+# ===== BACKUP DIRECTORIES =====
+backup/
+backups/
+
+# ===== NODE.JS =====
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ===== FLUTTER/MOBILE BUILD =====
+modules/*/mobile/build/
+modules/*/mobile/.dart_tool/
+modules/*/mobile/.flutter-plugins
+modules/*/mobile/.flutter-plugins-dependencies
+modules/*/mobile/android/build/
+modules/*/mobile/ios/build/
+modules/*/mobile/ios/Pods/
+modules/*/mobile/macos/build/
+modules/*/mobile/windows/build/
+modules/*/mobile/linux/build/
+
+# ===== TEST FILES =====
+.pytest_cache/
+.coverage
+htmlcov/
+*.test.html
+*_test.html
+test_*.html
+test_*.py
+*_test.py
+
+# ===== LARGE MEDIA =====
+*.mp4
+*.avi
+*.mov
+*.zip
+*.tar.gz
+*.rar
+
+# ===== SQL BACKUPS =====
+*.sql
+*.sql.gz
+
+# ===== EXCLUDE DEV/SERVER SETTINGS =====
+# Keep: node.py, base.py
+# Exclude: development.py, server.py, and all dev_*.py
+core/web/unibos_backend/settings/development.py
+core/web/unibos_backend/settings/server.py
+core/web/unibos_backend/settings/dev_*.py
+core/web/unibos_backend/settings/emergency.py
+core/web/unibos_backend/settings/dev_postgres.py
+core/web/unibos_backend/settings/dev_simple.py
+core/web/unibos_backend/settings/dev_no_redis.py
+core/web/unibos_backend/settings/production.py
+core/web/unibos_backend/settings/production_*.py
+
+# ===== EXCLUDE SERVER DEPLOYMENT =====
+# Keep: node deployment
+# Exclude: server deployment
+core/deployment/server.py
+
+# ===== IGNORE FILES (META) =====
+# NOTE: .gitignore.dev, .gitignore.server, .gitignore.prod are templates
+# They SHOULD be in the repo, so they are NOT ignored here
+.archiveignore
+.rsyncignore
+.prodignore
