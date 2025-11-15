@@ -150,13 +150,13 @@ class UnibosDevInteractive(InteractiveMode):
                         id='platform_config',
                         label='show configuration',
                         icon='⚙️',
-                        description='Display current platform configuration'
+                        description='display current platform configuration'
                     ),
                     MenuItem(
                         id='platform_identity',
                         label='node identity',
                         icon='🔐',
-                        description='Show node identity and persistence information'
+                        description='show node identity and persistence information'
                     ),
                 ]
             }
