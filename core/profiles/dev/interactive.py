@@ -286,10 +286,10 @@ class UnibosDevInteractive(InteractiveMode):
                     from core.base.registry import get_module_registry
                     registry = get_module_registry()
                     modules = registry.get_all_modules()
-                    print(f"\n{Colors.CYAN}Registered Modules:{Colors.RESET}")
+                    print(f"\n{Colors.CYAN}Registered Modules ({len(modules)} total):{Colors.RESET}")
                     for mod in modules:
-                        status = "✅" if mod.get('enabled') else "⭕"
-                        print(f"  {status} {mod.get('name', 'Unknown')}")
+                        status = "✅" if mod.enabled else "⭕"
+                        print(f"  {status} {mod.name}")
                 except Exception as e:
                     print(f"{Colors.RED}Error loading modules: {e}{Colors.RESET}")
 
