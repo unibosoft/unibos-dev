@@ -1,3 +1,0 @@
-"""
-UNIBOS Production CLI Commands
-"""
