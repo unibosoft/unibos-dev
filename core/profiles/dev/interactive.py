@@ -215,14 +215,7 @@ class UnibosDevInteractive(InteractiveMode):
 
             elif item.id == 'dev_shell':
                 print(f"{Colors.DIM}Opening Django shell...{Colors.RESET}\n")
-                # Change to web directory and run shell
-                web_dir = project_root / 'core' / 'clients' / 'web'
-                os.chdir(web_dir)
-                subprocess.run([
-                    'python',
-                    'manage.py',
-                    'shell'
-                ], check=True)
+                subprocess.run(['unibos-dev', 'dev', 'shell'], check=True)
 
             elif item.id == 'git_status':
                 subprocess.run(['git', 'status'], check=True)
@@ -308,12 +301,17 @@ class UnibosDevInteractive(InteractiveMode):
                 # Show node identity
                 print(f"{Colors.CYAN}Node Identity Information:{Colors.RESET}\n")
                 try:
-                    from core.base.identity import NodeIdentity
-                    identity = NodeIdentity()
-                    print(f"  Node ID: {Colors.BOLD}{identity.node_id}{Colors.RESET}")
-                    print(f"  Node Type: {identity.node_type}")
+                    from core.base.identity import get_instance_identity
+                    instance = get_instance_identity()
+                    identity = instance.get_identity()
+                    print(f"  Node UUID: {Colors.BOLD}{identity.uuid}{Colors.RESET}")
+                    print(f"  Node Type: {identity.node_type.value}")
+                    print(f"  Hostname: {identity.hostname}")
+                    print(f"  Platform: {identity.platform}")
                     print(f"  Created: {identity.created_at}")
-                    print(f"  Storage: {identity.storage_path}")
+                    print(f"  Last Seen: {identity.last_seen}")
+                    if identity.registered_to:
+                        print(f"  Registered To: {identity.registered_to}")
                 except Exception as e:
                     print(f"{Colors.RED}Error loading identity: {e}{Colors.RESET}")
 
