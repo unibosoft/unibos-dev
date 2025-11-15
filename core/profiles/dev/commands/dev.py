@@ -26,7 +26,7 @@ def get_django_path():
         # Fallback to __file__ based path
         root_dir = Path(__file__).parent.parent.parent.parent
 
-    return root_dir / 'core' / 'web'
+    return root_dir / 'core' / 'clients' / 'web'
 
 
 def get_django_python():
@@ -73,6 +73,26 @@ def dev_run(port, host):
         )
     except KeyboardInterrupt:
         click.echo(click.style('\n👋 Server stopped', fg='yellow'))
+
+
+@dev_group.command(name='stop')
+def dev_stop():
+    """Stop Django development server"""
+    click.echo(click.style('⏹️  Stopping development server...', fg='yellow'))
+
+    try:
+        # Find and kill Django runserver process
+        result = subprocess.run(
+            ['pkill', '-f', 'manage.py runserver'],
+            capture_output=True,
+            text=True
+        )
+        if result.returncode == 0:
+            click.echo(click.style('✅ Server stopped', fg='green'))
+        else:
+            click.echo(click.style('⚠️  No running server found', fg='yellow'))
+    except Exception as e:
+        click.echo(click.style(f'❌ Error: {e}', fg='red'))
 
 
 @dev_group.command(name='shell')

@@ -23,7 +23,7 @@ def get_django_python():
     else:
         root_dir = Path(__file__).parent.parent.parent.parent
 
-    django_path = root_dir / 'core' / 'web'
+    django_path = root_dir / 'core' / 'clients' / 'web'
     venv_python = django_path / 'venv' / 'bin' / 'python3'
 
     if venv_python.exists():
@@ -97,7 +97,7 @@ def db_migrate():
     click.echo(click.style('🔄 Running migrations...', fg='cyan'))
 
     root_dir = Path(__file__).parent.parent.parent.parent
-    django_path = root_dir / 'core' / 'web'
+    django_path = root_dir / 'core' / 'clients' / 'web'
 
     import os
     env = os.environ.copy()
@@ -112,13 +112,35 @@ def db_migrate():
     sys.exit(result.returncode)
 
 
+@db_group.command(name='makemigrations')
+@click.argument('app', required=False)
+def db_makemigrations(app):
+    """Create new database migrations"""
+    click.echo(click.style('📝 Creating migrations...', fg='cyan'))
+
+    root_dir = Path(__file__).parent.parent.parent.parent
+    django_path = root_dir / 'core' / 'clients' / 'web'
+
+    import os
+    env = os.environ.copy()
+    env['DJANGO_SETTINGS_MODULE'] = 'unibos_backend.settings.development'
+    env['PYTHONPATH'] = f"{django_path}:{root_dir}"
+
+    cmd = [get_django_python(), 'manage.py', 'makemigrations']
+    if app:
+        cmd.append(app)
+
+    result = subprocess.run(cmd, cwd=str(django_path), env=env)
+    sys.exit(result.returncode)
+
+
 @db_group.command(name='status')
 def db_status():
     """Show database migration status"""
     click.echo(click.style('📊 Checking migration status...', fg='cyan'))
 
     root_dir = Path(__file__).parent.parent.parent.parent
-    django_path = root_dir / 'core' / 'web'
+    django_path = root_dir / 'core' / 'clients' / 'web'
 
     import os
     env = os.environ.copy()

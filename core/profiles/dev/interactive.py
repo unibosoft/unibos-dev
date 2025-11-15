@@ -286,13 +286,36 @@ class UnibosDevInteractive(InteractiveMode):
                 subprocess.run(['unibos-dev', 'db', 'makemigrations'], check=True)
 
             elif item.id == 'platform_modules':
-                subprocess.run(['unibos-dev', 'platform', 'modules'], check=True)
+                # Show platform info (modules listed via registry)
+                subprocess.run(['unibos-dev', 'platform', '-v'], check=True)
+                print(f"\n{Colors.DIM}Checking module registry...{Colors.RESET}")
+                try:
+                    from core.base.registry import get_module_registry
+                    registry = get_module_registry()
+                    modules = registry.get_all_modules()
+                    print(f"\n{Colors.CYAN}Registered Modules:{Colors.RESET}")
+                    for mod in modules:
+                        status = "✅" if mod.get('enabled') else "⭕"
+                        print(f"  {status} {mod.get('name', 'Unknown')}")
+                except Exception as e:
+                    print(f"{Colors.RED}Error loading modules: {e}{Colors.RESET}")
 
             elif item.id == 'platform_config':
-                subprocess.run(['unibos-dev', 'platform', 'config'], check=True)
+                # Show detailed platform configuration
+                subprocess.run(['unibos-dev', 'platform', '-v', '--json'], check=True)
 
             elif item.id == 'platform_identity':
-                subprocess.run(['unibos-dev', 'platform', 'identity'], check=True)
+                # Show node identity
+                print(f"{Colors.CYAN}Node Identity Information:{Colors.RESET}\n")
+                try:
+                    from core.base.identity import NodeIdentity
+                    identity = NodeIdentity()
+                    print(f"  Node ID: {Colors.BOLD}{identity.node_id}{Colors.RESET}")
+                    print(f"  Node Type: {identity.node_type}")
+                    print(f"  Created: {identity.created_at}")
+                    print(f"  Storage: {identity.storage_path}")
+                except Exception as e:
+                    print(f"{Colors.RED}Error loading identity: {e}{Colors.RESET}")
 
             else:
                 print(f"{Colors.YELLOW}⚠ Action not yet implemented: {item.id}{Colors.RESET}")
