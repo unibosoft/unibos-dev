@@ -465,3 +465,32 @@ Build: 534
         }
         defaults.update(kwargs)
         return subprocess.run(command, **defaults)
+
+    def show_command_output(self, result: subprocess.CompletedProcess):
+        """
+        Display command output
+
+        Args:
+            result: CompletedProcess object from execute_command
+        """
+        clear_screen()
+
+        # Show command
+        if hasattr(result, 'args'):
+            print(f"{Colors.DIM}Command: {' '.join(result.args if isinstance(result.args, list) else [str(result.args)])}{Colors.RESET}\n")
+
+        # Show output
+        if result.stdout:
+            print(result.stdout)
+
+        # Show errors if any
+        if result.stderr:
+            print(f"{Colors.RED}{result.stderr}{Colors.RESET}")
+
+        # Show exit status if non-zero
+        if result.returncode != 0:
+            print(f"\n{Colors.RED}Exit code: {result.returncode}{Colors.RESET}")
+
+        # Wait for user
+        print(f"\n{Colors.DIM}Press Enter to continue...{Colors.RESET}")
+        input()
