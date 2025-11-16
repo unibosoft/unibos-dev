@@ -1,16 +1,16 @@
 # =============================================================================
-# UNIBOS-DEV Repository .gitignore TEMPLATE (KAYNAK ŞABLON)
-# Development environment - Mac local development
+# UNIBOS-SERVER Repository .gitignore TEMPLATE (KAYNAK ŞABLON)
+# Production server environment - Rocksteady
 # =============================================================================
 # ⚠️  BU DOSYA KAYNAK TEMPLATE'DIR
 #
 # Bu template .gitignore dosyasına kopyalanarak kullanılır:
-#   cp .gitignore.dev .gitignore
+#   cp .gitignore.server .gitignore
 #
 # TEMPLATE ÇALIŞMA MANTIĞI (4-Repo Architecture):
-# - .gitignore.dev     → unibos-dev repo için (bu dosya)
+# - .gitignore.dev     → unibos-dev repo için
 # - .gitignore.manager → unibos-manager repo için
-# - .gitignore.server  → unibos-server repo için
+# - .gitignore.server  → unibos-server repo için (bu dosya)
 # - .gitignore.prod    → unibos (prod) repo için
 #
 # push-all komutu her repo'ya push ederken doğru template'i otomatik kopyalar:
@@ -20,35 +20,55 @@
 #   prod    → cp .gitignore.prod .gitignore    → push to prod
 #
 # DEĞİŞİKLİK YAPARKEN:
-# ✅ Bu template'i (.gitignore.dev) düzenleyebilirsiniz
-# ✅ Ortak değişiklikleri diğer template'lere (.manager, .server, .prod) de ekleyin
-# ✅ cp .gitignore.dev .gitignore ile aktif hale getirin
+# ✅ Bu template'i (.gitignore.server) düzenleyebilirsiniz
+# ✅ Ortak değişiklikleri diğer template'lere de ekleyin
 #
-# Bu şablon unibos-dev repo'su için tasarlanmıştır.
-# Tüm development tools, tüm profiller (dev, manager, server, prod), tüm modüller dahildir.
+# Bu şablon unibos-server repo'su için tasarlanmıştır.
+# Merkezi production server (rocksteady) için.
 #
-# Repo: https://github.com/unibosoft/unibos-dev
-# Purpose: Full development environment with all tools and profiles
-# Includes: All 4 profiles (dev, manager, server, prod), all modules, all settings
+# Repo: https://github.com/unibosoft/unibos-server
+# Purpose: Production server deployment (central hub)
+# Includes: server profile, prod profile, all modules (backend)
+# Excludes: dev profile, manager profile (GÜVENLİK), archive/, data/
 # =============================================================================
 
-# ===== CRITICAL: DEVELOPMENT-ONLY DATA (NEVER COMMIT) =====
-# Archives are LOCAL ONLY - never push to any repo
+# ===== CRITICAL: EXCLUDE DEV & MANAGER PROFILES (SECURITY) =====
+# Development and manager profiles should NEVER be on production server
+core/profiles/dev/
+core/profiles/manager/
+setup-dev.py
+setup-manager.py
+
+# ===== CRITICAL: NO ARCHIVES ON SERVER =====
+# Archives are development-only, never on production
 archive/
 archive_backup*/
 
-# Runtime data is LOCAL ONLY
+# ===== CRITICAL: NO RUNTIME DATA IN REPO =====
+# All data is managed separately on server
 data/
 data_db/
 data_db_backup*/
 
-# Build artifacts (pipx, setuptools) - LOCAL ONLY
+# Build artifacts - never on server
 /build/
 /dist/
 
-# Quarantine and temporary pools
+# ===== EXCLUDE DEV-ONLY FILES =====
+# Claude and development artifacts
+.claude/
+CLAUDE_COMMUNICATION_LOG_*.md
+Screenshot*.png
+*.screenshot.png
+screenshots_archive/
 quarantine/
 berk_claude_file_pool_DONT_DELETE/
+
+# ===== EXCLUDE DEV-ONLY DOCS =====
+TODO.md
+RULES.md
+docs/rules/
+docs/design/decisions/
 
 # ===== PYTHON ENVIRONMENT =====
 venv/
@@ -56,7 +76,6 @@ venv/
 env/
 .env/
 ENV/
-*.virtualenv
 
 # ===== PYTHON CACHE & BUILD =====
 __pycache__/
@@ -68,18 +87,6 @@ __pycache__/
 dist/
 build/
 *.egg
-.Python
-develop-eggs/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-.installed.cfg
 
 # ===== DATABASE FILES =====
 *.sqlite3
@@ -93,9 +100,7 @@ db.sqlite3*
 *.log
 *.log.*
 logs/
-server.log
-unibos.log
-debug_output.txt
+core/web/logs/
 
 # ===== DJANGO GENERATED =====
 staticfiles/
@@ -137,15 +142,6 @@ desktop.ini
 tmp/
 temp/
 
-# ===== CLAUDE & AI =====
-.claude/
-CLAUDE_COMMUNICATION_LOG_*.md
-
-# ===== SCREENSHOTS =====
-Screenshot*.png
-*.screenshot.png
-screenshots_archive/
-
 # ===== BACKUP DIRECTORIES =====
 backup/
 backups/
@@ -154,75 +150,67 @@ backups/
 node_modules/
 npm-debug.log
 yarn-error.log
-package-lock.json
-yarn.lock
 
-# ===== FLUTTER/MOBILE BUILD ARTIFACTS =====
-**/build/
-.dart_tool/
-.flutter-plugins
-.flutter-plugins-dependencies
-.packages
-.pub-cache/
-.pub/
+# ===== FLUTTER/MOBILE BUILD =====
 modules/*/mobile/build/
 modules/*/mobile/.dart_tool/
 modules/*/mobile/.flutter-plugins
 modules/*/mobile/.flutter-plugins-dependencies
-modules/*/mobile/.packages
-modules/*/mobile/pubspec.lock
 modules/*/mobile/android/build/
 modules/*/mobile/ios/build/
 modules/*/mobile/ios/Pods/
-modules/*/mobile/macos/build/
-modules/*/mobile/windows/build/
-modules/*/mobile/linux/build/
 
-# ===== TEST & COVERAGE =====
+# ===== TEST FILES =====
 .pytest_cache/
 .coverage
-.coverage.*
 htmlcov/
-.tox/
-.cache
-nosetests.xml
-coverage.xml
-*.cover
 *.test.html
 *_test.html
 test_*.html
+test_*.py
+*_test.py
 
-# ===== IDE & EDITORS =====
-.vscode/
-.idea/
-*.iml
-
-# ===== LARGE MEDIA FILES =====
+# ===== LARGE MEDIA =====
 *.mp4
 *.avi
 *.mov
-*.mkv
 *.zip
 *.tar.gz
 *.rar
-*.7z
 
 # ===== SQL BACKUPS =====
 *.sql
 *.sql.gz
-archive/database_backups/
 
-# ===== TEMPORARY DATA FILES =====
+# ===== TEMPORARY DATA =====
 all_versions.txt
 missing_versions.txt
 pushed_versions.txt
-screenshot_move_log.json
 
-# ===== MODULE STATUS MARKERS (USER-SPECIFIC) =====
-modules/*/.enabled
+# ===== EXCLUDE DEV-ONLY SETTINGS =====
+# Keep: server.py, node.py, base.py
+# Exclude: development.py, dev_*.py
+core/web/unibos_backend/settings/development.py
+core/web/unibos_backend/settings/dev_*.py
+core/web/unibos_backend/settings/emergency.py
+core/web/unibos_backend/settings/dev_postgres.py
+core/web/unibos_backend/settings/dev_simple.py
+core/web/unibos_backend/settings/dev_no_redis.py
+
+# ===== EXCLUDE NODE DEPLOYMENT (SERVER DOESN'T NEED IT) =====
+# Keep server deployment, exclude node deployment
+# Actually, keep both since server can also be node
+# core/deployment/node.py  # KEEP - server can be node too
 
 # ===== IGNORE FILES THEMSELVES (META) =====
-# NOTE: All .gitignore.* templates SHOULD be in dev repo (single source of truth)
-# This is the ONLY repo that contains all 4 templates:
-#   .gitignore.dev, .gitignore.manager, .gitignore.server, .gitignore.prod
-# Other repos will ignore these templates and only use active .gitignore
+# NOTE: .gitignore.* templates SHOULD be in dev repo only
+# Server repo only needs active .gitignore
+.gitignore.dev
+.gitignore.manager
+.gitignore.server
+.gitignore.prod
+
+# Legacy ignore files
+.archiveignore
+.rsyncignore
+.prodignore
