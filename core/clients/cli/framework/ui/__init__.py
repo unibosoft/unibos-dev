@@ -13,9 +13,12 @@ from .terminal import (
     move_cursor,
     hide_cursor,
     show_cursor,
+    flush_input_buffer,
     wrap_text,
     get_spinner_frame,
     print_centered,
+    get_visual_width,
+    pad_to_visual_width,
 )
 from .splash import (
     show_splash_screen,
@@ -37,6 +40,10 @@ from .layout import (
     clear_content_area,
     draw_box,
 )
+from .emoji_safe_slice import (
+    emoji_safe_slice,
+    get_display_width,
+)
 
 __all__ = [
     'Colors',
@@ -45,9 +52,12 @@ __all__ = [
     'move_cursor',
     'hide_cursor',
     'show_cursor',
+    'flush_input_buffer',
     'wrap_text',
     'get_spinner_frame',
     'print_centered',
+    'get_visual_width',
+    'pad_to_visual_width',
     'show_splash_screen',
     'show_compact_header',
     'get_single_key',
@@ -60,4 +70,6 @@ __all__ = [
     'draw_footer',
     'clear_content_area',
     'draw_box',
+    'emoji_safe_slice',
+    'get_display_width',
 ]

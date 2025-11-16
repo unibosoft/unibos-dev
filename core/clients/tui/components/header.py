@@ -13,37 +13,51 @@ from core.clients.cli.framework.ui import Colors, get_terminal_size, move_cursor
 class Header:
     """Header component for TUI"""
 
-    def __init__(self, config):
-        """Initialize header with config"""
+    def __init__(self, config, i18n=None):
+        """Initialize header with config and i18n manager"""
         self.config = config
+        self.i18n = i18n
 
-    def draw(self, breadcrumb: str = "", username: str = ""):
+    def draw(self, breadcrumb: str = "", username: str = "", language: str = "🇹🇷 Türkçe"):
         """
         Draw v527-style header with orange background
+
+        Format: 🦄 unibos v0.534.0 b533 › [breadcrumb] | 🇹🇷 Türkçe | berkhatirli
+        NO CLOCK IN HEADER (clock is in footer)
 
         Args:
             breadcrumb: Navigation breadcrumb
             username: Current username
+            language: Language display (default: Turkish)
         """
         cols, _ = get_terminal_size()
 
+        # V527: Hide cursor during draw
+        sys.stdout.write('\033[?25l')
+        sys.stdout.flush()
+
         # Clear header line
         sys.stdout.write('\033[1;1H\033[2K')
+        sys.stdout.flush()
 
         # Full orange background
         move_cursor(1, 1)
         sys.stdout.write(f"{Colors.BG_ORANGE}{' ' * cols}{Colors.RESET}")
         sys.stdout.flush()
 
-        # Left side: Icon + Title + Version + Breadcrumb
-        title_text = f"  🪐 {self.config.title}"
+        # Left side: Icon + Title + Version + Build + Breadcrumb
+        # Using unicorn icon (🦄) instead of planet (🪐) to match v527
+        build_num = "533"  # Extract from version or config
+        title_text = f"  🦄 {self.config.title}"
         if self.config.version:
             title_text += f" {self.config.version}"
+        title_text += f" b{build_num}"
+
         if breadcrumb and self.config.show_breadcrumbs:
             # Make breadcrumb lowercase if config says so
             if self.config.lowercase_ui:
                 breadcrumb = breadcrumb.lower()
-            title_text += f"  ›  {breadcrumb}"
+            title_text += f" › {breadcrumb}"
 
         # Apply lowercase if configured
         if self.config.lowercase_ui:
@@ -51,27 +65,32 @@ class Header:
 
         move_cursor(1, 1)
         sys.stdout.write(f"{Colors.BG_ORANGE}{Colors.BLACK}{Colors.BOLD}{title_text}{Colors.RESET}")
+        sys.stdout.flush()
 
-        # Right side elements
+        # Right side: Language | Username
+        # NO TIME/CLOCK - that goes in footer
         right_elements = []
 
-        # Time (if enabled)
-        if self.config.show_time:
-            time_str = datetime.now().strftime("%H:%M")
-            right_elements.append(time_str)
+        # Language
+        if language:
+            right_elements.append(language)
 
         # Username
         if username:
             right_elements.append(username)
 
-        # Window controls (decorative)
-        right_elements.append("[_] [□] [X]")
-
         # Draw right side
         if right_elements:
             right_text = " | ".join(right_elements)
-            right_pos = cols - len(right_text) - 2
-            move_cursor(right_pos, 1)
-            sys.stdout.write(f"{Colors.BG_ORANGE}{Colors.BLACK}{right_text}{Colors.RESET}")
+            # Add spacing before the text
+            right_text = f" {right_text} "
+            right_pos = cols - len(right_text)
+            if right_pos > len(title_text):  # Ensure no overlap
+                move_cursor(right_pos, 1)
+                sys.stdout.write(f"{Colors.BG_ORANGE}{Colors.BLACK}{right_text}{Colors.RESET}")
+                sys.stdout.flush()
 
+        # V527: Final flush and show cursor
+        sys.stdout.flush()
+        sys.stdout.write('\033[?25h')
         sys.stdout.flush()

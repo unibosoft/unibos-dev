@@ -21,6 +21,7 @@ from core.clients.cli.framework.ui import (
     move_cursor,
     hide_cursor,
     show_cursor,
+    flush_input_buffer,
     wrap_text,
     print_centered,
     show_splash_screen,
@@ -39,6 +40,8 @@ from .components import (
     MenuSection,
 )
 
+from .i18n import get_translation_manager, t
+
 
 @dataclass
 class TUIConfig:
@@ -46,7 +49,7 @@ class TUIConfig:
     title: str = "unibos"
     version: str = "v0.534.0"
     location: str = "bitez, bodrum"
-    sidebar_width: int = 30
+    sidebar_width: int = 25  # V527 spec: exactly 25 characters
     show_splash: bool = True
     quick_splash: bool = False
     enable_animations: bool = True
@@ -56,7 +59,7 @@ class TUIConfig:
     # V527 specific settings
     lowercase_ui: bool = True  # v527 uses all lowercase
     show_breadcrumbs: bool = True
-    show_time: bool = True
+    show_time: bool = True  # Time shows in FOOTER, not header
     show_hostname: bool = True
     show_status_led: bool = True
 
@@ -84,11 +87,14 @@ class BaseTUI(ABC):
         self.state = MenuState()
         self.running = False
 
+        # Translation manager
+        self.i18n = get_translation_manager()
+
         # Components
-        self.header = Header(self.config)
-        self.footer = Footer(self.config)
+        self.header = Header(self.config, self.i18n)
+        self.footer = Footer(self.config, self.i18n)
         self.sidebar = Sidebar(self.config)
-        self.content_area = ContentArea(self.config)
+        self.content_area = ContentArea(self.config, self.i18n)
         self.status_bar = StatusBar(self.config)
 
         # Action handlers registry
@@ -110,6 +116,16 @@ class BaseTUI(ABC):
             'last_command': None,
             'last_result': None
         }
+
+        # V527: Keypress debouncing to prevent rapid navigation corruption
+        self.last_keypress_time = 0
+        self.min_keypress_interval = 0.05  # 50ms debounce (v527 exact value) (v527 Protection 2)
+
+        # V527: Navigation lock to prevent concurrent rendering (Protection 1)
+        self._rendering = False
+
+        # V527: Render completion flag (Protection 8)
+        self._last_render_complete = False
 
     @abstractmethod
     def get_menu_sections(self) -> List[MenuSection]:
@@ -195,60 +211,104 @@ class BaseTUI(ABC):
         return True
 
     def render(self):
-        """Render complete UI"""
-        clear_screen()
-
-        # Get terminal size for responsive layout
-        cols, lines = get_terminal_size()
-
-        # Update components with current state
-        sections = self.get_menu_sections()
-        current_section = sections[self.state.current_section] if sections else None
-        selected_item = self.state.get_selected_item() if current_section else None
-
-        # Draw components in order
-        self.header.draw(
-            breadcrumb=self.get_breadcrumb(),
-            username=self.get_username()
-        )
-
-        self.sidebar.draw(
-            sections=sections,
-            current_section=self.state.current_section,
-            selected_index=self.state.selected_index
-        )
-
-        # Render content area with persistent buffer or selected item description
-        if self.content_buffer['lines']:
-            # Show buffered content from last command
-            # Handle both list and string types defensively
-            lines = self.content_buffer['lines']
-            if isinstance(lines, str):
-                content = lines
-            elif isinstance(lines, list):
-                content = '\n'.join(lines)
-            else:
-                content = str(lines)
-
-            self.content_area.draw(
-                title=self.content_buffer['title'],
-                content=content,
-                item=None
-            )
-        elif selected_item:
-            # Show selected item description
-            self.content_area.draw(
-                title=selected_item.label,
-                content=selected_item.description,
-                item=selected_item
-            )
-
-        self.footer.draw(
-            hints=self.get_navigation_hints(),
-            status=self.get_system_status()
-        )
-
+        """Render complete UI with v527 hide-cursor pattern and ALL 8 protections"""
+        # V527: Hide cursor at start of draw sequence
+        sys.stdout.write('\033[?25l')
         sys.stdout.flush()
+
+        try:
+            # V527 Protection 4: Enhanced clear with triple clear
+            sys.stdout.write('\033[2J')  # Clear screen
+            sys.stdout.write('\033[H')   # Move to home
+            sys.stdout.write('\033[3J')  # Clear scrollback
+            sys.stdout.flush()
+
+            # V527 Protection 4: Increase delay to 30ms (from 20ms)
+            time.sleep(0.03)
+
+            # Double clear for safety
+            clear_screen()
+            sys.stdout.flush()
+
+            # V527 Protection 7: Clear stale input (5 flushes)
+            flush_input_buffer(times=5)
+
+            # Get terminal size for responsive layout
+            cols, lines = get_terminal_size()
+
+            # Update components with current state
+            sections = self.get_menu_sections()
+            current_section = sections[self.state.current_section] if sections else None
+            selected_item = self.state.get_selected_item() if current_section else None
+
+            # V527 Protection 5: Draw components in STRICT ORDER with Protection 6 (flush + delay)
+            # Get current language display
+            lang_code = self.i18n.get_language()
+            lang_flag = self.i18n.get_language_flag(lang_code)
+            lang_name = self.i18n.get_language_display_name(lang_code)
+            language_display = f"{lang_flag} {lang_name}"
+
+            # PROTECTION 5 & 6: Header FIRST with flush and delay
+            self.header.draw(
+                breadcrumb=self.get_breadcrumb(),
+                username=self.get_username(),
+                language=language_display  # V527 spec: language in header
+            )
+            sys.stdout.flush()
+            time.sleep(0.01)  # Protection 6: Small delay after component
+
+            # PROTECTION 5 & 6: Sidebar SECOND with flush and delay
+            self.sidebar.draw(
+                sections=sections,
+                current_section=self.state.current_section,
+                selected_index=self.state.selected_index
+            )
+            sys.stdout.flush()
+            time.sleep(0.01)  # Protection 6: Small delay after component
+
+            # PROTECTION 5 & 6: Content THIRD with flush and delay
+            # Render content area with persistent buffer or selected item description
+            if self.content_buffer['lines']:
+                # Show buffered content from last command
+                # Handle both list and string types defensively
+                lines = self.content_buffer['lines']
+                if isinstance(lines, str):
+                    content = lines
+                elif isinstance(lines, list):
+                    content = '\n'.join(lines)
+                else:
+                    content = str(lines)
+
+                self.content_area.draw(
+                    title=self.content_buffer['title'],
+                    content=content,
+                    item=None
+                )
+            elif selected_item:
+                # Show selected item description
+                self.content_area.draw(
+                    title=selected_item.label,
+                    content=selected_item.description,
+                    item=selected_item
+                )
+            sys.stdout.flush()
+            time.sleep(0.01)  # Protection 6: Small delay after component
+
+            # PROTECTION 5 & 6: Footer LAST with flush and delay
+            self.footer.draw(
+                hints=self.get_navigation_hints(),
+                status=self.get_system_status()
+            )
+            sys.stdout.flush()
+            time.sleep(0.01)  # Protection 6: Small delay after component
+
+        finally:
+            # V527: Always show cursor after draw (even on error)
+            sys.stdout.write('\033[?25h')
+            sys.stdout.flush()
+
+            # V527 Protection 8: Mark render as complete
+            self._last_render_complete = True
 
     def get_breadcrumb(self) -> str:
         """Get current navigation breadcrumb"""
@@ -271,8 +331,8 @@ class BaseTUI(ABC):
     def get_navigation_hints(self) -> str:
         """Get navigation hints for footer"""
         if self.state.in_submenu:
-            return "↑↓ navigate | enter confirm | esc cancel"
-        return "↑↓ navigate | enter/→ select | esc/← back | tab switch | q quit"
+            return self.i18n.translate('navigate_hint_submenu')
+        return self.i18n.translate('navigate_hint_main')
 
     def get_system_status(self) -> Dict[str, Any]:
         """Get system status for footer"""
@@ -306,17 +366,35 @@ class BaseTUI(ABC):
         Returns:
             True to continue, False to exit
         """
+        # V527: Debounce rapid keypresses to prevent screen corruption
+        current_time = time.time()
+        if current_time - self.last_keypress_time < self.min_keypress_interval:
+            return True  # Skip this keypress, too fast
+        self.last_keypress_time = current_time
+
         sections = self.get_menu_sections()
 
         if key == Keys.UP:
             if self.state.navigate_up():
-                self.render()
+                # v527 EXACT: Full sidebar redraw WITHOUT screen clear (no blink!)
+                self.sidebar.draw(
+                    sections, self.state.current_section,
+                    self.state.selected_index, bool(self.state.in_submenu)
+                )
+                # Update content area for selected item
+                self.update_content_for_selection()
 
         elif key == Keys.DOWN:
             current_section = sections[self.state.current_section] if sections else None
             max_items = len(current_section.items) if current_section else 0
             if self.state.navigate_down(max_items):
-                self.render()
+                # v527 EXACT: Full sidebar redraw WITHOUT screen clear (no blink!)
+                self.sidebar.draw(
+                    sections, self.state.current_section,
+                    self.state.selected_index, bool(self.state.in_submenu)
+                )
+                # Update content area for selected item
+                self.update_content_for_selection()
 
         elif key == Keys.LEFT:
             if self.state.navigate_left():
@@ -358,29 +436,30 @@ class BaseTUI(ABC):
         elif key and key.lower() == 'q':
             return False
 
-        elif key and key.isdigit():
-            # Quick select by number
-            num = int(key)
-            current_section = sections[self.state.current_section] if sections else None
-            if current_section and 0 <= num < len(current_section.items):
-                item = current_section.items[num]
-                if item.enabled:
-                    show_cursor()
-                    result = self.handle_action(item)
-                    hide_cursor()
-                    if not result:
-                        return False
-                    self.render()
-
-        # Check for terminal resize
-        cols, lines = get_terminal_size()
-        if self.state.terminal_resized(cols, lines):
+        elif key and key.lower() == 'l':
+            # V527: Language selection menu
+            self.show_language_menu()
             self.render()
+
+        # V527 CHANGE: Numeric quick selection disabled (no numbers in sidebar)
+        # elif key and key.isdigit():
+        #     # Quick select by number
+        #     num = int(key)
+        #     current_section = sections[self.state.current_section] if sections else None
+        #     if current_section and 0 <= num < len(current_section.items):
+        #         item = current_section.items[num]
+        #         if item.enabled:
+        #             show_cursor()
+        #             result = self.handle_action(item)
+        #             hide_cursor()
+        #             if not result:
+        #                 return False
+        #             self.render()
 
         return True
 
     def run(self):
-        """Run the TUI main loop"""
+        """Run the TUI main loop (v527 with resize and clock)"""
         try:
             # Show splash screen
             if self.config.show_splash:
@@ -397,12 +476,41 @@ class BaseTUI(ABC):
             self.running = True
             self.render()
 
+            # V527: Initialize terminal size for resize detection
+            cols, lines = get_terminal_size()
+            self.state.last_cols = cols
+            self.state.last_lines = lines
+
+            # V527: Track last footer update time for live clock
+            last_footer_update = time.time()
+
             # Main event loop
             while self.running:
+                # Get key with timeout for responsive updates
                 key = get_single_key(timeout=0.1)
                 if key:
                     if not self.handle_key(key):
                         break
+
+                # V527: Check for terminal resize (polling-based)
+                cols, lines = get_terminal_size()
+                if cols != self.state.last_cols or lines != self.state.last_lines:
+                    self.state.last_cols = cols
+                    self.state.last_lines = lines
+                    # Full redraw on resize
+                    self.render()
+
+                # V527: Update footer time every second (polling, not threading)
+                current_time = time.time()
+                if current_time - last_footer_update >= 1.0 and not self.state.in_submenu:
+                    # Update only footer (not entire screen)
+                    self.footer.draw(
+                        hints=self.get_navigation_hints(),
+                        status=self.get_system_status()
+                    )
+                    last_footer_update = current_time
+                    hide_cursor()
+
                 time.sleep(0.01)
 
         except KeyboardInterrupt:
@@ -461,52 +569,144 @@ class BaseTUI(ABC):
             lines = message
         else:
             lines = message.split('\n') if message else []
-        self.update_content("Message", lines, color)
+        self.update_content(self.i18n.translate('message'), lines, color)
         self.render()
 
     def show_error(self, message: str):
         """Show an error message"""
-        self.update_content("Error", [f"❌ {message}"], Colors.RED)
+        self.update_content(self.i18n.translate('error'), [f"❌ {message}"], Colors.RED)
         self.render()
 
     def show_help_screen(self):
         """Show help screen"""
         help_lines = [
-            "UNIBOS TUI Help",
+            self.i18n.translate('help_screen_title'),
             "",
-            "NAVIGATION:",
-            "  ↑/↓        Navigate items",
-            "  ←/→        Navigate sections",
-            "  TAB        Switch sections",
-            "  Enter      Select item",
-            "  ESC        Back/Cancel",
-            "  Q          Quit",
+            self.i18n.translate('navigation') + ":",
+            "  " + self.i18n.translate('navigation_up_down'),
+            "  " + self.i18n.translate('navigation_left_right'),
+            "  " + self.i18n.translate('navigation_tab'),
+            "  " + self.i18n.translate('navigation_enter'),
+            "  " + self.i18n.translate('navigation_esc'),
+            "  " + self.i18n.translate('navigation_q'),
             "",
-            "QUICK SELECT:",
-            "  0-9        Select item by number",
-            "",
-            "SHORTCUTS:",
-            "  Ctrl+R     Refresh",
-            "  Ctrl+L     Clear screen",
-            "  F1         Help"
+            self.i18n.translate('shortcuts') + ":",
+            "  " + self.i18n.translate('shortcut_ctrl_r'),
+            "  " + self.i18n.translate('shortcut_ctrl_l'),
+            "  " + self.i18n.translate('shortcut_f1'),
+            "  " + self.i18n.translate('shortcut_l')
         ]
-        self.update_content("Help", help_lines, Colors.CYAN)
+        self.update_content(self.i18n.translate('help'), help_lines, Colors.CYAN)
         self.render()
 
     def show_about_screen(self):
         """Show about screen"""
         about_lines = [
-            f"{self.config.title.upper()} {self.config.version}",
-            "Unicorn Bodrum Operating System",
+            f"{self.config.title} {self.config.version}",
+            self.i18n.translate('unicorn_bodrum_os'),
             "",
-            "Created by Berk Hatırlı",
-            "Bitez, Bodrum, Muğla, Turkey",
+            self.i18n.translate('about_created_by'),
+            self.i18n.translate('about_location'),
             "",
-            f"Profile: {self.get_profile_name()}",
-            "Build: 534"
+            self.i18n.translate('about_profile', profile=self.get_profile_name()),
+            self.i18n.translate('about_build', build='534')
         ]
-        self.update_content("About", about_lines, Colors.ORANGE)
+        self.update_content(self.i18n.translate('about'), about_lines, Colors.ORANGE)
         self.render()
+
+    def update_content_for_selection(self):
+        """
+        Update content area when sidebar selection changes (v527 spec)
+
+        This method updates only the content area without full screen redraw
+        """
+        sections = self.get_menu_sections()
+        current_section = sections[self.state.current_section] if sections else None
+        if current_section and 0 <= self.state.selected_index < len(current_section.items):
+            selected_item = current_section.items[self.state.selected_index]
+            # Draw content for selected item
+            self.content_area.draw(
+                title=selected_item.label,
+                content=selected_item.description,
+                item=selected_item
+            )
+            sys.stdout.flush()
+
+    def show_language_menu(self):
+        """
+        Show language selection popup (v527 spec)
+
+        V527 SPEC:
+        - 40x15 character popup, centered on screen
+        - Arrow key navigation
+        - Enter to confirm, ESC to cancel
+        - Updates header language when selected
+        """
+        from core.clients.cli.framework.ui import draw_box
+
+        cols, lines = get_terminal_size()
+
+        # Language menu dimensions (v527 spec)
+        lang_width = 40
+        lang_height = 15
+        lang_x = (cols - lang_width) // 2
+        lang_y = (lines - lang_height) // 2
+
+        # Get available languages from i18n system
+        languages = self.i18n.get_available_languages()
+
+        # Find current language in list
+        current_lang = self.i18n.get_language()
+        selected = 0
+        for i, (code, name, flag) in enumerate(languages):
+            if code == current_lang:
+                selected = i
+                break
+
+        while True:
+            # Draw popup box
+            draw_box(lang_x, lang_y, lang_width, lang_height,
+                    self.i18n.translate('select_language'),
+                    Colors.YELLOW)
+
+            # Display languages with selection highlight
+            for i, (code, name, flag) in enumerate(languages[:10]):  # Max 10
+                y_pos = lang_y + 2 + i
+
+                if i == selected:
+                    # Selected item with orange background
+                    move_cursor(lang_x + 3, y_pos)
+                    sys.stdout.write(f"{Colors.BG_ORANGE}{Colors.WHITE} ➤ {flag} {name} {' ' * (lang_width - len(name) - 10)}{Colors.RESET}")
+                else:
+                    # Normal item
+                    move_cursor(lang_x + 3, y_pos)
+                    sys.stdout.write(f"   {flag} {name}")
+
+            sys.stdout.flush()
+            hide_cursor()
+
+            # Handle input
+            key = get_single_key(timeout=0.1)
+            if key == Keys.UP:
+                selected = (selected - 1) % len(languages)
+            elif key == Keys.DOWN:
+                selected = (selected + 1) % len(languages)
+            elif key == Keys.ENTER or key == '\r' or key == '\n':
+                # Language selected - actually change the language
+                code, name, flag = languages[selected]
+                # Set the language in translation manager
+                self.i18n.set_language(code)
+                # Show confirmation message
+                self.show_message(
+                    self.i18n.translate('language_changed', flag=flag, name=name),
+                    Colors.GREEN
+                )
+                break
+            elif key == Keys.ESC or key == '\x1b' or (key and key.lower() == 'l'):
+                # Cancel
+                break
+
+            time.sleep(0.01)
 
     def clear_cache(self):
         """Clear all cached data"""
@@ -547,7 +747,7 @@ class BaseTUI(ABC):
         # Show command
         if hasattr(result, 'args'):
             cmd = ' '.join(result.args if isinstance(result.args, list) else [str(result.args)])
-            lines.append(f"Command: {cmd}")
+            lines.append(f"{self.i18n.translate('command')}: {cmd}")
             lines.append("─" * 40)
             lines.append("")
 
@@ -565,7 +765,7 @@ class BaseTUI(ABC):
         # Show errors if any
         if result.stderr:
             lines.append("")
-            lines.append("Errors:")
+            lines.append(self.i18n.translate('errors') + ":")
             # Handle both string and list types defensively
             if isinstance(result.stderr, str):
                 stderr_lines = result.stderr.split('\n')
@@ -578,10 +778,10 @@ class BaseTUI(ABC):
         # Show exit status if non-zero
         if result.returncode != 0:
             lines.append("")
-            lines.append(f"❌ Exit code: {result.returncode}")
+            lines.append(self.i18n.translate('exit_code', code=result.returncode))
         else:
             lines.append("")
-            lines.append("✅ Command completed successfully")
+            lines.append(self.i18n.translate('command_completed'))
 
-        self.update_content("Command Output", lines)
+        self.update_content(self.i18n.translate('command_output'), lines)
         self.render()

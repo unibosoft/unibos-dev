@@ -11,6 +11,7 @@ from typing import List, Dict, Any, Optional
 from core.clients.tui import BaseTUI
 from core.clients.tui.components import MenuSection
 from core.clients.cli.framework.ui import MenuItem, Colors
+from core.clients.tui.common_items import CommonItems
 
 
 class ServerTUI(BaseTUI):
@@ -54,8 +55,8 @@ class ServerTUI(BaseTUI):
                 items=[
                     MenuItem(
                         id='django_service',
-                        label='django application',
-                        icon='🐍',
+                        label='🐍 django application',
+                        icon='',
                         description='django web application\n\n'
                                    '→ Start/stop Django app\n'
                                    '→ Check service status\n'
@@ -64,22 +65,11 @@ class ServerTUI(BaseTUI):
                                    'Manage Django application service',
                         enabled=True
                     ),
-                    MenuItem(
-                        id='postgresql_service',
-                        label='postgresql database',
-                        icon='🗄️',
-                        description='postgresql database service\n\n'
-                                   '→ Database service status\n'
-                                   '→ Connection monitoring\n'
-                                   '→ Performance tuning\n'
-                                   '→ Vacuum operations\n\n'
-                                   'Manage PostgreSQL database',
-                        enabled=True
-                    ),
+                    CommonItems.database_setup(profile_type='server'),
                     MenuItem(
                         id='nginx_service',
-                        label='nginx web server',
-                        icon='🌐',
+                        label='🌐 nginx web server',
+                        icon='',
                         description='nginx reverse proxy\n\n'
                                    '→ Web server status\n'
                                    '→ Configuration reload\n'
@@ -90,8 +80,8 @@ class ServerTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='systemd_services',
-                        label='systemd services',
-                        icon='🔧',
+                        label='🔧 systemd services',
+                        icon='',
                         description='system services overview\n\n'
                                    '→ All service status\n'
                                    '→ Enable/disable services\n'
@@ -102,8 +92,8 @@ class ServerTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='background_workers',
-                        label='background workers',
-                        icon='👷',
+                        label='👷 background workers',
+                        icon='',
                         description='celery background tasks\n\n'
                                    '→ Worker status\n'
                                    '→ Task queue monitoring\n'
@@ -121,46 +111,13 @@ class ServerTUI(BaseTUI):
                 label='operations',
                 icon='🛠️',
                 items=[
-                    MenuItem(
-                        id='view_logs',
-                        label='view logs',
-                        icon='📝',
-                        description='application and system logs\n\n'
-                                   '→ Django application logs\n'
-                                   '→ Nginx access/error logs\n'
-                                   '→ PostgreSQL logs\n'
-                                   '→ System journal logs\n\n'
-                                   'View server logs',
-                        enabled=True
-                    ),
-                    MenuItem(
-                        id='restart_all',
-                        label='restart all',
-                        icon='🔄',
-                        description='full server restart\n\n'
-                                   '→ Restart all services\n'
-                                   '→ Graceful shutdown\n'
-                                   '→ Service verification\n'
-                                   '→ Health check\n\n'
-                                   'Restart all server services',
-                        enabled=True
-                    ),
-                    MenuItem(
-                        id='database_backup',
-                        label='database backup',
-                        icon='💾',
-                        description='backup database\n\n'
-                                   '→ Create PostgreSQL dump\n'
-                                   '→ Verify backup integrity\n'
-                                   '→ Store backup file\n'
-                                   '→ Backup rotation\n\n'
-                                   'Create database backup',
-                        enabled=True
-                    ),
+                    CommonItems.view_logs(profile_type='server'),
+                    CommonItems.restart_services(profile_type='server'),
+                    CommonItems.backup_database(profile_type='server'),
                     MenuItem(
                         id='update_system',
-                        label='update system',
-                        icon='🚀',
+                        label='🚀 update system',
+                        icon='',
                         description='pull code, migrate, restart\n\n'
                                    '→ Pull latest code from git\n'
                                    '→ Install dependencies\n'
@@ -172,8 +129,8 @@ class ServerTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='maintenance_mode',
-                        label='maintenance mode',
-                        icon='🚧',
+                        label='🚧 maintenance mode',
+                        icon='',
                         description='enable/disable maintenance\n\n'
                                    '→ Toggle maintenance mode\n'
                                    '→ Custom maintenance page\n'
@@ -191,22 +148,11 @@ class ServerTUI(BaseTUI):
                 label='monitoring',
                 icon='📊',
                 items=[
-                    MenuItem(
-                        id='system_status',
-                        label='system status',
-                        icon='💚',
-                        description='cpu, memory, disk, uptime\n\n'
-                                   '→ CPU usage and load\n'
-                                   '→ Memory consumption\n'
-                                   '→ Disk space usage\n'
-                                   '→ System uptime\n\n'
-                                   'Complete system status',
-                        enabled=True
-                    ),
+                    CommonItems.system_status(profile_type='server'),
                     MenuItem(
                         id='service_health',
-                        label='service health',
-                        icon='🏥',
+                        label='🏥 service health',
+                        icon='',
                         description='all services status\n\n'
                                    '→ Django health check\n'
                                    '→ Database connections\n'
@@ -217,8 +163,8 @@ class ServerTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='active_users',
-                        label='active users',
-                        icon='👥',
+                        label='👥 active users',
+                        icon='',
                         description='connected users\n\n'
                                    '→ Current active sessions\n'
                                    '→ SSH connections\n'
@@ -229,8 +175,8 @@ class ServerTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='database_stats',
-                        label='database stats',
-                        icon='📈',
+                        label='📈 database stats',
+                        icon='',
                         description='db size, connections\n\n'
                                    '→ Database size\n'
                                    '→ Active connections\n'
@@ -241,8 +187,8 @@ class ServerTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='error_logs',
-                        label='error logs',
-                        icon='❌',
+                        label='❌ error logs',
+                        icon='',
                         description='recent errors\n\n'
                                    '→ Application errors\n'
                                    '→ System errors\n'

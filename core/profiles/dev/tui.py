@@ -11,6 +11,7 @@ from typing import List, Dict, Any, Optional
 from core.clients.tui import BaseTUI
 from core.clients.tui.components import MenuSection
 from core.clients.cli.framework.ui import MenuItem, Colors
+from core.clients.tui.common_items import CommonItems
 
 
 class UnibosDevTUI(BaseTUI):
@@ -24,12 +25,12 @@ class UnibosDevTUI(BaseTUI):
             title="unibos-dev",
             version="v0.534.0",
             location="dev environment",
-            sidebar_width=30,
+            sidebar_width=25,  # V527 spec: exactly 25 characters
             show_splash=True,
             quick_splash=False,
             lowercase_ui=True,  # v527 style
             show_breadcrumbs=True,
-            show_time=True,
+            show_time=True,  # Time in footer, not header
             show_hostname=True,
             show_status_led=True
         )
@@ -112,31 +113,25 @@ class UnibosDevTUI(BaseTUI):
 
                             # Build description
                             description_parts = [
-                                f'{module_desc}\n',
-                                f'→ Module ID: {metadata.get("id", module_path.name)}',
-                                f'→ Version: {module_version}',
-                                f'→ Author: {metadata.get("author", "Unknown")}\n',
+                                f'{module_desc.lower()}\n',
                             ]
 
                             if feature_list:
-                                description_parts.append('Key Features:')
-                                description_parts.append(feature_list)
-                                description_parts.append('')
-
-                            description_parts.append('Press Enter to launch module')
+                                description_parts.append('key features:')
+                                description_parts.append(feature_list.lower())
 
                             description = '\n'.join(description_parts)
-                            label = display_name.lower()
+
+                            # Use short module name (just the ID) for sidebar
+                            # This keeps labels concise and fits in 25 char width
+                            label = module_name.lower()
                         else:
                             # Fallback to basic info if no metadata
                             label = module_path.name
                             module_icon = '📦'
                             description = (
-                                f'Launch {module_path.name} module\n\n'
-                                f'→ Module directory: {module_path}\n'
-                                f'→ Status: Enabled\n'
-                                f'→ No metadata file found\n\n'
-                                f'Press Enter to launch module'
+                                f'launch {module_path.name} module\n\n'
+                                f'no metadata file found'
                             )
 
                         modules.append(MenuItem(
@@ -151,8 +146,8 @@ class UnibosDevTUI(BaseTUI):
         if not modules:
             modules.append(MenuItem(
                 id='no_modules',
-                label='no modules found',
-                icon='📦',
+                label='📦 no modules found',
+                icon='',
                 description='No enabled modules are currently installed.\n\n'
                            'Modules should be placed in:\n'
                            '/modules/\n\n'
@@ -184,88 +179,66 @@ class UnibosDevTUI(BaseTUI):
                 items=[
                     MenuItem(
                         id='system_scrolls',
-                        label='system scrolls',
+                        label=self.i18n.translate('menu.scrolls'),
                         icon='📜',
                         description='forge status & info\n\n'
-                                   '→ System information\n'
-                                   '→ Version details\n'
-                                   '→ Service status\n'
-                                   '→ Resource usage\n\n'
-                                   'Complete system overview',
+                                   '→ system information\n'
+                                   '→ version details\n'
+                                   '→ service status\n'
+                                   '→ resource usage\n\n'
+                                   'complete system overview',
                         enabled=True
                     ),
                     MenuItem(
                         id='castle_guard',
-                        label='castle guard',
-                        icon='🛡️',
+                        label='🛡️  ' + self.i18n.translate('menu.guard'),
+                        icon='',
                         description='fortress security\n\n'
-                                   '→ Security status\n'
-                                   '→ Access controls\n'
-                                   '→ Authentication logs\n'
-                                   '→ Firewall settings\n\n'
-                                   'Security management interface',
+                                   '→ security status\n'
+                                   '→ access controls\n'
+                                   '→ authentication logs\n'
+                                   '→ firewall settings\n\n'
+                                   'security management interface',
                         enabled=True
                     ),
                     MenuItem(
                         id='forge_smithy',
-                        label='forge smithy',
-                        icon='🔨',
+                        label='🔨 ' + self.i18n.translate('menu.smithy'),
+                        icon='',
                         description='setup forge tools\n\n'
-                                   '→ Install dependencies\n'
-                                   '→ Configure environment\n'
-                                   '→ Setup database\n'
-                                   '→ Initialize services\n\n'
-                                   'Complete system setup wizard',
+                                   '→ install dependencies\n'
+                                   '→ configure environment\n'
+                                   '→ setup database\n'
+                                   '→ initialize services\n\n'
+                                   'complete system setup wizard',
                         enabled=True
                     ),
                     MenuItem(
                         id='anvil_repair',
-                        label='anvil repair',
-                        icon='⚒️',
+                        label='⚒️  ' + self.i18n.translate('menu.repair'),
+                        icon='',
                         description='mend & fix issues\n\n'
-                                   '→ Diagnostic tools\n'
-                                   '→ Repair utilities\n'
-                                   '→ Log analysis\n'
-                                   '→ Recovery options\n\n'
-                                   'System repair and maintenance',
+                                   '→ diagnostic tools\n'
+                                   '→ repair utilities\n'
+                                   '→ log analysis\n'
+                                   '→ recovery options\n\n'
+                                   'system repair and maintenance',
                         enabled=True
                     ),
                     MenuItem(
                         id='code_forge',
-                        label='code forge',
-                        icon='⚙️',
+                        label='⚙️  ' + self.i18n.translate('menu.git'),
+                        icon='',
                         description='version chronicles\n\n'
-                                   '→ Git operations\n'
-                                   '→ Version control\n'
-                                   '→ Commit history\n'
-                                   '→ Branch management\n\n'
-                                   'Source code management',
+                                   '→ git operations\n'
+                                   '→ version control\n'
+                                   '→ commit history\n'
+                                   '→ branch management\n\n'
+                                   'source code management',
                         enabled=True
                     ),
-                    MenuItem(
-                        id='web_ui',
-                        label='web ui',
-                        icon='🌐',
-                        description='web interface manager\n\n'
-                                   '→ Start Django server\n'
-                                   '→ Stop Django server\n'
-                                   '→ View server logs\n'
-                                   '→ Server configuration\n\n'
-                                   'Web interface control',
-                        enabled=True
-                    ),
-                    MenuItem(
-                        id='administration',
-                        label='administration',
-                        icon='👑',
-                        description='system administration\n\n'
-                                   '→ User management\n'
-                                   '→ Permissions\n'
-                                   '→ System settings\n'
-                                   '→ Configuration\n\n'
-                                   'Administrative tools',
-                        enabled=True
-                    ),
+                    CommonItems.web_ui(self.i18n),
+                    CommonItems.administration(self.i18n),
                 ]
             ),
 
@@ -277,62 +250,51 @@ class UnibosDevTUI(BaseTUI):
                 items=[
                     MenuItem(
                         id='ai_builder',
-                        label='ai builder',
-                        icon='🤖',
+                        label='🤖 ' + self.i18n.translate('menu.ai_builder'),
+                        icon='',
                         description='ai-powered development\n\n'
-                                   '→ Code generation\n'
-                                   '→ AI assistance\n'
-                                   '→ Smart refactoring\n'
-                                   '→ Documentation generation\n\n'
-                                   'AI development tools',
+                                   '→ code generation\n'
+                                   '→ ai assistance\n'
+                                   '→ smart refactoring\n'
+                                   '→ documentation generation\n\n'
+                                   'ai development tools',
                         enabled=True
                     ),
-                    MenuItem(
-                        id='database_setup',
-                        label='database setup',
-                        icon='🗄️',
-                        description='postgresql installer\n\n'
-                                   '→ Install PostgreSQL\n'
-                                   '→ Create database\n'
-                                   '→ Run migrations\n'
-                                   '→ Configure access\n\n'
-                                   'Database installation wizard',
-                        enabled=True
-                    ),
+                    CommonItems.database_setup(self.i18n, profile_type='dev'),
                     MenuItem(
                         id='public_server',
-                        label='public server',
-                        icon='🌍',
+                        label='🌍 ' + self.i18n.translate('menu.deployment'),
+                        icon='',
                         description='deploy to ubuntu/oracle vm\n\n'
-                                   '→ Deploy to rocksteady\n'
-                                   '→ SSH to server\n'
-                                   '→ Server management\n'
-                                   '→ Production deployment\n\n'
-                                   'Public server deployment',
+                                   '→ deploy to rocksteady\n'
+                                   '→ ssh to server\n'
+                                   '→ server management\n'
+                                   '→ production deployment\n\n'
+                                   'public server deployment',
                         enabled=True
                     ),
                     MenuItem(
                         id='sd_card',
-                        label='sd card',
+                        label=self.i18n.translate('menu.sd_card'),
                         icon='💾',
                         description='sd operations\n\n'
-                                   '→ Format SD card\n'
-                                   '→ Create bootable image\n'
-                                   '→ Backup/restore\n'
-                                   '→ Partition management\n\n'
-                                   'SD card utilities',
+                                   '→ format sd card\n'
+                                   '→ create bootable image\n'
+                                   '→ backup/restore\n'
+                                   '→ partition management\n\n'
+                                   'sd card utilities',
                         enabled=True
                     ),
                     MenuItem(
                         id='version_manager',
-                        label='version manager',
+                        label=self.i18n.translate('menu.versions'),
                         icon='📋',
                         description='archive & git tools\n\n'
-                                   '→ Create version archives\n'
-                                   '→ Browse archive history\n'
-                                   '→ Restore versions\n'
-                                   '→ Git integration\n\n'
-                                   'Version control and archiving',
+                                   '→ create version archives\n'
+                                   '→ browse archive history\n'
+                                   '→ restore versions\n'
+                                   '→ git integration\n\n'
+                                   'version control and archiving',
                         enabled=True
                     ),
                 ]
@@ -360,10 +322,10 @@ class UnibosDevTUI(BaseTUI):
     # ===== TOOLS SECTION HANDLERS =====
 
     def handle_system_scrolls(self, item: MenuItem) -> bool:
-        """Show system status and information"""
+        """show system status and information"""
         self.update_content(
-            title="System Scrolls",
-            lines=["⏳ Gathering system information...", ""],
+            title="system scrolls",
+            lines=["⏳ gathering system information...", ""],
             color=Colors.CYAN
         )
         self.render()
@@ -377,13 +339,13 @@ class UnibosDevTUI(BaseTUI):
 
         except Exception as e:
             self.update_content(
-                title="System Scrolls - Error",
+                title="system scrolls - error",
                 lines=[
-                    "❌ Failed to load system information",
+                    "❌ failed to load system information",
                     "",
-                    f"Error: {str(e)}",
+                    f"error: {str(e)}",
                     "",
-                    "Try running: unibos-dev status"
+                    "try running: unibos-dev status"
                 ],
                 color=Colors.RED
             )
@@ -394,28 +356,28 @@ class UnibosDevTUI(BaseTUI):
     def handle_castle_guard(self, item: MenuItem) -> bool:
         """Security management"""
         self.update_content(
-            title="Castle Guard - Security Tools",
+            title="castle guard - security tools",
             lines=[
-                "🛡️ Security Management",
+                "🛡️ security management",
                 "",
-                "Available security tools:",
+                "available security tools:",
                 "",
-                "→ Firewall Status",
-                "→ SSH Configuration",
-                "→ SSL Certificates",
-                "→ Access Logs",
-                "→ Failed Login Attempts",
+                "→ firewall status",
+                "→ ssh configuration",
+                "→ ssl certificates",
+                "→ access logs",
+                "→ failed login attempts",
                 "",
-                "🚧 This feature is under development.",
+                "🚧 this feature is under development.",
                 "",
-                "Security tools will include:",
-                "  • System firewall management",
-                "  • SSH key management",
-                "  • SSL/TLS certificate monitoring",
-                "  • Security audit logging",
-                "  • Intrusion detection",
+                "security tools will include:",
+                "  • system firewall management",
+                "  • ssh key management",
+                "  • ssl/tls certificate monitoring",
+                "  • security audit logging",
+                "  • intrusion detection",
                 "",
-                "Press ESC to return to menu"
+                "press esc to return to menu"
             ],
             color=Colors.YELLOW
         )
@@ -425,13 +387,13 @@ class UnibosDevTUI(BaseTUI):
     def handle_forge_smithy(self, item: MenuItem) -> bool:
         """System setup wizard"""
         self.update_content(
-            title="Forge Smithy - Setup Wizard",
+            title="forge smithy - setup wizard",
             lines=[
                 "🔨 System Setup Wizard",
                 "",
-                "This wizard helps you set up UNIBOS from scratch.",
+                "this wizard helps you set up UNIBOS from scratch.",
                 "",
-                "Setup steps:",
+                "setup steps:",
                 "",
                 "1. Environment Check",
                 "   → Python version",
@@ -455,11 +417,11 @@ class UnibosDevTUI(BaseTUI):
                 "",
                 "🚧 Full wizard coming soon!",
                 "",
-                "For now, use:",
-                "  • Database Setup (in Dev Tools)",
+                "for now, use:",
+                "  • database setup (in dev tools)",
                 "  • unibos-dev status (for checks)",
                 "",
-                "Press ESC to return to menu"
+                "press esc to return to menu"
             ],
             color=Colors.CYAN
         )
@@ -469,34 +431,34 @@ class UnibosDevTUI(BaseTUI):
     def handle_anvil_repair(self, item: MenuItem) -> bool:
         """System repair and maintenance"""
         self.update_content(
-            title="Anvil Repair - Diagnostics & Repair",
+            title="anvil repair - diagnostics & repair",
             lines=[
                 "⚒️ System Diagnostics & Repair Tools",
                 "",
-                "Diagnostic Tools:",
+                "diagnostic tools:",
                 "",
-                "→ Check System Health",
-                "→ Verify Database Integrity",
-                "→ Test Network Connectivity",
-                "→ Validate File Permissions",
-                "→ Analyze Log Files",
+                "→ check system health",
+                "→ verify database integrity",
+                "→ test network connectivity",
+                "→ validate file permissions",
+                "→ analyze log files",
                 "",
-                "Repair Tools:",
+                "repair tools:",
                 "",
-                "→ Fix Database Issues",
-                "→ Repair Corrupted Files",
-                "→ Reset Configurations",
-                "→ Clear Cache",
-                "→ Rebuild Indexes",
+                "→ fix database issues",
+                "→ repair corrupted files",
+                "→ reset configurations",
+                "→ clear cache",
+                "→ rebuild indexes",
                 "",
                 "🚧 This feature is under development.",
                 "",
-                "Available now:",
+                "available now:",
                 "  • unibos-dev status (health check)",
-                "  • Django management commands",
-                "  • Database migrations",
+                "  • django management commands",
+                "  • database migrations",
                 "",
-                "Press ESC to return to menu"
+                "press esc to return to menu"
             ],
             color=Colors.YELLOW
         )
@@ -506,7 +468,7 @@ class UnibosDevTUI(BaseTUI):
     def handle_code_forge(self, item: MenuItem) -> bool:
         """Git and version control"""
         self.update_content(
-            title="Code Forge - Git Operations",
+            title="code forge - git operations",
             lines=["📊 Loading git status...", ""],
             color=Colors.CYAN
         )
@@ -531,20 +493,20 @@ class UnibosDevTUI(BaseTUI):
                 "",
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 "",
-                "Available Git Commands:",
+                "available Git Commands:",
                 "",
                 "  unibos-dev git status        - Show git status",
                 "  unibos-dev git push-dev      - Push to dev repo",
                 "  unibos-dev git sync-prod     - Sync to prod directory",
                 "  unibos-dev git commit        - Create commit",
                 "",
-                "Run these commands from terminal for full git control.",
+                "run these commands from terminal for full git control.",
                 "",
-                "Press ESC to return to menu"
+                "press esc to return to menu"
             ])
 
             self.update_content(
-                title="Code Forge - Git Operations",
+                title="code forge - git operations",
                 lines=lines,
                 color=Colors.CYAN
             )
@@ -552,7 +514,7 @@ class UnibosDevTUI(BaseTUI):
 
         except Exception as e:
             self.update_content(
-                title="Code Forge - Error",
+                title="code forge - error",
                 lines=[
                     "❌ Failed to execute git command",
                     "",
@@ -571,17 +533,17 @@ class UnibosDevTUI(BaseTUI):
         return self._show_web_ui_submenu()
 
     def _show_web_ui_submenu(self) -> bool:
-        """Show interactive Web UI submenu"""
+        """show interactive Web UI submenu"""
         import time
 
         # Menu options
         options = [
             ("start", "🚀 Start Django Server", "Start the development server"),
             ("stop", "⏹️ Stop Django Server", "Stop the running server"),
-            ("status", "📊 Server Status", "Check if server is running"),
-            ("logs", "📝 View Server Logs", "Show recent server logs"),
+            ("status", "📊 Server Status", "check if server is running"),
+            ("logs", "📝 View Server Logs", "show recent server logs"),
             ("migrate", "🔄 Run Migrations", "Apply database migrations"),
-            ("back", "← Back to Tools", "Return to main menu"),
+            ("back", "← Back to Tools", "return to main menu"),
         ]
 
         selected = 0
@@ -606,11 +568,11 @@ class UnibosDevTUI(BaseTUI):
             lines.extend([
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 "",
-                "Navigation: ↑↓ to move, Enter to select, ESC to go back"
+                "navigation: ↑↓ to move, Enter to select, ESC to go back"
             ])
 
             self.update_content(
-                title="Web UI Management",
+                title="web ui management",
                 lines=lines,
                 color=Colors.CYAN
             )
@@ -647,9 +609,9 @@ class UnibosDevTUI(BaseTUI):
         return True
 
     def _web_ui_start_server(self):
-        """Start Django development server"""
+        """start django development server"""
         self.update_content(
-            title="Starting Django Server",
+            title="starting django server",
             lines=["🚀 Starting development server...", ""],
             color=Colors.CYAN
         )
@@ -659,9 +621,9 @@ class UnibosDevTUI(BaseTUI):
         self.show_command_output(result)
 
     def _web_ui_stop_server(self):
-        """Stop Django development server"""
+        """stop django development server"""
         self.update_content(
-            title="Stopping Django Server",
+            title="stopping django server",
             lines=["⏹️ Stopping development server...", ""],
             color=Colors.CYAN
         )
@@ -671,9 +633,9 @@ class UnibosDevTUI(BaseTUI):
         self.show_command_output(result)
 
     def _web_ui_show_status(self):
-        """Show Django server status"""
+        """show Django server status"""
         self.update_content(
-            title="Django Server Status",
+            title="django server status",
             lines=["📊 Checking server status...", ""],
             color=Colors.CYAN
         )
@@ -683,9 +645,9 @@ class UnibosDevTUI(BaseTUI):
         self.show_command_output(result)
 
     def _web_ui_show_logs(self):
-        """Show Django server logs"""
+        """show Django server logs"""
         self.update_content(
-            title="Django Server Logs",
+            title="django server logs",
             lines=["📝 Loading server logs...", ""],
             color=Colors.CYAN
         )
@@ -697,7 +659,7 @@ class UnibosDevTUI(BaseTUI):
     def _web_ui_run_migrations(self):
         """Run Django migrations"""
         self.update_content(
-            title="Running Migrations",
+            title="running migrations",
             lines=["🔄 Running database migrations...", ""],
             color=Colors.CYAN
         )
@@ -709,39 +671,39 @@ class UnibosDevTUI(BaseTUI):
     def handle_administration(self, item: MenuItem) -> bool:
         """System administration"""
         self.update_content(
-            title="Administration - System Management",
+            title="administration - system management",
             lines=[
                 "👑 System Administration",
                 "",
-                "Administration Tools:",
+                "administration tools:",
                 "",
-                "→ User Management",
-                "  • Create/delete users",
-                "  • Manage permissions",
-                "  • Reset passwords",
+                "→ user management",
+                "  • create/delete users",
+                "  • manage permissions",
+                "  • reset passwords",
                 "",
-                "→ System Settings",
-                "  • Environment configuration",
-                "  • Feature flags",
-                "  • API settings",
+                "→ system settings",
+                "  • environment configuration",
+                "  • feature flags",
+                "  • api settings",
                 "",
-                "→ Module Management",
-                "  • Enable/disable modules",
-                "  • Module configuration",
-                "  • Module permissions",
+                "→ module management",
+                "  • enable/disable modules",
+                "  • module configuration",
+                "  • module permissions",
                 "",
-                "→ Monitoring",
-                "  • System logs",
-                "  • Performance metrics",
-                "  • Error tracking",
+                "→ monitoring",
+                "  • system logs",
+                "  • performance metrics",
+                "  • error tracking",
                 "",
                 "🚧 This feature is under development.",
                 "",
-                "For now, use Django admin:",
+                "for now, use Django admin:",
                 "  1. Start server: unibos-dev dev run",
                 "  2. Visit: http://localhost:8000/admin",
                 "",
-                "Press ESC to return to menu"
+                "press esc to return to menu"
             ],
             color=Colors.YELLOW
         )
@@ -753,42 +715,42 @@ class UnibosDevTUI(BaseTUI):
     def handle_ai_builder(self, item: MenuItem) -> bool:
         """AI-powered development tools"""
         self.update_content(
-            title="AI Builder - AI Development Tools",
+            title="ai builder - ai development tools",
             lines=[
                 "🤖 AI-Powered Development",
                 "",
-                "The AI Builder provides intelligent code assistance and generation.",
+                "the ai builder provides intelligent code assistance and generation.",
                 "",
                 "Features:",
                 "",
-                "→ Code Generation",
-                "  • Generate boilerplate code",
-                "  • Create test cases",
-                "  • Generate documentation",
+                "→ code generation",
+                "  • generate boilerplate code",
+                "  • create test cases",
+                "  • generate documentation",
                 "",
-                "→ AI Assistance",
-                "  • Code completion",
-                "  • Bug detection",
-                "  • Code review suggestions",
+                "→ ai assistance",
+                "  • code completion",
+                "  • bug detection",
+                "  • code review suggestions",
                 "",
-                "→ Smart Refactoring",
-                "  • Optimize code structure",
-                "  • Improve performance",
-                "  • Apply best practices",
+                "→ smart refactoring",
+                "  • optimize code structure",
+                "  • improve performance",
+                "  • apply best practices",
                 "",
-                "→ Documentation",
-                "  • Auto-generate docstrings",
-                "  • Create README files",
-                "  • API documentation",
+                "→ documentation",
+                "  • auto-generate docstrings",
+                "  • create readme files",
+                "  • api documentation",
                 "",
                 "🚧 This feature is under development.",
                 "",
-                "For now, you can use:",
-                "  • Claude Code CLI (if installed)",
-                "  • GitHub Copilot",
-                "  • ChatGPT for code assistance",
+                "for now, you can use:",
+                "  • claude code cli (if installed)",
+                "  • github copilot",
+                "  • chatgpt for code assistance",
                 "",
-                "Press ESC to return to menu"
+                "press esc to return to menu"
             ],
             color=Colors.MAGENTA
         )
@@ -800,18 +762,18 @@ class UnibosDevTUI(BaseTUI):
         return self._show_database_setup_submenu()
 
     def _show_database_setup_submenu(self) -> bool:
-        """Show interactive Database Setup submenu"""
+        """show interactive Database Setup submenu"""
         import time
 
         # Menu options
         options = [
-            ("check", "🔍 Check Database Status", "Check if PostgreSQL is installed and running"),
-            ("install", "📥 Install PostgreSQL", "Install PostgreSQL using Homebrew (macOS)"),
-            ("create", "🗄️ Create Database", "Create UNIBOS database"),
-            ("migrate", "🔄 Run Migrations", "Apply Django migrations"),
-            ("backup", "💾 Backup Database", "Create database backup"),
-            ("restore", "♻️ Restore Database", "Restore from backup"),
-            ("back", "← Back to Dev Tools", "Return to main menu"),
+            ("check", "🔍 Check Database Status", "check if PostgreSQL is installed and running"),
+            ("install", "📥 Install PostgreSQL", "install postgresql using Homebrew (macOS)"),
+            ("create", "🗄️ Create Database", "create UNIBOS database"),
+            ("migrate", "🔄 Run Migrations", "apply django migrations"),
+            ("backup", "💾 Backup Database", "create database backup"),
+            ("restore", "♻️ Restore Database", "restore from backup"),
+            ("back", "← Back to Dev Tools", "return to main menu"),
         ]
 
         selected = 0
@@ -836,11 +798,11 @@ class UnibosDevTUI(BaseTUI):
             lines.extend([
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 "",
-                "Navigation: ↑↓ to move, Enter to select, ESC to go back"
+                "navigation: ↑↓ to move, Enter to select, ESC to go back"
             ])
 
             self.update_content(
-                title="Database Setup Wizard",
+                title="database setup wizard",
                 lines=lines,
                 color=Colors.CYAN
             )
@@ -881,7 +843,7 @@ class UnibosDevTUI(BaseTUI):
     def _db_check_status(self):
         """Check database status"""
         self.update_content(
-            title="Database Status",
+            title="database status",
             lines=["🔍 Checking database status...", ""],
             color=Colors.CYAN
         )
@@ -891,33 +853,33 @@ class UnibosDevTUI(BaseTUI):
         self.show_command_output(result)
 
     def _db_install_postgresql(self):
-        """Install PostgreSQL"""
+        """install postgresql"""
         self.update_content(
-            title="Installing PostgreSQL",
+            title="installing postgresql",
             lines=[
                 "📥 PostgreSQL Installation",
                 "",
-                "This will install PostgreSQL using Homebrew.",
+                "this will install PostgreSQL using Homebrew.",
                 "",
-                "Run this command in terminal:",
+                "run this command in terminal:",
                 "",
                 "  brew install postgresql@14",
                 "  brew services start postgresql@14",
                 "",
-                "Then create database:",
+                "then create database:",
                 "",
                 "  createdb unibos_dev",
                 "",
-                "Press ESC to continue"
+                "press esc to continue"
             ],
             color=Colors.YELLOW
         )
         self.render()
 
     def _db_create_database(self):
-        """Create database"""
+        """create database"""
         self.update_content(
-            title="Creating Database",
+            title="creating database",
             lines=["🗄️ Creating UNIBOS database...", ""],
             color=Colors.CYAN
         )
@@ -929,7 +891,7 @@ class UnibosDevTUI(BaseTUI):
     def _db_run_migrations(self):
         """Run migrations"""
         self.update_content(
-            title="Running Migrations",
+            title="running migrations",
             lines=["🔄 Running database migrations...", ""],
             color=Colors.CYAN
         )
@@ -941,7 +903,7 @@ class UnibosDevTUI(BaseTUI):
     def _db_backup(self):
         """Backup database"""
         self.update_content(
-            title="Database Backup",
+            title="database backup",
             lines=["💾 Creating database backup...", ""],
             color=Colors.CYAN
         )
@@ -953,7 +915,7 @@ class UnibosDevTUI(BaseTUI):
     def _db_restore(self):
         """Restore database"""
         self.update_content(
-            title="Database Restore",
+            title="database restore",
             lines=["♻️ Restoring database...", ""],
             color=Colors.CYAN
         )
@@ -963,21 +925,21 @@ class UnibosDevTUI(BaseTUI):
         self.show_command_output(result)
 
     def handle_public_server(self, item: MenuItem) -> bool:
-        """Deploy to public server"""
+        """deploy to public server"""
         return self._show_public_server_submenu()
 
     def _show_public_server_submenu(self) -> bool:
-        """Show interactive Public Server submenu"""
+        """show interactive Public Server submenu"""
         import time
 
         # Menu options
         options = [
-            ("status", "📊 Server Status", "Check rocksteady server status"),
-            ("deploy", "🚀 Deploy to Rocksteady", "Deploy UNIBOS to production server"),
-            ("ssh", "🔐 SSH to Server", "Open SSH connection to rocksteady"),
-            ("logs", "📝 View Server Logs", "Show production server logs"),
-            ("backup", "💾 Backup Server", "Create server backup"),
-            ("back", "← Back to Dev Tools", "Return to main menu"),
+            ("status", "📊 Server Status", "check rocksteady server status"),
+            ("deploy", "🚀 Deploy to Rocksteady", "deploy unibos to production server"),
+            ("ssh", "🔐 SSH to Server", "open ssh connection to rocksteady"),
+            ("logs", "📝 View Server Logs", "show production server logs"),
+            ("backup", "💾 Backup Server", "create server backup"),
+            ("back", "← Back to Dev Tools", "return to main menu"),
         ]
 
         selected = 0
@@ -1002,11 +964,11 @@ class UnibosDevTUI(BaseTUI):
             lines.extend([
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 "",
-                "Navigation: ↑↓ to move, Enter to select, ESC to go back"
+                "navigation: ↑↓ to move, Enter to select, ESC to go back"
             ])
 
             self.update_content(
-                title="Public Server Management",
+                title="public server management",
                 lines=lines,
                 color=Colors.CYAN
             )
@@ -1045,7 +1007,7 @@ class UnibosDevTUI(BaseTUI):
     def _server_check_status(self):
         """Check server status"""
         self.update_content(
-            title="Server Status",
+            title="server status",
             lines=["📊 Checking rocksteady server status...", ""],
             color=Colors.CYAN
         )
@@ -1055,9 +1017,9 @@ class UnibosDevTUI(BaseTUI):
         self.show_command_output(result)
 
     def _server_deploy(self):
-        """Deploy to server"""
+        """deploy to server"""
         self.update_content(
-            title="Deploying to Rocksteady",
+            title="deploying to rocksteady",
             lines=["🚀 Deploying UNIBOS to production server...", ""],
             color=Colors.CYAN
         )
@@ -1067,19 +1029,19 @@ class UnibosDevTUI(BaseTUI):
         self.show_command_output(result)
 
     def _server_ssh(self):
-        """SSH to server"""
+        """ssh to server"""
         self.update_content(
-            title="SSH Connection",
+            title="ssh connection",
             lines=[
                 "🔐 Opening SSH connection to rocksteady...",
                 "",
-                "Run this command in your terminal:",
+                "run this command in your terminal:",
                 "",
                 "  ssh rocksteady",
                 "",
-                "Or use the deploy command for full options.",
+                "or use the deploy command for full options.",
                 "",
-                "Press ESC to continue"
+                "press esc to continue"
             ],
             color=Colors.YELLOW
         )
@@ -1088,7 +1050,7 @@ class UnibosDevTUI(BaseTUI):
     def _server_logs(self):
         """View server logs"""
         self.update_content(
-            title="Server Logs",
+            title="server logs",
             lines=["📝 Fetching server logs...", ""],
             color=Colors.CYAN
         )
@@ -1100,7 +1062,7 @@ class UnibosDevTUI(BaseTUI):
     def _server_backup(self):
         """Backup server"""
         self.update_content(
-            title="Server Backup",
+            title="server backup",
             lines=["💾 Creating server backup...", ""],
             color=Colors.CYAN
         )
@@ -1112,42 +1074,42 @@ class UnibosDevTUI(BaseTUI):
     def handle_sd_card(self, item: MenuItem) -> bool:
         """SD card operations"""
         self.update_content(
-            title="SD Card Operations",
+            title="sd card operations",
             lines=[
                 "💾 SD Card Utilities",
                 "",
                 "SD card management for Raspberry Pi and other devices.",
                 "",
-                "Available Operations:",
+                "available Operations:",
                 "",
-                "→ Format SD Card",
-                "  • Format for Raspberry Pi",
-                "  • Create boot partition",
-                "  • Set up file system",
+                "→ format sd card",
+                "  • format for raspberry pi",
+                "  • create boot partition",
+                "  • set up file system",
                 "",
-                "→ Create Bootable Image",
-                "  • Flash Raspberry Pi OS",
-                "  • Flash custom images",
-                "  • Verify image integrity",
+                "→ create bootable image",
+                "  • flash raspberry pi os",
+                "  • flash custom images",
+                "  • verify image integrity",
                 "",
-                "→ Backup/Restore",
-                "  • Create SD card backup",
-                "  • Restore from backup",
-                "  • Clone SD cards",
+                "→ backup/restore",
+                "  • create sd card backup",
+                "  • restore from backup",
+                "  • clone sd cards",
                 "",
-                "→ Partition Management",
-                "  • View partitions",
-                "  • Resize partitions",
-                "  • Create new partitions",
+                "→ partition management",
+                "  • view partitions",
+                "  • resize partitions",
+                "  • create new partitions",
                 "",
                 "🚧 This feature is under development.",
                 "",
-                "For now, use:",
-                "  • Raspberry Pi Imager (GUI tool)",
+                "for now, use:",
+                "  • raspberry pi imager (gui tool)",
                 "  • dd command (advanced users)",
                 "  • balenaEtcher",
                 "",
-                "Press ESC to return to menu"
+                "press esc to return to menu"
             ],
             color=Colors.YELLOW
         )
@@ -1159,7 +1121,7 @@ class UnibosDevTUI(BaseTUI):
         return self._show_version_manager_submenu()
 
     def _show_version_manager_submenu(self) -> bool:
-        """Show interactive Version Manager submenu"""
+        """show interactive Version Manager submenu"""
         import time
         from pathlib import Path
 
@@ -1170,12 +1132,12 @@ class UnibosDevTUI(BaseTUI):
         # Menu options
         options = [
             ("browse", "📋 Browse Archives", "View version archive history"),
-            ("create", "📦 Create Archive", "Create new version archive"),
+            ("create", "📦 Create Archive", "create new version archive"),
             ("analyze", "📊 Archive Analyzer", "Analyze archive statistics"),
-            ("git_status", "🔀 Git Status", "Show git repository status"),
+            ("git_status", "🔀 Git Status", "show git repository status"),
             ("git_sync", "🔄 Git Sync", "Sync with git repositories"),
             ("validate", "✅ Validate Versions", "Validate version integrity"),
-            ("back", "← Back to Dev Tools", "Return to main menu"),
+            ("back", "← Back to Dev Tools", "return to main menu"),
         ]
 
         selected = 0
@@ -1209,11 +1171,11 @@ class UnibosDevTUI(BaseTUI):
             lines.extend([
                 "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
                 "",
-                "Navigation: ↑↓ to move, Enter to select, ESC to go back"
+                "navigation: ↑↓ to move, Enter to select, ESC to go back"
             ])
 
             self.update_content(
-                title="Version Manager",
+                title="version manager",
                 lines=lines,
                 color=Colors.CYAN
             )
@@ -1260,13 +1222,13 @@ class UnibosDevTUI(BaseTUI):
 
         if not archive_dir.exists():
             self.update_content(
-                title="Browse Archives",
+                title="browse archives",
                 lines=[
                     "⚠️ Archive directory not found",
                     "",
-                    f"Expected location: {archive_dir}",
+                    f"expected location: {archive_dir}",
                     "",
-                    "Press ESC to continue"
+                    "press esc to continue"
                 ],
                 color=Colors.YELLOW
             )
@@ -1292,9 +1254,9 @@ class UnibosDevTUI(BaseTUI):
         lines = ["📋 Version Archive History", "", ""]
 
         if archives:
-            lines.append(f"Total archives: {len(archives)}")
+            lines.append(f"total archives: {len(archives)}")
             lines.append("")
-            lines.append("Recent versions:")
+            lines.append("recent versions:")
             lines.append("")
 
             for i, archive in enumerate(archives[:10]):  # Show last 10
@@ -1307,41 +1269,41 @@ class UnibosDevTUI(BaseTUI):
                 lines.append(f"... and {len(archives) - 10} more")
                 lines.append("")
         else:
-            lines.append("No archives found")
+            lines.append("no archives found")
             lines.append("")
 
         lines.extend([
             "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
             "",
-            "Press ESC to continue"
+            "press esc to continue"
         ])
 
         self.update_content(
-            title="Browse Archives",
+            title="browse archives",
             lines=lines,
             color=Colors.CYAN
         )
         self.render()
 
     def _version_create_archive(self):
-        """Create new version archive"""
+        """create new version archive"""
         self.update_content(
-            title="Create Archive",
+            title="create archive",
             lines=[
                 "📦 Creating version archive...",
                 "",
-                "This will create a snapshot of the current codebase.",
+                "this will create a snapshot of the current codebase.",
                 "",
-                "Use the archive_daily_check.sh script:",
+                "use the archive_daily_check.sh script:",
                 "",
                 "  ./tools/archive_daily_check.sh",
                 "",
-                "Or use git to create a version tag:",
+                "or use git to create a version tag:",
                 "",
                 "  git tag v0.534.1",
                 "  git push --tags",
                 "",
-                "Press ESC to continue"
+                "press esc to continue"
             ],
             color=Colors.YELLOW
         )
@@ -1350,7 +1312,7 @@ class UnibosDevTUI(BaseTUI):
     def _version_analyze(self):
         """Analyze archives"""
         self.update_content(
-            title="Archive Analyzer",
+            title="archive analyzer",
             lines=[
                 "📊 Analyzing version archives...",
                 "",
@@ -1358,22 +1320,22 @@ class UnibosDevTUI(BaseTUI):
                 "",
                 "  ./tools/archive_daily_check.sh",
                 "",
-                "This will show:",
-                "  • Archive statistics",
-                "  • Size trends",
-                "  • Anomaly detection",
-                "  • Protection status",
+                "this will show:",
+                "  • archive statistics",
+                "  • size trends",
+                "  • anomaly detection",
+                "  • protection status",
                 "",
-                "Press ESC to continue"
+                "press esc to continue"
             ],
             color=Colors.CYAN
         )
         self.render()
 
     def _version_git_status(self):
-        """Show git status"""
+        """show git status"""
         self.update_content(
-            title="Git Status",
+            title="git status",
             lines=["🔀 Loading git status...", ""],
             color=Colors.CYAN
         )
@@ -1385,7 +1347,7 @@ class UnibosDevTUI(BaseTUI):
     def _version_git_sync(self):
         """Sync with git"""
         self.update_content(
-            title="Git Sync",
+            title="git sync",
             lines=["🔄 Syncing with git repositories...", ""],
             color=Colors.CYAN
         )
@@ -1397,19 +1359,19 @@ class UnibosDevTUI(BaseTUI):
     def _version_validate(self):
         """Validate versions"""
         self.update_content(
-            title="Validate Versions",
+            title="validate versions",
             lines=[
                 "✅ Version Validation",
                 "",
-                "This checks:",
-                "  • Version number sequence",
-                "  • Archive integrity",
-                "  • Git tag consistency",
-                "  • File completeness",
+                "this checks:",
+                "  • version number sequence",
+                "  • archive integrity",
+                "  • git tag consistency",
+                "  • file completeness",
                 "",
                 "🚧 Full validation coming soon!",
                 "",
-                "Press ESC to continue"
+                "press esc to continue"
             ],
             color=Colors.YELLOW
         )

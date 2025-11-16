@@ -11,6 +11,7 @@ from typing import List, Dict, Any, Optional
 from core.clients.tui import BaseTUI
 from core.clients.tui.components import MenuSection
 from core.clients.cli.framework.ui import MenuItem, Colors
+from core.clients.tui.common_items import CommonItems
 
 
 class ClientTUI(BaseTUI):
@@ -93,21 +94,21 @@ class ClientTUI(BaseTUI):
 
                             description = (
                                 f'{module_desc}\n\n'
-                                f'→ Module: {metadata.get("id", module_path.name)}\n'
-                                f'→ Version: {metadata.get("version", "unknown")}\n\n'
-                                f'Press Enter to launch'
+                                f'→ module: {metadata.get("id", module_path.name)}\n'
+                                f'→ version: {metadata.get("version", "unknown")}\n\n'
+                                f'press enter to launch'
                             )
 
                             label = display_name.lower()
                         else:
                             label = module_path.name
                             module_icon = '📦'
-                            description = f'Launch {module_path.name} module\n\nPress Enter to launch'
+                            description = f'launch {module_path.name} module\n\npress enter to launch'
 
                         modules.append(MenuItem(
                             id=f"module_{module_path.name}",
-                            label=label,
-                            icon=module_icon,
+                            label=f"{module_icon} {label}",
+                            icon='',
                             description=description,
                             enabled=True
                         ))
@@ -115,8 +116,8 @@ class ClientTUI(BaseTUI):
         if not modules:
             modules.append(MenuItem(
                 id='no_modules',
-                label='no modules found',
-                icon='📦',
+                label='📦 no modules found',
+                icon='',
                 description='No modules installed.\n\n'
                            'Install modules to access applications.',
                 enabled=False
@@ -143,8 +144,8 @@ class ClientTUI(BaseTUI):
                 items=[
                     MenuItem(
                         id='system_settings',
-                        label='system settings',
-                        icon='🔧',
+                        label='🔧 system settings',
+                        icon='',
                         description='system configuration\n\n'
                                    '→ General settings\n'
                                    '→ User preferences\n'
@@ -155,8 +156,8 @@ class ClientTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='network_settings',
-                        label='network settings',
-                        icon='📡',
+                        label='📡 network settings',
+                        icon='',
                         description='wifi and connectivity\n\n'
                                    '→ WiFi configuration\n'
                                    '→ Network status\n'
@@ -167,8 +168,8 @@ class ClientTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='update_system',
-                        label='update system',
-                        icon='🔄',
+                        label='🔄 update system',
+                        icon='',
                         description='check for updates\n\n'
                                    '→ System updates\n'
                                    '→ Module updates\n'
@@ -179,8 +180,8 @@ class ClientTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='backup_data',
-                        label='backup data',
-                        icon='💾',
+                        label='💾 backup data',
+                        icon='',
                         description='backup user data\n\n'
                                    '→ Create backup\n'
                                    '→ Restore backup\n'
@@ -191,8 +192,8 @@ class ClientTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='storage_management',
-                        label='storage management',
-                        icon='💿',
+                        label='💿 storage management',
+                        icon='',
                         description='disk space management\n\n'
                                    '→ Disk usage\n'
                                    '→ Clean cache\n'
@@ -210,22 +211,11 @@ class ClientTUI(BaseTUI):
                 label='info',
                 icon='ℹ️',
                 items=[
-                    MenuItem(
-                        id='system_status',
-                        label='system status',
-                        icon='💚',
-                        description='device information\n\n'
-                                   '→ System health\n'
-                                   '→ Resource usage\n'
-                                   '→ Service status\n'
-                                   '→ Hardware info\n\n'
-                                   'View system status',
-                        enabled=True
-                    ),
+                    CommonItems.system_status(profile_type='client'),
                     MenuItem(
                         id='module_status',
-                        label='module status',
-                        icon='📊',
+                        label='📊 module status',
+                        icon='',
                         description='installed modules\n\n'
                                    '→ Module list\n'
                                    '→ Module versions\n'
@@ -236,8 +226,8 @@ class ClientTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='network_status',
-                        label='network status',
-                        icon='🌐',
+                        label='🌐 network status',
+                        icon='',
                         description='connectivity information\n\n'
                                    '→ Network interfaces\n'
                                    '→ IP addresses\n'
@@ -248,8 +238,8 @@ class ClientTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='help_support',
-                        label='help & support',
-                        icon='❓',
+                        label='❓ help & support',
+                        icon='',
                         description='documentation and help\n\n'
                                    '→ User guide\n'
                                    '→ FAQ\n'
@@ -260,8 +250,8 @@ class ClientTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='about',
-                        label='about',
-                        icon='📋',
+                        label='📋 about',
+                        icon='',
                         description='version and credits\n\n'
                                    '→ UNIBOS version\n'
                                    '→ System info\n'

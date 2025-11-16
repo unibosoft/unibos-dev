@@ -10,6 +10,17 @@
   "icon": "📡",
   "author": "Berk Hatırlı",
 
+  "features": [
+    "Real-time earthquake alerts",
+    "Mesh network capability",
+    "Emergency contact management",
+    "Safe zone mapping",
+    "User location tracking",
+    "Offline messaging support",
+    "WebSocket real-time updates",
+    "Disaster response coordination"
+  ],
+
   "capabilities": {
     "backend": true,
     "web": false,

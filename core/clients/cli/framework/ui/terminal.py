@@ -9,6 +9,7 @@ Reference: docs/development/cli_v527_reference.md
 import os
 import sys
 import platform
+import unicodedata
 from typing import Tuple, List
 
 
@@ -61,6 +62,37 @@ def show_cursor():
     """Show the terminal cursor"""
     sys.stdout.write("\033[?25h")
     sys.stdout.flush()
+
+
+def flush_input_buffer(times: int = 3):
+    """
+    Flush input buffer multiple times to prevent escape sequence leak
+
+    This prevents arrow key escape sequences (ESC[A, ESC[B) from leaking
+    into the footer or other UI components during rapid navigation.
+
+    V527 Solution: Triple buffer flush with delays between each flush.
+
+    Args:
+        times: Number of flush iterations (default: 3)
+
+    Example:
+        After handling UP/DOWN arrow keys:
+        >>> flush_input_buffer(times=2)
+    """
+    try:
+        import sys
+        import time
+
+        # Only flush on Unix-like systems (macOS, Linux)
+        if platform.system() != 'Windows':
+            import termios
+            for _ in range(times):
+                termios.tcflush(sys.stdin, termios.TCIFLUSH)
+                time.sleep(0.01)  # 10ms delay between flushes
+    except Exception:
+        # Silently fail on platforms without termios
+        pass
 
 
 def get_spinner_frame(index: int) -> str:
@@ -134,3 +166,75 @@ def print_centered(text: str, y: int = None):
         move_cursor(x, y)
 
     print(text, flush=True)
+
+
+def get_visual_width(text: str) -> int:
+    """
+    Calculate the visual display width of text in a terminal.
+
+    This accounts for:
+    - Wide characters (emoji, CJK) that occupy 2 columns
+    - Zero-width characters (variation selectors, combining marks)
+    - Regular ASCII characters that occupy 1 column
+
+    Args:
+        text: Text to measure
+
+    Returns:
+        Visual width in terminal columns
+
+    Example:
+        >>> get_visual_width("hello")
+        5
+        >>> get_visual_width("🍽️")  # Emoji with variation selector
+        2
+        >>> get_visual_width(" 🛡️ guard")
+        9  # 1 (space) + 2 (emoji) + 0 (variation) + 1 (space) + 5 (guard)
+    """
+    width = 0
+    for char in text:
+        # Variation selector (U+FE0F) and other combining marks have no width
+        if unicodedata.combining(char) or char == '\uFE0F':
+            continue
+
+        # Check if character is wide (emoji, CJK, etc.)
+        ea_width = unicodedata.east_asian_width(char)
+        if ea_width in ('F', 'W'):  # Full-width or Wide
+            width += 2
+        else:
+            width += 1
+
+    return width
+
+
+def pad_to_visual_width(text: str, target_width: int, fillchar: str = ' ') -> str:
+    """
+    Pad text to a specific visual width (not character count).
+
+    This is a replacement for str.ljust() that accounts for emoji
+    and wide characters displaying as 2 columns in terminals.
+
+    Args:
+        text: Text to pad
+        target_width: Desired visual width in terminal columns
+        fillchar: Character to use for padding (default: space)
+
+    Returns:
+        Padded text with exact visual width
+
+    Example:
+        >>> pad_to_visual_width("hello", 10)
+        'hello     '  # 5 chars + 5 spaces = 10 visual columns
+        >>> pad_to_visual_width(" 🛡️ guard", 25)
+        ' 🛡️ guard                '  # emoji is 2 visual columns
+    """
+    current_width = get_visual_width(text)
+
+    if current_width >= target_width:
+        # Already at or exceeds target, return as-is
+        return text
+
+    # Calculate how many padding characters needed
+    padding_needed = target_width - current_width
+
+    return text + (fillchar * padding_needed)

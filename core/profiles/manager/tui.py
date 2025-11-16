@@ -11,6 +11,7 @@ from typing import List, Optional
 from core.clients.tui import BaseTUI
 from core.clients.tui.components import MenuSection
 from core.clients.cli.framework.ui import MenuItem, Colors
+from core.clients.tui.common_items import CommonItems
 
 
 class ManagerTUI(BaseTUI):
@@ -71,8 +72,8 @@ class ManagerTUI(BaseTUI):
                 items=[
                     MenuItem(
                         id='target_rocksteady',
-                        label='rocksteady',
-                        icon='🌍',
+                        label='🌍 rocksteady',
+                        icon='',
                         description='production unibos server\n\n'
                                    '→ Host: Oracle Cloud VM\n'
                                    '→ Location: Remote\n'
@@ -83,8 +84,8 @@ class ManagerTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='target_local',
-                        label='local dev',
-                        icon='💻',
+                        label='💻 local dev',
+                        icon='',
                         description='local development environment\n\n'
                                    '→ Host: localhost\n'
                                    '→ Location: Local\n'
@@ -95,8 +96,8 @@ class ManagerTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='list_nodes',
-                        label='list nodes',
-                        icon='📋',
+                        label='📋 list nodes',
+                        icon='',
                         description='list all managed nodes\n\n'
                                    '→ Show all registered nodes\n'
                                    '→ View node status\n'
@@ -116,8 +117,8 @@ class ManagerTUI(BaseTUI):
                 items=[
                     MenuItem(
                         id='deploy',
-                        label='deploy',
-                        icon='🚀',
+                        label='🚀 deploy',
+                        icon='',
                         description='deploy to target\n\n'
                                    '→ Deploy code to target\n'
                                    '→ Run migrations\n'
@@ -126,34 +127,12 @@ class ManagerTUI(BaseTUI):
                                    f'Deploy to current target: {self.current_target}',
                         enabled=True
                     ),
-                    MenuItem(
-                        id='restart_services',
-                        label='restart services',
-                        icon='🔄',
-                        description='restart target services\n\n'
-                                   '→ Restart web server\n'
-                                   '→ Restart background workers\n'
-                                   '→ Reload configurations\n'
-                                   '→ Check service status\n\n'
-                                   'Restart all services on target',
-                        enabled=True
-                    ),
-                    MenuItem(
-                        id='view_logs',
-                        label='view logs',
-                        icon='📝',
-                        description='view target logs\n\n'
-                                   '→ Application logs\n'
-                                   '→ Error logs\n'
-                                   '→ Access logs\n'
-                                   '→ System logs\n\n'
-                                   'View logs from target server',
-                        enabled=True
-                    ),
+                    CommonItems.restart_services(profile_type='manager'),
+                    CommonItems.view_logs(profile_type='manager'),
                     MenuItem(
                         id='run_migrations',
-                        label='run migrations',
-                        icon='🔄',
+                        label='🔄 run migrations',
+                        icon='',
                         description='run database migrations\n\n'
                                    '→ Show migration status\n'
                                    '→ Apply pending migrations\n'
@@ -162,22 +141,11 @@ class ManagerTUI(BaseTUI):
                                    'Manage database migrations',
                         enabled=True
                     ),
-                    MenuItem(
-                        id='backup_database',
-                        label='backup database',
-                        icon='💾',
-                        description='backup target database\n\n'
-                                   '→ Create database backup\n'
-                                   '→ Download to local\n'
-                                   '→ Verify backup integrity\n'
-                                   '→ Store backup info\n\n'
-                                   'Create database backup',
-                        enabled=True
-                    ),
+                    CommonItems.backup_database(profile_type='manager'),
                     MenuItem(
                         id='ssh_server',
-                        label='ssh to server',
-                        icon='🔐',
+                        label='🔐 ssh to server',
+                        icon='',
                         description='open ssh connection\n\n'
                                    '→ Connect via SSH\n'
                                    '→ Interactive terminal\n'
@@ -195,22 +163,11 @@ class ManagerTUI(BaseTUI):
                 label='monitoring',
                 icon='📊',
                 items=[
-                    MenuItem(
-                        id='system_status',
-                        label='system status',
-                        icon='💚',
-                        description='complete system status\n\n'
-                                   '→ Overall health\n'
-                                   '→ Service states\n'
-                                   '→ Resource usage\n'
-                                   '→ Recent activity\n\n'
-                                   'View complete system status',
-                        enabled=True
-                    ),
+                    CommonItems.system_status(profile_type='manager'),
                     MenuItem(
                         id='service_health',
-                        label='service health',
-                        icon='🏥',
+                        label='🏥 service health',
+                        icon='',
                         description='service health check\n\n'
                                    '→ Web server status\n'
                                    '→ Database status\n'
@@ -219,22 +176,11 @@ class ManagerTUI(BaseTUI):
                                    'Check all service health',
                         enabled=True
                     ),
-                    MenuItem(
-                        id='git_status',
-                        label='git status',
-                        icon='📦',
-                        description='git repository status\n\n'
-                                   '→ Current branch\n'
-                                   '→ Uncommitted changes\n'
-                                   '→ Remote sync status\n'
-                                   '→ Recent commits\n\n'
-                                   'View git repository status',
-                        enabled=True
-                    ),
+                    CommonItems.git_operations(menu_id='git_status'),
                     MenuItem(
                         id='django_status',
-                        label='django status',
-                        icon='🐍',
+                        label='🐍 django status',
+                        icon='',
                         description='django application status\n\n'
                                    '→ Django version\n'
                                    '→ Installed apps\n'
@@ -245,8 +191,8 @@ class ManagerTUI(BaseTUI):
                     ),
                     MenuItem(
                         id='resource_usage',
-                        label='resource usage',
-                        icon='📈',
+                        label='📈 resource usage',
+                        icon='',
                         description='system resource usage\n\n'
                                    '→ CPU usage\n'
                                    '→ Memory usage\n'

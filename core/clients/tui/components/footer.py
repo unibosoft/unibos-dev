@@ -14,9 +14,10 @@ from core.clients.cli.framework.ui import Colors, get_terminal_size, move_cursor
 class Footer:
     """Footer component for TUI"""
 
-    def __init__(self, config):
-        """Initialize footer with config"""
+    def __init__(self, config, i18n=None):
+        """Initialize footer with config and i18n manager"""
         self.config = config
+        self.i18n = i18n
 
     def draw(self, hints: str = "", status: Optional[Dict[str, Any]] = None):
         """
@@ -26,11 +27,27 @@ class Footer:
             hints: Navigation hints text
             status: System status dict with hostname, time, date, online
         """
-        cols, lines = get_terminal_size()
+        # BUGFIX: Flush input buffer before drawing footer to prevent escape sequence leak
+        try:
+            import termios
+            termios.tcflush(sys.stdin, termios.TCIFLUSH)
+        except Exception:
+            pass  # Silently fail on platforms without termios
 
-        # Full dark background
-        move_cursor(1, lines)
+        cols, lines = get_terminal_size()
+        # BUGFIX: Footer should be at actual last line (lines), not lines - 1
+        # Terminal coordinates are 1-indexed, so last line = lines
+        footer_y = lines
+
+        # V527: Hide cursor during draw
+        sys.stdout.write('\033[?25l')
+        sys.stdout.flush()
+
+        # V527 CRITICAL: Clear footer line COMPLETELY before drawing
+        # This prevents duplication and escape sequence artifacts
+        sys.stdout.write(f"\033[{footer_y};1H")
         sys.stdout.write(f"{Colors.BG_DARK}{' ' * cols}{Colors.RESET}")
+        sys.stdout.flush()
 
         # Left side: Navigation hints
         if not hints:
@@ -40,8 +57,10 @@ class Footer:
         if self.config.lowercase_ui:
             hints = hints.lower()
 
-        move_cursor(2, lines)
+        # V527: Use precise cursor positioning (Column 2 for left-aligned)
+        sys.stdout.write(f"\033[{footer_y};2H")
         sys.stdout.write(f"{Colors.BG_DARK}{Colors.DIM}{hints}{Colors.RESET}")
+        sys.stdout.flush()
 
         # Right side: Status information
         right_elements = []
@@ -72,16 +91,13 @@ class Footer:
             # Online status
             if self.config.show_status_led and 'online' in status:
                 if status['online']:
-                    status_text = "online"
+                    status_text = self.i18n.translate('online') if self.i18n else "online"
                     status_led = "●"  # Green LED
                     led_color = Colors.GREEN
                 else:
-                    status_text = "offline"
+                    status_text = self.i18n.translate('offline') if self.i18n else "offline"
                     status_led = "●"  # Red LED
                     led_color = Colors.RED
-
-                if self.config.lowercase_ui:
-                    status_text = status_text.lower()
         else:
             # Default status
             hostname = socket.gethostname()
@@ -97,7 +113,7 @@ class Footer:
             right_elements.append(datetime.now().strftime("%Y-%m-%d"))
             right_elements.append(datetime.now().strftime("%H:%M:%S"))
 
-            status_text = "online"
+            status_text = self.i18n.translate('online') if self.i18n else "online"
             status_led = "●"
             led_color = Colors.GREEN
 
@@ -113,11 +129,16 @@ class Footer:
             right_pos = max(2, right_pos)
 
             # Draw right side
-            move_cursor(right_pos, lines)
+            # V527: Use footer_y not lines!
+            move_cursor(right_pos, footer_y)
             sys.stdout.write(f"{Colors.BG_DARK}{Colors.WHITE}{right_text}")
             if self.config.show_status_led:
                 sys.stdout.write(f"{led_color}{status_led}{Colors.RESET}")
             else:
                 sys.stdout.write(Colors.RESET)
+            sys.stdout.flush()
 
+        # V527: Final flush and show cursor
+        sys.stdout.flush()
+        sys.stdout.write('\033[?25h')
         sys.stdout.flush()
