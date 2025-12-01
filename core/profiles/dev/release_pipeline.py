@@ -395,7 +395,7 @@ class ReleasePipeline:
 
     def _step_git_branch(self, version: str):
         """Create git branch for major releases"""
-        branch_name = f"v{version}"
+        branch_name = f"release/v{version}"
         self._log(f"creating branch {branch_name}")
 
         # Create branch from current HEAD
@@ -445,9 +445,9 @@ class ReleasePipeline:
             if result.returncode != 0:
                 raise Exception(f"Push main failed: {result.stderr}")
 
-            # Push version branch (e.g., v1.0.0)
+            # Push version branch (e.g., release/v1.0.0)
             if version:
-                branch_name = f"v{version}"
+                branch_name = f"release/v{version}"
                 # Create or update the version branch
                 self._run_command(['git', 'branch', '-f', branch_name], check=False)
 
