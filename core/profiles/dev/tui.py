@@ -1411,7 +1411,29 @@ class UnibosDevTUI(BaseTUI):
         while True:
             key = self.get_key()
             if key == 'ESC':
+                if result.success:
+                    # Restart TUI to reflect new version
+                    self._restart_tui()
                 break
+
+    def _restart_tui(self):
+        """Restart TUI to reflect updated version"""
+        import os
+        import sys
+
+        # Show restart message
+        self.update_content(
+            title="restarting",
+            lines=["", "  tui yeniden başlatılıyor...", ""],
+            color=Colors.CYAN
+        )
+        self.render()
+
+        # Clean up terminal
+        self.cleanup()
+
+        # Re-execute the TUI
+        os.execv(sys.executable, [sys.executable] + sys.argv)
 
     def _version_increment(self):
         """Version increment wizard - simplified"""
