@@ -27,26 +27,35 @@ class Footer:
             hints: Navigation hints text
             status: System status dict with hostname, time, date, online
         """
-        # BUGFIX: Flush input buffer before drawing footer to prevent escape sequence leak
-        try:
-            import termios
-            termios.tcflush(sys.stdin, termios.TCIFLUSH)
-        except Exception:
-            pass  # Silently fail on platforms without termios
-
         cols, lines = get_terminal_size()
-        # BUGFIX: Footer should be at actual last line (lines), not lines - 1
-        # Terminal coordinates are 1-indexed, so last line = lines
         footer_y = lines
 
         # V527: Hide cursor during draw
         sys.stdout.write('\033[?25l')
         sys.stdout.flush()
 
-        # V527 CRITICAL: Clear footer line COMPLETELY before drawing
-        # This prevents duplication and escape sequence artifacts
-        sys.stdout.write(f"\033[{footer_y};1H")
-        sys.stdout.write(f"{Colors.BG_DARK}{' ' * cols}{Colors.RESET}")
+        # CRITICAL: Aggressive flush - both termios and reading any pending bytes
+        try:
+            import termios
+            termios.tcflush(sys.stdin, termios.TCIFLUSH)
+        except Exception:
+            pass
+
+        # Also try to drain stdin non-blocking
+        try:
+            import select
+            while select.select([sys.stdin], [], [], 0)[0]:
+                sys.stdin.read(1)
+        except Exception:
+            pass
+
+        # V527 CRITICAL: Clear footer line AND line above it to catch any overflow
+        # Clear line above footer first (catches escape sequences that leaked)
+        if footer_y > 1:
+            sys.stdout.write(f"\033[{footer_y - 1};1H\033[K")
+        # Clear footer line completely
+        sys.stdout.write(f"\033[{footer_y};1H\033[2K")
+        sys.stdout.write(f"\033[{footer_y};1H{Colors.BG_DARK}{' ' * cols}{Colors.RESET}")
         sys.stdout.flush()
 
         # Left side: Navigation hints
