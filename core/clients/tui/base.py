@@ -312,6 +312,9 @@ class BaseTUI(ABC):
 
     def _redraw_header_footer(self):
         """Redraw only header and footer to prevent disappearing during navigation"""
+        # Flush any pending input to prevent escape sequences appearing in footer
+        flush_input_buffer(times=2)
+
         # Get language display
         lang_code = self.i18n.get_language()
         lang_flag = self.i18n.get_language_flag(lang_code)
