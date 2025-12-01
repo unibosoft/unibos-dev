@@ -1323,41 +1323,89 @@ class UnibosDevTUI(BaseTUI):
                 return
 
     def _execute_release(self, release_type: str):
-        """Execute the release process - simplified"""
-        from core.version import __version__, get_new_build
+        """Execute the release process using ReleasePipeline"""
+        from core.profiles.dev.release_pipeline import ReleasePipeline, PipelineStep
 
-        new_build = get_new_build()
-        parts = [int(x) for x in __version__.split('.')]
+        # Map 'build' to 'daily' for pipeline
+        pipeline_type = 'daily' if release_type == 'build' else release_type
 
-        if release_type == 'build':
-            new_version = __version__
-        elif release_type == 'patch':
-            parts[2] += 1
-            new_version = '.'.join(map(str, parts))
-        elif release_type == 'minor':
-            parts[1] += 1
-            parts[2] = 0
-            new_version = '.'.join(map(str, parts))
-        elif release_type == 'major':
-            parts[0] += 1
-            parts[1] = 0
-            parts[2] = 0
-            new_version = '.'.join(map(str, parts))
-        else:
-            new_version = __version__
+        pipeline = ReleasePipeline()
+        new_version = pipeline.calculate_new_version(pipeline_type)
+        new_build = pipeline.get_new_build()
 
+        # Progress tracking
+        progress_lines = []
+        current_step_name = ""
+
+        def on_step_start(step: PipelineStep):
+            nonlocal current_step_name
+            current_step_name = step.name
+
+        def on_step_complete(step: PipelineStep):
+            if step.status == "success":
+                progress_lines.append(f"  ✓ {step.name}")
+            elif step.status == "failed":
+                progress_lines.append(f"  ✗ {step.name}: {step.message}")
+            elif step.status == "skipped":
+                progress_lines.append(f"  ○ {step.name} (skipped)")
+
+        def on_progress(msg: str):
+            nonlocal progress_lines
+            # Update display
+            lines = [
+                f"releasing v{new_version}+build.{new_build}",
+                "",
+                f"  ◦ {current_step_name}..." if current_step_name else "",
+            ] + progress_lines[-8:]  # Show last 8 completed steps
+
+            self.update_content(title="release pipeline", lines=lines, color=Colors.CYAN)
+            self.render()
+
+        # Set callbacks
+        pipeline.on_step_start = on_step_start
+        pipeline.on_step_complete = on_step_complete
+        pipeline.on_progress = on_progress
+
+        # Show initial state
         lines = [
-            f"v{new_version}+build.{new_build}",
+            f"releasing v{new_version}+build.{new_build}",
             "",
-            "manual steps:",
-            f"  1. VERSION.json → build: \"{new_build}\"",
-            f"  2. core/version.py → __build__ = \"{new_build}\"",
-            "  3. git commit & tag",
-            "",
-            "🚧 auto-release coming soon"
+            "  preparing pipeline...",
         ]
+        self.update_content(title="release pipeline", lines=lines, color=Colors.CYAN)
+        self.render()
 
-        self.update_content(title="release", lines=lines, color=Colors.YELLOW)
+        # Run pipeline (dry_run for now - remove when ready)
+        result = pipeline.run(
+            release_type=pipeline_type,
+            message=f"chore: release v{new_version}",
+            repos=['dev'],  # Start with dev only
+            dry_run=False
+        )
+
+        # Show result
+        if result.success:
+            lines = [
+                f"✓ v{result.version}+build.{result.build}",
+                "",
+            ] + progress_lines + [
+                "",
+                f"completed in {result.duration:.1f}s",
+            ]
+            if result.archive_path:
+                lines.append(f"archive: {result.archive_path.split('/')[-1]}")
+            color = Colors.GREEN
+        else:
+            lines = [
+                f"✗ release failed",
+                "",
+            ] + progress_lines + [
+                "",
+                f"error: {result.error}",
+            ]
+            color = Colors.RED
+
+        self.update_content(title="release complete" if result.success else "release failed", lines=lines, color=color)
         self.render()
 
         while True:

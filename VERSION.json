@@ -3,8 +3,7 @@
     "major": 1,
     "minor": 0,
     "patch": 0,
-    "build": "20251201222554",
-    "prerelease": null
+    "build": "20251201235142"
   },
   "display": {
     "semantic": "1.0.0",
@@ -14,11 +13,9 @@
     "archive": "unibos_v1.0.0_b20251201222554"
   },
   "build_info": {
-    "timestamp_raw": "20251201222554",
-    "timestamp_iso": "2025-12-01T22:25:54+03:00",
     "date": "2025-12-01",
-    "time": "22:25:54",
-    "readable": "1 Aralik 2025, Pazartesi, 22:25:54"
+    "time": "23:51:42",
+    "timestamp": "20251201235142"
   },
   "git": {
     "commit": null,
@@ -52,25 +49,69 @@
     "Timestamp-based build versioning"
   ],
   "modules": {
-    "birlikteyiz": {"version": "1.0", "status": "integrated"},
-    "cctv": {"version": "1.0", "status": "integrated"},
-    "currencies": {"version": "3.0", "status": "integrated"},
-    "documents": {"version": "1.0", "status": "integrated"},
-    "movies": {"version": "1.0", "status": "integrated"},
-    "music": {"version": "1.0", "status": "integrated"},
-    "personal_inflation": {"version": "1.0", "status": "integrated"},
-    "recaria": {"version": "1.0", "status": "integrated"},
-    "restopos": {"version": "1.0", "status": "integrated"},
-    "solitaire": {"version": "1.0", "status": "integrated"},
-    "store": {"version": "1.0", "status": "integrated"},
-    "wimm": {"version": "1.0", "status": "integrated"},
-    "wims": {"version": "1.0", "status": "integrated"}
+    "birlikteyiz": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "cctv": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "currencies": {
+      "version": "3.0",
+      "status": "integrated"
+    },
+    "documents": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "movies": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "music": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "personal_inflation": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "recaria": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "restopos": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "solitaire": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "store": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "wimm": {
+      "version": "1.0",
+      "status": "integrated"
+    },
+    "wims": {
+      "version": "1.0",
+      "status": "integrated"
+    }
   },
   "technical": {
     "python_minimum": "3.8",
     "python_recommended": "3.11",
     "database": "PostgreSQL only",
-    "platforms": ["Windows", "macOS", "Linux", "Raspberry Pi"],
+    "platforms": [
+      "Windows",
+      "macOS",
+      "Linux",
+      "Raspberry Pi"
+    ],
     "terminal_minimum": "80x24",
     "terminal_recommended": "120x40"
   },
