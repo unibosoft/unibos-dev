@@ -20,9 +20,7 @@ timeout = 120
 graceful_timeout = 30
 keepalive = 5
 
-# Restart workers after this many requests, to help prevent memory leaks
-max_requests = 1000
-max_requests_jitter = 100
+# Note: max_requests already defined above with jitter
 
 # Preload application
 preload_app = False
@@ -34,13 +32,19 @@ enable_stdio_inheritance = True
 # Access log format
 access_log_format = '%(h)s %(l)s %(u)s %(t)s "%(r)s" %(s)s %(b)s "%(f)s" "%(a)s" %(D)s'
 
-# Error log - using backend logs directory
+# Logging configuration
 base_dir = os.path.dirname(os.path.abspath(__file__))
-errorlog = os.path.join(base_dir, "logs", "gunicorn-error.log")
+logs_dir = os.path.join(base_dir, "logs")
+
+# Create logs directory if it doesn't exist
+os.makedirs(logs_dir, exist_ok=True)
+
+# Error log
+errorlog = os.path.join(logs_dir, "gunicorn-error.log")
 loglevel = "info"
 
 # Access log
-accesslog = os.path.join(base_dir, "logs", "gunicorn-access.log")
+accesslog = os.path.join(logs_dir, "gunicorn-access.log")
 
 # Process naming
 proc_name = "unibos_backend"
