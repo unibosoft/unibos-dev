@@ -1,6 +1,6 @@
 """
-UNIBOS CLI - Help Command
-Comprehensive help and documentation for all CLI commands
+unibos cli - help command
+comprehensive help and documentation for all cli commands
 """
 
 import click
@@ -9,180 +9,180 @@ from core.version import __version__, __build__
 
 HELP_TEXT = """
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                        UNIBOS-DEV CLI REFERENCE                              ║
+║                        unibos-dev cli reference                              ║
 ║                     v{version}+build.{build}                            ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
-USAGE
-    unibos-dev                      Launch interactive TUI
-    unibos-dev [command]            Run specific command
-    unibos-dev [command] --help     Get help for command
+usage
+    unibos-dev                      launch interactive tui
+    unibos-dev [command]            run specific command
+    unibos-dev [command] --help     get help for command
 
 ────────────────────────────────────────────────────────────────────────────────
-QUICK START
+quick start
 ────────────────────────────────────────────────────────────────────────────────
 
-  Start Development Server
-    unibos-dev run                  Start uvicorn server (foreground)
-    unibos-dev run -b               Start in background mode
-    unibos-dev stop                 Stop the server
-    unibos-dev status               Check system status
+  start development server
+    unibos-dev run                  start uvicorn server (foreground)
+    unibos-dev run -b               start in background mode
+    unibos-dev stop                 stop the server
+    unibos-dev status               check system status
 
-  Database Operations
-    unibos-dev migrate              Run migrations
-    unibos-dev shell                Open Django shell
+  database operations
+    unibos-dev migrate              run migrations
+    unibos-dev shell                open django shell
 
-  Release & Version
-    unibos-dev release run build    Create new build (timestamp only)
-    unibos-dev release info         Show version details
-
-────────────────────────────────────────────────────────────────────────────────
-COMMAND GROUPS
-────────────────────────────────────────────────────────────────────────────────
-
-  dev         Development server commands
-  db          Database management
-  git         Git repository operations
-  deploy      Production deployment
-  release     Version & release management
-  platform    Hardware & OS information
-  manager     Remote node management
+  release & version
+    unibos-dev release run build    create new build (timestamp only)
+    unibos-dev release info         show version details
 
 ────────────────────────────────────────────────────────────────────────────────
-DEV COMMANDS (unibos-dev dev ...)
+command groups
 ────────────────────────────────────────────────────────────────────────────────
 
-  run [--port] [--host] [-b]        Start uvicorn ASGI server
-                                    -b, --background  Run in background
-                                    --port PORT       Default: 8000
-                                    --host HOST       Default: 127.0.0.1
+  dev         development server commands
+  db          database management
+  git         git repository operations
+  deploy      production deployment
+  release     version & release management
+  platform    hardware & os information
+  manager     remote node management
 
-  stop                              Stop running development server
-  status                            Check if server is running
-  shell                             Open Django interactive shell
-  test [args]                       Run Django tests
-  migrate [--app]                   Apply database migrations
-  makemigrations [--app]            Create new migrations
-  logs [-n] [-f]                    View development logs
-                                    -n, --lines       Number of lines
-                                    -f, --follow      Follow log output
+────────────────────────────────────────────────────────────────────────────────
+dev commands (unibos-dev dev ...)
+────────────────────────────────────────────────────────────────────────────────
 
-  Shortcuts (top-level):
+  run [--port] [--host] [-b]        start uvicorn asgi server
+                                    -b, --background  run in background
+                                    --port PORT       default: 8000
+                                    --host HOST       default: 127.0.0.1
+
+  stop                              stop running development server
+  status                            check if server is running
+  shell                             open django interactive shell
+  test [args]                       run django tests
+  migrate [--app]                   apply database migrations
+  makemigrations [--app]            create new migrations
+  logs [-n] [-f]                    view development logs
+                                    -n, --lines       number of lines
+                                    -f, --follow      follow log output
+
+  shortcuts (top-level):
     unibos-dev run      = unibos-dev dev run
     unibos-dev stop     = unibos-dev dev stop
     unibos-dev shell    = unibos-dev dev shell
     unibos-dev migrate  = unibos-dev dev migrate
 
 ────────────────────────────────────────────────────────────────────────────────
-DATABASE COMMANDS (unibos-dev db ...)
+database commands (unibos-dev db ...)
 ────────────────────────────────────────────────────────────────────────────────
 
-  status                            Check PostgreSQL status
-  create                            Create UNIBOS database
-  migrate                           Run Django migrations
-  backup                            Create database backup
-  restore                           Restore from backup
+  status                            check postgresql status
+  create                            create unibos database
+  migrate                           run django migrations
+  backup                            create database backup
+  restore                           restore from backup
 
 ────────────────────────────────────────────────────────────────────────────────
-GIT COMMANDS (unibos-dev git ...)
+git commands (unibos-dev git ...)
 ────────────────────────────────────────────────────────────────────────────────
 
-  status                            Show repository status
-  push-dev                          Push to dev remote
-  push-prod                         Push to prod remote
-  pull                              Pull from remote
-  sync                              Sync all remotes
+  status                            show repository status
+  push-dev                          push to dev remote
+  push-prod                         push to prod remote
+  pull                              pull from remote
+  sync                              sync all remotes
 
 ────────────────────────────────────────────────────────────────────────────────
-RELEASE COMMANDS (unibos-dev release ...)
+release commands (unibos-dev release ...)
 ────────────────────────────────────────────────────────────────────────────────
 
-  info                              Show detailed version info
-  current                           Show current version (short)
+  info                              show detailed version info
+  current                           show current version (short)
 
-  run [TYPE] [-m MSG]               Run release pipeline
+  run [TYPE] [-m MSG]               run release pipeline
                                     TYPE: build | patch | minor | major
 
-      build   New timestamp, same version (v1.0.0 → v1.0.0)
-      patch   Bug fix release          (v1.0.0 → v1.0.1)
-      minor   Feature release          (v1.0.0 → v1.1.0)
-      major   Breaking change          (v1.0.0 → v2.0.0)
+      build   new timestamp, same version (v1.0.0 → v1.0.0)
+      patch   bug fix release          (v1.0.0 → v1.0.1)
+      minor   feature release          (v1.0.0 → v1.1.0)
+      major   breaking change          (v1.0.0 → v2.0.0)
 
-      Options:
-        -m, --message   Custom commit message
-        --dry-run       Simulate without executing
-        -r, --repos     Target repos (default: dev,server,manager,prod)
+      options:
+        -m, --message   custom commit message
+        --dry-run       simulate without executing
+        -r, --repos     target repos (default: dev,server,manager,prod)
 
-  archives [-n LIMIT] [--json]      Browse version archives
-  analyze                           Show archive statistics
+  archives [-n LIMIT] [--json]      browse version archives
+  analyze                           show archive statistics
 
-  Examples:
+  examples:
     unibos-dev release run build
     unibos-dev release run minor -m "feat: new feature"
     unibos-dev release run patch --dry-run
     unibos-dev release archives --limit 20
 
 ────────────────────────────────────────────────────────────────────────────────
-DEPLOY COMMANDS (unibos-dev deploy ...)
+deploy commands (unibos-dev deploy ...)
 ────────────────────────────────────────────────────────────────────────────────
 
-  rocksteady                        Deploy to Rocksteady server
-  status [server]                   Check server status
-  logs [server]                     View server logs
-  backup [server]                   Create server backup
-  ssh [server]                      SSH to server
+  rocksteady                        deploy to rocksteady server
+  status [server]                   check server status
+  logs [server]                     view server logs
+  backup [server]                   create server backup
+  ssh [server]                      ssh to server
 
 ────────────────────────────────────────────────────────────────────────────────
-OTHER COMMANDS
+other commands
 ────────────────────────────────────────────────────────────────────────────────
 
-  status                            System health check
-  platform [--json] [-v]            Show platform information
-  manager                           Remote management tools
+  status                            system health check
+  platform [--json] [-v]            show platform information
+  manager                           remote management tools
 
 ────────────────────────────────────────────────────────────────────────────────
-EXAMPLES
+examples
 ────────────────────────────────────────────────────────────────────────────────
 
-  # Daily workflow
-  unibos-dev run -b                 # Start server in background
-  unibos-dev status                 # Check status
+  # daily workflow
+  unibos-dev run -b                 # start server in background
+  unibos-dev status                 # check status
   # ... make changes ...
-  unibos-dev release run build      # Create new build
-  unibos-dev deploy rocksteady      # Deploy to production
+  unibos-dev release run build      # create new build
+  unibos-dev deploy rocksteady      # deploy to production
 
-  # Database workflow
-  unibos-dev db status              # Check PostgreSQL
-  unibos-dev makemigrations         # Create migrations
-  unibos-dev migrate                # Apply migrations
-  unibos-dev shell                  # Test in Django shell
+  # database workflow
+  unibos-dev db status              # check postgresql
+  unibos-dev makemigrations         # create migrations
+  unibos-dev migrate                # apply migrations
+  unibos-dev shell                  # test in django shell
 
-  # Git workflow
-  unibos-dev git status             # Check git status
-  unibos-dev git push-dev           # Push to dev remote
-
-────────────────────────────────────────────────────────────────────────────────
-INTERACTIVE MODE
-────────────────────────────────────────────────────────────────────────────────
-
-  Run `unibos-dev` without arguments to launch the interactive TUI.
-
-  TUI Navigation:
-    ↑/↓         Navigate menu items
-    Enter/→     Select item / Enter submenu
-    Esc/←       Go back / Exit submenu
-    q           Quit TUI
-    ?           Show help in TUI
+  # git workflow
+  unibos-dev git status             # check git status
+  unibos-dev git push-dev           # push to dev remote
 
 ────────────────────────────────────────────────────────────────────────────────
-MORE INFORMATION
+interactive mode
 ────────────────────────────────────────────────────────────────────────────────
 
-  unibos-dev [command] --help       Detailed help for any command
-  unibos-dev --version              Show version
+  run `unibos-dev` without arguments to launch the interactive tui.
 
-  Project: /Users/berkhatirli/Desktop/unibos-dev
-  Docs:    https://github.com/berkhatirli/unibos
+  tui navigation:
+    ↑/↓         navigate menu items
+    enter/→     select item / enter submenu
+    esc/←       go back / exit submenu
+    q           quit tui
+    ?           show help in tui
+
+────────────────────────────────────────────────────────────────────────────────
+more information
+────────────────────────────────────────────────────────────────────────────────
+
+  unibos-dev [command] --help       detailed help for any command
+  unibos-dev --version              show version
+
+  project: /Users/berkhatirli/Desktop/unibos-dev
+  docs:    https://github.com/berkhatirli/unibos
 
 """
 
@@ -190,18 +190,18 @@ MORE INFORMATION
 @click.command(name='help')
 @click.argument('topic', required=False)
 def help_command(topic):
-    """Show comprehensive CLI help and documentation
+    """show comprehensive cli help and documentation
 
-    Examples:
-        unibos-dev help           Show full help
-        unibos-dev help dev       Help for dev commands
-        unibos-dev help release   Help for release commands
+    examples:
+        unibos-dev help           show full help
+        unibos-dev help dev       help for dev commands
+        unibos-dev help release   help for release commands
     """
     if topic:
-        # Show topic-specific help
+        # show topic-specific help
         show_topic_help(topic)
     else:
-        # Show full help
+        # show full help
         formatted = HELP_TEXT.format(
             version=__version__,
             build=__build__[:8] + '...'
@@ -210,230 +210,230 @@ def help_command(topic):
 
 
 def show_topic_help(topic):
-    """Show help for specific topic"""
+    """show help for specific topic"""
     topics = {
         'dev': """
-DEV COMMANDS
+dev commands
 ════════════
 
-  unibos-dev dev run [OPTIONS]
-      Start uvicorn ASGI development server
+  unibos-dev dev run [options]
+      start uvicorn asgi development server
 
-      Options:
-        --port INTEGER    Port to run on (default: 8000)
-        --host TEXT       Host to bind to (default: 127.0.0.1)
-        --reload/--no-reload  Enable auto-reload (default: enabled)
-        -b, --background  Run in background mode
+      options:
+        --port INTEGER    port to run on (default: 8000)
+        --host TEXT       host to bind to (default: 127.0.0.1)
+        --reload/--no-reload  enable auto-reload (default: enabled)
+        -b, --background  run in background mode
 
-      Examples:
-        unibos-dev dev run              # Start in foreground
-        unibos-dev dev run -b           # Start in background
-        unibos-dev dev run --port 8080  # Custom port
+      examples:
+        unibos-dev dev run              # start in foreground
+        unibos-dev dev run -b           # start in background
+        unibos-dev dev run --port 8080  # custom port
 
   unibos-dev dev stop
-      Stop the running development server
+      stop the running development server
 
   unibos-dev dev status
-      Check if development server is running
+      check if development server is running
 
   unibos-dev dev shell
-      Open Django interactive shell (IPython if available)
+      open django interactive shell (ipython if available)
 
-  unibos-dev dev test [ARGS]
-      Run Django tests
+  unibos-dev dev test [args]
+      run django tests
 
-      Examples:
-        unibos-dev dev test                    # Run all tests
-        unibos-dev dev test myapp              # Run app tests
-        unibos-dev dev test myapp.tests.MyTest # Run specific test
+      examples:
+        unibos-dev dev test                    # run all tests
+        unibos-dev dev test myapp              # run app tests
+        unibos-dev dev test myapp.tests.MyTest # run specific test
 
-  unibos-dev dev migrate [OPTIONS]
-      Apply database migrations
+  unibos-dev dev migrate [options]
+      apply database migrations
 
-      Options:
-        --app TEXT    Specific app to migrate
+      options:
+        --app TEXT    specific app to migrate
 
-  unibos-dev dev makemigrations [OPTIONS]
-      Create new database migrations
+  unibos-dev dev makemigrations [options]
+      create new database migrations
 
-      Options:
-        --app TEXT    Specific app to create migrations for
+      options:
+        --app TEXT    specific app to create migrations for
 
-  unibos-dev dev logs [OPTIONS]
-      View development server logs
+  unibos-dev dev logs [options]
+      view development server logs
 
-      Options:
-        -n, --lines INTEGER   Number of lines to show (default: 50)
-        -f, --follow          Follow log output (like tail -f)
+      options:
+        -n, --lines INTEGER   number of lines to show (default: 50)
+        -f, --follow          follow log output (like tail -f)
 """,
         'release': """
-RELEASE COMMANDS
+release commands
 ════════════════
 
   unibos-dev release info
-      Show detailed version information including:
-      - Current version and build timestamp
-      - Codename and release type
-      - Build date and time
-      - Archive name
-      - Feature flags status
+      show detailed version information including:
+      - current version and build timestamp
+      - codename and release type
+      - build date and time
+      - archive name
+      - feature flags status
 
   unibos-dev release current
-      Show just the current version string
-      Output: v1.0.0+build.20251203004540
+      show just the current version string
+      output: v1.0.0+build.20251203004540
 
-  unibos-dev release run [TYPE] [OPTIONS]
-      Run the release pipeline to create a new version
+  unibos-dev release run [type] [options]
+      run the release pipeline to create a new version
 
-      Types:
-        build   Keep same version, new timestamp only
-        patch   Increment patch version (x.y.Z) - bug fixes
-        minor   Increment minor version (x.Y.0) - new features
-        major   Increment major version (X.0.0) - breaking changes
+      types:
+        build   keep same version, new timestamp only
+        patch   increment patch version (x.y.Z) - bug fixes
+        minor   increment minor version (x.Y.0) - new features
+        major   increment major version (X.0.0) - breaking changes
 
-      Options:
-        -m, --message TEXT    Custom commit message
-        --dry-run             Simulate without making changes
-        -r, --repos TEXT      Target repositories (can specify multiple)
-                              Default: dev, server, manager, prod
+      options:
+        -m, --message TEXT    custom commit message
+        --dry-run             simulate without making changes
+        -r, --repos TEXT      target repositories (can specify multiple)
+                              default: dev, server, manager, prod
 
-      Pipeline Steps:
-        1. Update CHANGELOG.md (from conventional commits)
-        2. Update version files (VERSION.json, core/version.py)
-        3. Create archive snapshot
-        4. Git commit
-        5. Create git tag
-        6. Push to all repositories
+      pipeline steps:
+        1. update changelog.md (from conventional commits)
+        2. update version files (VERSION.json, core/version.py)
+        3. create archive snapshot
+        4. git commit
+        5. create git tag
+        6. push to all repositories
 
-      Examples:
+      examples:
         unibos-dev release run build
         unibos-dev release run minor -m "feat: add new feature"
         unibos-dev release run patch --dry-run
         unibos-dev release run build -r dev -r server
 
-  unibos-dev release archives [OPTIONS]
-      Browse version archives
+  unibos-dev release archives [options]
+      browse version archives
 
-      Options:
-        -n, --limit INTEGER   Number of archives to show (default: 15)
-        --json                Output as JSON format
+      options:
+        -n, --limit INTEGER   number of archives to show (default: 15)
+        --json                output as json format
 
-      Examples:
+      examples:
         unibos-dev release archives
         unibos-dev release archives --limit 30
         unibos-dev release archives --json
 
   unibos-dev release analyze
-      Analyze archive directory statistics:
-      - Total number of archives
-      - Total disk space used
-      - Average archive size
-      - Largest archives
-      - Anomaly detection (archives >2x average)
+      analyze archive directory statistics:
+      - total number of archives
+      - total disk space used
+      - average archive size
+      - largest archives
+      - anomaly detection (archives >2x average)
 """,
         'db': """
-DATABASE COMMANDS
+database commands
 ═════════════════
 
   unibos-dev db status
-      Check PostgreSQL installation and connection status
+      check postgresql installation and connection status
 
   unibos-dev db create
-      Create the UNIBOS database (unibos_dev)
+      create the unibos database (unibos_dev)
 
   unibos-dev db migrate
-      Run Django database migrations
-      (Same as: unibos-dev migrate)
+      run django database migrations
+      (same as: unibos-dev migrate)
 
   unibos-dev db backup
-      Create a timestamped database backup
-      Backups stored in: data/backups/
+      create a timestamped database backup
+      backups stored in: data/backups/
 
   unibos-dev db restore
-      Restore database from a backup file
+      restore database from a backup file
 """,
         'git': """
-GIT COMMANDS
+git commands
 ════════════
 
   unibos-dev git status
-      Show current repository status (branch, changes, remotes)
+      show current repository status (branch, changes, remotes)
 
   unibos-dev git push-dev
-      Push current branch to 'dev' remote repository
+      push current branch to 'dev' remote repository
 
   unibos-dev git push-prod
-      Push current branch to 'prod' remote repository
+      push current branch to 'prod' remote repository
 
   unibos-dev git pull
-      Pull latest changes from remote
+      pull latest changes from remote
 
   unibos-dev git sync
-      Synchronize all configured remotes
+      synchronize all configured remotes
 
-CONFIGURED REMOTES
-  dev      Development repository (full codebase)
-  server   Server deployment (excludes dev tools)
-  manager  Manager tools repository
-  prod     Production nodes (minimal)
+configured remotes
+  dev      development repository (full codebase)
+  server   server deployment (excludes dev tools)
+  manager  manager tools repository
+  prod     production nodes (minimal)
 """,
         'deploy': """
-DEPLOY COMMANDS
+deploy commands
 ═══════════════
 
   unibos-dev deploy rocksteady
-      Deploy UNIBOS to Rocksteady production server
+      deploy unibos to rocksteady production server
 
-      This command:
-      1. Syncs files via rsync (respecting .rsyncignore)
-      2. Runs migrations on server
-      3. Restarts services
-      4. Verifies deployment
+      this command:
+      1. syncs files via rsync (respecting .rsyncignore)
+      2. runs migrations on server
+      3. restarts services
+      4. verifies deployment
 
-  unibos-dev deploy status [SERVER]
-      Check deployment status on server
+  unibos-dev deploy status [server]
+      check deployment status on server
 
-      Example:
+      example:
         unibos-dev deploy status rocksteady
 
-  unibos-dev deploy logs [SERVER]
-      View production server logs
+  unibos-dev deploy logs [server]
+      view production server logs
 
-      Example:
+      example:
         unibos-dev deploy logs rocksteady
 
-  unibos-dev deploy backup [SERVER]
-      Create backup on production server
+  unibos-dev deploy backup [server]
+      create backup on production server
 
-  unibos-dev deploy ssh [SERVER]
-      Open SSH connection to server
+  unibos-dev deploy ssh [server]
+      open ssh connection to server
 
-SERVER CONFIGURATION
-  Servers are configured in: core/profiles/dev/servers.json
-  SSH config should be set up in: ~/.ssh/config
+server configuration
+  servers are configured in: core/profiles/dev/servers.json
+  ssh config should be set up in: ~/.ssh/config
 """,
         'platform': """
-PLATFORM COMMAND
+platform command
 ════════════════
 
-  unibos-dev platform [OPTIONS]
-      Display platform and hardware information
+  unibos-dev platform [options]
+      display platform and hardware information
 
-      Options:
-        --json      Output as JSON format
-        -v          Verbose output with all details
+      options:
+        --json      output as json format
+        -v          verbose output with all details
 
-      Information displayed:
-        - Operating system and version
-        - Hardware specifications (CPU, RAM, disk)
-        - Device type classification
-        - Network information
-        - UNIBOS capabilities
+      information displayed:
+        - operating system and version
+        - hardware specifications (cpu, ram, disk)
+        - device type classification
+        - network information
+        - unibos capabilities
 
-      Examples:
-        unibos-dev platform           # Human-readable output
-        unibos-dev platform --json    # JSON format for scripts
-        unibos-dev platform -v        # Verbose details
+      examples:
+        unibos-dev platform           # human-readable output
+        unibos-dev platform --json    # json format for scripts
+        unibos-dev platform -v        # verbose details
 """
     }
 
@@ -442,10 +442,10 @@ PLATFORM COMMAND
     if topic_lower in topics:
         click.echo(topics[topic_lower])
     else:
-        click.echo(f"Unknown topic: {topic}")
+        click.echo(f"unknown topic: {topic}")
         click.echo()
-        click.echo("Available topics:")
+        click.echo("available topics:")
         for t in sorted(topics.keys()):
             click.echo(f"  {t}")
         click.echo()
-        click.echo("Usage: unibos-dev help [topic]")
+        click.echo("usage: unibos-dev help [topic]")
