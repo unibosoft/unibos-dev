@@ -26,9 +26,10 @@ django-ratelimit==4.1.0
 pyotp==2.9.0
 qrcode==7.4.2
 
-# WebSocket Support
+# WebSocket Support (Uvicorn preferred over Daphne for performance)
 channels==4.0.0
 channels-redis==4.2.0
+# Note: daphne removed - using uvicorn[standard] instead
 
 # Async Support
 asgiref==3.7.2
@@ -53,6 +54,8 @@ requests==2.31.0
 python-dateutil==2.8.2
 pytz==2023.3.post1
 user-agents==2.2.0
+beautifulsoup4==4.12.2
+lxml==5.1.0
 
 # Production Server
 gunicorn==21.2.0

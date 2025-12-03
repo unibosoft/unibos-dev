@@ -1,6 +1,13 @@
 """
 Gunicorn configuration for UNIBOS backend with Uvicorn workers
 Modern ASGI setup with WebSocket support and improved performance
+
+Note: We chose Uvicorn over Daphne for the following reasons:
+- Better performance in benchmarks
+- Native uvloop support for async operations
+- Simpler configuration
+- Better HTTP/2 support
+- Gunicorn integration via UvicornWorker class
 """
 
 import multiprocessing

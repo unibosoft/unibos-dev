@@ -57,6 +57,7 @@ class ServerDeployer:
     STEPS = [
         ("validate", "validating configuration"),
         ("ssh_check", "checking ssh connectivity"),
+        ("backup_db", "backing up database"),
         ("prepare", "preparing deployment directory"),
         ("clone", "cloning repository"),
         ("venv", "setting up python environment"),
@@ -233,7 +234,15 @@ class ServerDeployer:
                 return result
             self.log("  ✓ ssh connection successful")
 
-            # step 3: prepare deployment directory
+            # step 3: backup database before deployment
+            self.log_step("backup_db")
+            backup_result = self._backup_database_before_deploy()
+            if backup_result:
+                self.log(f"  ✓ {backup_result}")
+            else:
+                self.log("  · no existing database to backup")
+
+            # step 4: prepare deployment directory
             self.log_step("prepare")
             data_dir = self.config.data_dir
 
@@ -415,6 +424,58 @@ class ServerDeployer:
         self.ssh_cmd(f"chown -R {self.config.user}:{self.config.user} {data_dir}", quiet=True)
         self.log(f"  ✓ data directories created ({', '.join(subdirs)})")
 
+    def _backup_database_before_deploy(self) -> Optional[str]:
+        """
+        backup database before deployment
+        returns backup filename if successful, None if no db exists
+        """
+        db_name = self.config.env_vars.get('DB_NAME', f'unibos_{self.config.name}')
+
+        # check if database exists
+        check_db = self.ssh_cmd(
+            f"sudo -u postgres psql -lqt | cut -d \\| -f 1 | grep -qw {db_name} && echo 'exists' || echo 'not_exists'",
+            check=False, quiet=True
+        )
+
+        if 'not_exists' in check_db.stdout:
+            return None  # no database to backup
+
+        if self.dry_run:
+            return f"[dry run] would backup {db_name}"
+
+        # create backups directory if needed
+        backup_dir = f"{self.config.data_dir}/backups"
+        self.ssh_cmd(f"mkdir -p {backup_dir}", check=False, quiet=True)
+
+        # create timestamped backup with server name for clarity
+        timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = f"{backup_dir}/{self.config.name}_{db_name}_predeploy_{timestamp}.sql.gz"
+
+        # run pg_dump
+        result = self.ssh_cmd(
+            f"sudo -u postgres pg_dump {db_name} | gzip > {backup_file}",
+            check=False, quiet=True
+        )
+
+        if result.returncode != 0:
+            self.log(f"  ⚠ backup warning: {result.stderr[:100] if result.stderr else 'unknown error'}")
+            return None
+
+        # set ownership
+        self.ssh_cmd(
+            f"chown {self.config.user}:{self.config.user} {backup_file}",
+            check=False, quiet=True
+        )
+
+        # get file size
+        size_result = self.ssh_cmd(
+            f"ls -lh {backup_file} | awk '{{print $5}}'",
+            check=False, quiet=True
+        )
+        size = size_result.stdout.strip() if size_result.stdout else "unknown"
+
+        return f"backup saved: {backup_file} ({size})"
+
     def _setup_database(self) -> None:
         """setup postgresql database for this server"""
         db_name = self.config.env_vars.get('DB_NAME', f'unibos_{self.config.name}')
@@ -590,7 +651,7 @@ WantedBy=multi-user.target
             timestamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
 
             db_name = self.config.env_vars.get('DB_NAME', f'unibos_{self.config.name}')
-            backup_file = f"{self.config.data_dir}/backups/{db_name}_{timestamp}.sql.gz"
+            backup_file = f"{self.config.data_dir}/backups/{self.config.name}_{db_name}_{timestamp}.sql.gz"
 
             self.log(f"creating backup: {backup_file}")
 

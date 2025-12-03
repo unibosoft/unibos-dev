@@ -1,10 +1,134 @@
 # UNIBOS v535 Development Roadmap
 
 **Creation Date:** 2025-11-13
-**Last Update:** 2025-11-16 (Comprehensive merge: TODO + v527/v530-v533 analysis)
-**Current Phase:** Phase 0.5 - Critical Fixes & Production Parity
+**Last Update:** 2025-12-03 (DevOps Infrastructure Analysis Added)
+**Current Phase:** Phase 0.5 - Critical Infrastructure
+**Current Version:** v1.0.0
 **Target Release:** February 1, 2026 (12-week timeline)
 **Alternative Fast Track:** 4 weeks for Minimum Viable v535
+
+---
+
+## 🚨 DEVOPS & INFRASTRUCTURE SUMMARY (2025-12-03)
+
+### Mevcut Altyapı Durumu
+
+| Bileşen | Durum | Notlar |
+|---------|-------|--------|
+| 4-Tier CLI Mimarisi | ✅ | unibos-dev, manager, server, prod |
+| TUI Framework | ✅ | BaseTUI + profil bazlı inheritance |
+| Platform Detection | ✅ | macOS, Linux, Raspberry Pi desteği |
+| Deploy Pipeline | ✅ | 17 adımlı, DB backup dahil |
+| PostgreSQL | ✅ | Çalışıyor, backup sistemi var |
+| Gunicorn | ✅ | Production WSGI server |
+
+### ✅ Tamamlanan Altyapı (2025-12-03)
+
+#### 1. WebSocket/Channels - TAMAMLANDI
+- ✅ Django Channels kuruldu ve yapılandırıldı
+- ✅ Redis Channel Layer aktif
+- ✅ 4 modülde WebSocket consumers (currencies, documents, birlikteyiz, recaria)
+- ✅ Uvicorn ASGI server (Daphne yerine, daha iyi performans)
+
+#### 2. Celery Task Queue - TAMAMLANDI
+- ✅ Celery worker çalışıyor
+- ✅ 12 task keşfedildi ve aktif
+- ✅ Redis broker/result backend
+- ✅ Beat scheduler konfigüre
+
+#### 3. Redis - TAM ENTEGRE
+- ✅ Cache backend aktif
+- ✅ Session storage Redis'te
+- ✅ Channel Layer (WebSocket)
+- ✅ Celery broker
+
+#### 4. Middleware Stack - KISMEN MEVCUT
+Mevcut:
+- ✅ SecurityHeadersMiddleware
+- ✅ RequestLoggingMiddleware
+- ✅ RateLimitMiddleware
+- ✅ JWTAuthMiddleware (WebSocket için)
+- ✅ HealthCheckMiddleware (/health/quick/)
+
+Bekleyen:
+- ⏳ NodeIdentityMiddleware
+- ⏳ P2PDiscoveryMiddleware
+- ⏳ MaintenanceModeMiddleware
+
+### 🌐 P2P Network Mimarisi (Phase 3)
+
+```
+Local Network (LAN)              Wide Area (WAN)
+┌─────────────────────┐         ┌─────────────────────┐
+│   mDNS Discovery    │         │  Central Registry   │
+│  (Zero-config)      │         │  (Cloud fallback)   │
+└─────────────────────┘         └─────────────────────┘
+         │                               │
+         ▼                               ▼
+┌─────────────────────┐         ┌─────────────────────┐
+│  REST API Endpoints │◄───────►│   REST API Sync     │
+│  (Node discovery)   │         │  (Cross-network)    │
+└─────────────────────┘         └─────────────────────┘
+         │                               │
+         ▼                               ▼
+┌─────────────────────┐         ┌─────────────────────┐
+│  WebSocket Channels │◄───────►│   WebRTC Data       │
+│  (Real-time events) │         │   (Direct P2P)      │
+└─────────────────────┘         └─────────────────────┘
+```
+
+### Node Identity Sistemi (Planlanan)
+
+```python
+{
+    "node_id": "uuid4",
+    "node_name": "rocksteady",
+    "device_type": "server",  # server/desktop/raspberry_pi/edge
+    "capabilities": ["gpu", "camera", "gpio"],
+    "services": ["web", "api", "celery"],
+    "network": {
+        "local_ip": "192.168.0.100",
+        "public_ip": "158.178.201.117",
+        "mdns_name": "rocksteady.local"
+    }
+}
+```
+
+### 📦 Gerekli Paket Eklemeleri (requirements.txt)
+
+```txt
+# WebSocket & Real-time
+channels>=4.0.0
+channels-redis>=4.1.0
+daphne>=4.0.0
+
+# Task Queue
+celery>=5.3.0
+django-celery-beat>=2.5.0
+django-celery-results>=2.5.0
+
+# P2P & Discovery
+zeroconf>=0.80.0
+websockets>=12.0
+aiohttp>=3.9.0
+
+# Monitoring
+django-prometheus>=2.3.0
+sentry-sdk>=1.40.0
+```
+
+### 🚀 Öncelik Sıralaması (Güncellendi: 2025-12-03)
+
+| Sıra | Görev | Durum | Notlar |
+|------|-------|-------|--------|
+| ~~1~~ | ~~WebSocket/Channels kurulumu~~ | ✅ TAMAMLANDI | Uvicorn + Redis Channel Layer |
+| ~~2~~ | ~~Celery worker + beat başlatma~~ | ✅ TAMAMLANDI | 12 task keşfedildi |
+| ~~3~~ | ~~Redis tam entegrasyon~~ | ✅ TAMAMLANDI | Cache, session, channels, celery |
+| 4 | Middleware stack tamamlama | 🟠 BEKLEMEDE | 3 middleware kaldı |
+| 5 | Health check endpoints | 🟡 BEKLEMEDE | Basit endpoint var |
+| 6 | Node Identity sistemi | 🟠 BEKLEMEDE | P2P için gerekli |
+| 7 | mDNS Local Discovery | 🟡 BEKLEMEDE | zeroconf kullanılacak |
+| 8 | Central Registry API | 🟡 BEKLEMEDE | Rocksteady üzerinde |
 
 ---
 

@@ -1,29 +1,67 @@
-# UNIBOS - Universal Integrated Backend and Operating System
+# UNIBOS - Unicorn Bodrum Operating System
 
-> **v533** - Core-based modular platform with P2P architecture, multi-platform support, and plugin marketplace foundation
+> **v1.0.0** - Production-ready modular platform with 4-tier CLI architecture, P2P foundation, and multi-platform support
 
-## 🗂️ Project Structure (v533)
+## Quick Start
+
+### Development (unibos-dev)
+```bash
+# Install development CLI
+pipx install -e . --force
+
+# Launch TUI
+unibos-dev
+
+# Or specific commands
+unibos-dev dev run        # Start local web server
+unibos-dev dev tui        # Open TUI
+unibos-dev deploy         # Deploy to rocksteady
+```
+
+### Server (unibos-server)
+```bash
+# On production server
+unibos-server start       # Start services
+unibos-server status      # Check status
+unibos-server logs        # View logs
+```
+
+## Architecture
+
+### 4-Tier CLI System
+
+| Profile | Command | Purpose | Target |
+|---------|---------|---------|--------|
+| **dev** | `unibos-dev` | Development & DevOps | Developers |
+| **manager** | `unibos-manager` | Multi-node orchestration | System admins |
+| **server** | `unibos-server` | Single server management | Server operators |
+| **prod** | `unibos` | End-user application | All users |
+
+### Project Structure
 
 ```
-unibos/
+unibos-dev/
 ├── core/                          # Core system infrastructure
-│   ├── backend/                   # Django application (main runtime)
-│   ├── models/                    # Shared domain models (Django app)
+│   ├── clients/                   # Client applications
+│   │   ├── cli/                   # CLI framework
+│   │   ├── tui/                   # TUI framework (BaseTUI)
+│   │   └── web/                   # Django backend
+│   ├── profiles/                  # CLI profiles
+│   │   ├── dev/                   # Developer profile
+│   │   ├── manager/               # Manager profile
+│   │   ├── server/                # Server profile
+│   │   └── prod/                  # Production profile
 │   ├── system/                    # System modules
-│   │   ├── authentication/        # User auth & permissions
+│   │   ├── authentication/        # Auth & permissions
 │   │   ├── users/                 # User management
 │   │   ├── web_ui/                # Web interface
 │   │   ├── common/                # Shared utilities
 │   │   ├── administration/        # System admin
 │   │   ├── logging/               # Audit logs
 │   │   └── version_manager/       # Version control
-│   ├── instance/                  # P2P instance identity
-│   ├── p2p/                       # P2P communication (planned)
-│   ├── sync/                      # Sync engine (planned)
-│   ├── services/                  # Core services
-│   └── sdk/                       # Multi-platform SDK
+│   └── base/                      # Shared models & registry
 │
-├── modules/                       # Business modules (13 modules)
+├── modules/                       # Business modules (13)
 │   ├── currencies/                # Currency & crypto tracking
 │   ├── wimm/                      # Financial management
 │   ├── wims/                      # Inventory management
@@ -38,134 +76,113 @@ unibos/
 │   ├── solitaire/                 # Multiplayer game
 │   └── store/                     # E-commerce
 │
+├── deploy/                        # Deployment system
 ├── docs/                          # Documentation
-│   ├── architecture/              # System design
-│   ├── development/               # Dev guides
-│   ├── features/                  # Feature docs
-│   └── deployment/                # Deployment guides
-│
-├── tools/                         # Development tools
-│   └── scripts/                   # Automation scripts
-│
 ├── data/                          # Runtime data (gitignored)
-│
-├── archive/                       # Version archives & docs
-│   ├── versions/                  # v529-v533 archives
-│   └── docs/                      # Historical documentation
-│
-├── ARCHITECTURE.md                # v533 architecture guide
-├── RULES.md                       # Project rules & workflow
-└── README.md                      # This file
+└── archive/                       # Version archives
 ```
 
-## ⚡ quick start
+## Requirements
 
-### terminal ui (cli)
+### Minimum
+- Python 3.11+
+- PostgreSQL 15+
+- Redis 7+
+- 4GB RAM (8GB recommended)
+- 20GB disk space
+
+### Production Stack
+- **ASGI Server**: Gunicorn + Uvicorn workers
+- **Database**: PostgreSQL 15+
+- **Cache/Broker**: Redis 7+
+- **Task Queue**: Celery 5.3+
+- **WebSocket**: Django Channels
+
+## Infrastructure Status
+
+| Component | Status | Notes |
+|-----------|--------|-------|
+| PostgreSQL | Active | Primary database |
+| Redis | Active | Cache, sessions, channels, celery |
+| Gunicorn/Uvicorn | Active | ASGI with WebSocket support |
+| Celery Worker | Active | 12 tasks discovered |
+| Django Channels | Active | Real-time WebSocket |
+| Deploy Pipeline | Active | 17-step automated deployment |
+
+## Development
+
+### Web Server
 ```bash
-python apps/cli/src/main.py
+cd core/clients/web
+./venv/bin/python manage.py runserver
 ```
 
-### web backend
+### With Uvicorn (WebSocket support)
 ```bash
-cd apps/web/backend
-python manage.py runserver
+./venv/bin/uvicorn unibos_backend.asgi:application --reload
 ```
 
-### mobile app
+### Celery Worker
 ```bash
-cd apps/mobile/birlikteyiz
-flutter run
+./venv/bin/celery -A unibos_backend worker --loglevel=info
 ```
 
-## 📋 requirements
-
-### minimum
-- python 3.8+
-- 2GB RAM minimum (8GB recommended)
-- 10GB disk space
-- postgresql 15+ (mandatory - sqlite not supported)
-- Redis 7+ (optional, for caching)
-
-### recommended
-- python 3.11+
-- postgresql 15+
-- redis 7+
-- docker (for containerized deployment)
-
-## 📖 documentation
-
-comprehensive documentation is organized in `docs/`:
-
-- **architecture/**: system design, api documentation, project structure
-- **development/**: installation guide, development setup, troubleshooting
-- **features/**: feature guides and module documentation
-- **deployment/**: deployment guides and server setup
-- **claude/**: ai assistant instructions and technical specs
-
-## 🚀 key features
-
-- **terminal ui**: full-featured cli interface with curses
-- **web backend**: django rest framework api
-- **mobile apps**: flutter cross-platform applications
-- **monorepo**: organized structure for multiple applications
-- **version management**: automated versioning and archiving
-- **postgresql**: production-ready database architecture
-- **modular design**: independent yet integrated components
-
-## 🛠️ development
-
-see [docs/development/DEVELOPMENT.md](docs/development/DEVELOPMENT.md) for detailed development instructions.
-
-## 📦 modules
-
-- **authentication**: user management and permissions
-- **currencies**: real-time exchange rates and crypto tracking
-- **documents**: ocr processing and document management
-- **personal inflation**: inflation calculator with custom baskets
-- **cctv**: camera monitoring and recording system
-- **movies**: movie/series collection management
-- **music**: spotify-integrated music library
-- **restopos**: restaurant pos system
-- **wimm**: financial management (where is my money)
-- **wims**: inventory management (where is my stuff)
-- **birlikteyiz**: earthquake tracking and alerts
-
-## 📝 version management
-
-use the unified version manager:
-
+### Celery Beat (Scheduler)
 ```bash
-./unibos_version.sh
+./venv/bin/celery -A unibos_backend beat --loglevel=info
 ```
 
-see [docs/development/VERSION_MANAGEMENT.md](docs/development/VERSION_MANAGEMENT.md) for details.
+## Deployment
 
-## 🌍 deployment
-
-for production deployment:
-
+### To Rocksteady Server
 ```bash
-tools/scripts/rocksteady_deploy.sh deploy
+unibos-dev deploy rocksteady       # Dry run
+unibos-dev deploy rocksteady live  # Live deployment
 ```
 
-see [docs/deployment/](docs/deployment/) for comprehensive deployment guides.
+### Deploy Steps (17)
+1. Validate configuration
+2. Check SSH connectivity
+3. **Backup database** (new)
+4. Prepare deployment directory
+5. Clone repository
+6. Setup Python environment
+7. Install dependencies
+8. Install CLI
+9. Create environment file
+10. Setup module registry
+11. Setup data directories
+12. Setup PostgreSQL
+13. Run migrations
+14. Collect static files
+15. Setup systemd service
+16. Start service
+17. Health check
 
-## 📊 development log
+## Documentation
 
-all development activities are tracked in [DEVELOPMENT_LOG.md](DEVELOPMENT_LOG.md).
+- `docs/` - All documentation
+- `TODO.md` - Development roadmap
+- `CHANGELOG.md` - Version history
+- `RULES.md` - Project rules
 
-## 🤝 contributing
+## Key Features
 
-this is a personal project, but suggestions and feedback are welcome.
+- **TUI**: Full-featured terminal interface
+- **Web UI**: Django-based dashboard
+- **Real-time**: WebSocket for live updates
+- **Background Tasks**: Celery for async processing
+- **Multi-node**: P2P architecture foundation
+- **Version Archive**: Timestamp-based snapshots
 
-## 📄 license
+## Author
 
-proprietary - all rights reserved
+**Berk Hatirli**
+Bitez, Bodrum, Mugla, Turkiye
+
+*Built with Claude Code*
 
 ---
 
-**author**: berk hatırlı
-**location**: bitez, bodrum, muğla, türkiye
-**project start**: 2024
-
-*built with ❤️ and claude code*
+**Current Version**: v1.0.0
+**Last Updated**: 2025-12-03

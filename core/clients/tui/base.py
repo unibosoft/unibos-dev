@@ -727,6 +727,35 @@ class BaseTUI(ABC):
             )
             sys.stdout.flush()
 
+    def show_info_panel(self, title: str, lines: List[str], color: str = Colors.CYAN) -> None:
+        """
+        Display an information panel with scroll support
+
+        This is a centralized template for showing static information screens.
+        Used for: status displays, help screens, instructions, etc.
+
+        Args:
+            title: Panel title
+            lines: List of text lines to display
+            color: Color for the panel (default CYAN)
+
+        Example:
+            self.show_info_panel("server status", [
+                "✓ server running",
+                "  port: 8000",
+                "",
+                "press esc to go back"
+            ])
+        """
+        self.update_content(title=title, lines=lines, color=color)
+        self.render()
+
+        # Wait for ESC key to return
+        while True:
+            key = self.get_key()
+            if key == 'ESC':
+                break
+
     def show_language_menu(self):
         """
         Show language selection popup (v527 spec)

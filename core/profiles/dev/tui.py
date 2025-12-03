@@ -132,36 +132,350 @@ class UnibosDevTUI(BaseTUI):
     # ===== DEV TOOLS HANDLERS =====
 
     def handle_system_status(self, item: MenuItem) -> bool:
-        """show system status and information"""
-        self.update_content(
+        """system status submenu - local dev environment info"""
+        options = [
+            ("overview", "📊 overview", "quick system health check"),
+            ("services", "⚡ services", "check running services"),
+            ("ports", "🔌 ports", "view active port bindings"),
+            ("python", "🐍 python", "python environment info"),
+            ("disk", "💾 disk", "disk usage and data directories"),
+            ("network", "🌐 network", "network connectivity status"),
+            ("back", "← back", "return to dev tools"),
+        ]
+
+        handlers = {
+            "overview": self._status_overview,
+            "services": self._status_services,
+            "ports": self._status_ports,
+            "python": self._status_python,
+            "disk": self._status_disk,
+            "network": self._status_network,
+        }
+
+        return self.show_submenu(
             title="system status",
-            lines=["⏳ gathering system information...", ""],
-            color=Colors.CYAN
+            subtitle="local development environment",
+            options=options,
+            handlers=handlers
         )
-        self.render()
 
+    def _status_overview(self):
+        """Quick system health overview"""
+        import socket
+        import os
+        from pathlib import Path
+        from core.version import __version__, __build__
+
+        lines = []
+        root_dir = Path(__file__).parent.parent.parent.parent
+
+        # Version
+        lines.append(f"version: v{__version__}+build.{__build__}")
+        lines.append(f"profile: development")
+        lines.append(f"hostname: {socket.gethostname().lower()}")
+        lines.append(f"user: {os.environ.get('USER', 'unknown')}")
+        lines.append("")
+
+        # Key directories
+        lines.append("directories:")
+        dirs = [
+            ("core", root_dir / "core"),
+            ("modules", root_dir / "modules"),
+            ("data", root_dir / "data"),
+        ]
+        for name, path in dirs:
+            status = "✓" if path.exists() else "✗"
+            lines.append(f"  {status} {name}")
+
+        # Django
+        lines.append("")
+        django_path = root_dir / "core" / "clients" / "web"
+        if (django_path / "manage.py").exists():
+            lines.append("✓ django project found")
+        else:
+            lines.append("✗ django project not found")
+
+        # PostgreSQL
         try:
-            # Execute status command
-            result = self.execute_command(['unibos-dev', 'status'])
+            result = subprocess.run(['psql', '--version'], capture_output=True, text=True, timeout=2)
+            if result.returncode == 0:
+                pg_version = result.stdout.strip().split()[-1] if result.stdout else "unknown"
+                lines.append(f"✓ postgresql {pg_version}")
+        except:
+            lines.append("· postgresql not found")
 
-            # Show results
-            self.show_command_output(result)
+        # Redis
+        try:
+            result = subprocess.run(['redis-cli', 'ping'], capture_output=True, text=True, timeout=2)
+            if result.returncode == 0 and 'PONG' in result.stdout:
+                lines.append("✓ redis running")
+            else:
+                lines.append("· redis not running")
+        except:
+            lines.append("· redis not available")
 
-        except Exception as e:
-            self.update_content(
-                title="system status - error",
-                lines=[
-                    "❌ failed to load system information",
-                    "",
-                    f"error: {str(e)}",
-                    "",
-                    "try running: unibos-dev status"
-                ],
-                color=Colors.RED
+        self.show_info_panel("overview", lines)
+
+    def _status_services(self):
+        """Check running development services"""
+        lines = []
+
+        # Check uvicorn/gunicorn
+        try:
+            result = subprocess.run(['pgrep', '-f', 'uvicorn'], capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                lines.append(f"✓ uvicorn running ({len(pids)} process{'es' if len(pids) > 1 else ''})")
+            else:
+                lines.append("· uvicorn not running")
+        except:
+            lines.append("· uvicorn: check failed")
+
+        # Check celery
+        try:
+            result = subprocess.run(['pgrep', '-f', 'celery'], capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                lines.append(f"✓ celery running ({len(pids)} workers)")
+            else:
+                lines.append("· celery not running")
+        except:
+            lines.append("· celery: check failed")
+
+        # Check redis
+        try:
+            result = subprocess.run(['pgrep', '-f', 'redis-server'], capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                lines.append("✓ redis-server running")
+            else:
+                lines.append("· redis-server not running")
+        except:
+            lines.append("· redis: check failed")
+
+        # Check postgresql
+        try:
+            result = subprocess.run(['pgrep', '-f', 'postgres'], capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                lines.append("✓ postgresql running")
+            else:
+                lines.append("· postgresql not running")
+        except:
+            lines.append("· postgresql: check failed")
+
+        lines.append("")
+        lines.append("use web ui menu to start/stop dev server")
+
+        self.show_info_panel("services", lines)
+
+    def _status_ports(self):
+        """Show active port bindings"""
+        lines = []
+
+        # Common dev ports to check
+        ports_to_check = [
+            (8000, "django/uvicorn"),
+            (8001, "prometheus"),
+            (5432, "postgresql"),
+            (6379, "redis"),
+            (5555, "celery flower"),
+        ]
+
+        lines.append("port bindings:")
+        lines.append("")
+
+        for port, service in ports_to_check:
+            try:
+                result = subprocess.run(
+                    ['lsof', '-i', f':{port}', '-P', '-n'],
+                    capture_output=True, text=True, timeout=2
+                )
+                if result.returncode == 0 and result.stdout.strip():
+                    # Parse first process from output
+                    output_lines = result.stdout.strip().split('\n')
+                    if len(output_lines) > 1:
+                        parts = output_lines[1].split()
+                        process = parts[0] if parts else "unknown"
+                        lines.append(f"  :{port}  ✓ {service} ({process})")
+                    else:
+                        lines.append(f"  :{port}  ✓ {service}")
+                else:
+                    lines.append(f"  :{port}  · {service} (free)")
+            except:
+                lines.append(f"  :{port}  ? {service}")
+
+        self.show_info_panel("ports", lines)
+
+    def _status_python(self):
+        """Python environment information"""
+        import sys
+        import os
+        from pathlib import Path
+
+        lines = []
+        root_dir = Path(__file__).parent.parent.parent.parent
+
+        # Python version
+        lines.append(f"python: {sys.version.split()[0]}")
+        lines.append(f"executable: {sys.executable}")
+        lines.append("")
+
+        # Virtual environment
+        venv_path = root_dir / "core" / "clients" / "web" / "venv"
+        if venv_path.exists():
+            lines.append(f"✓ venv exists: core/clients/web/venv")
+            # Check if we're in venv
+            if os.environ.get('VIRTUAL_ENV'):
+                lines.append(f"✓ venv active")
+            else:
+                lines.append(f"· venv not activated")
+        else:
+            lines.append("· venv not found")
+
+        lines.append("")
+
+        # Key packages
+        lines.append("key packages:")
+        try:
+            result = subprocess.run(
+                [sys.executable, '-m', 'pip', 'show', 'django', 'uvicorn', 'celery'],
+                capture_output=True, text=True
             )
-            self.render()
+            packages = {}
+            current_pkg = None
+            for line in result.stdout.split('\n'):
+                if line.startswith('Name:'):
+                    current_pkg = line.split(':')[1].strip().lower()
+                elif line.startswith('Version:') and current_pkg:
+                    packages[current_pkg] = line.split(':')[1].strip()
 
-        return True
+            for pkg in ['django', 'uvicorn', 'celery']:
+                if pkg in packages:
+                    lines.append(f"  ✓ {pkg} {packages[pkg]}")
+                else:
+                    lines.append(f"  · {pkg} not installed")
+        except:
+            lines.append("  could not check packages")
+
+        self.show_info_panel("python", lines)
+
+    def _status_disk(self):
+        """Disk usage and data directories"""
+        import os
+        from pathlib import Path
+
+        def format_size(size):
+            if size >= 1024 * 1024 * 1024:
+                return f"{size / (1024*1024*1024):.1f}gb"
+            elif size >= 1024 * 1024:
+                return f"{size / (1024*1024):.1f}mb"
+            elif size >= 1024:
+                return f"{size / 1024:.1f}kb"
+            return f"{size}b"
+
+        def dir_size(path):
+            total = 0
+            try:
+                for f in Path(path).rglob('*'):
+                    if f.is_file():
+                        total += f.stat().st_size
+            except:
+                pass
+            return total
+
+        lines = []
+        root_dir = Path(__file__).parent.parent.parent.parent
+
+        # Project size
+        lines.append("project directories:")
+        dirs = [
+            ("core", root_dir / "core"),
+            ("modules", root_dir / "modules"),
+            ("data", root_dir / "data"),
+            ("archive", root_dir / "archive"),
+        ]
+
+        for name, path in dirs:
+            if path.exists():
+                size = dir_size(path)
+                lines.append(f"  {format_size(size):>10}  {name}/")
+            else:
+                lines.append(f"  {'---':>10}  {name}/ (not found)")
+
+        lines.append("")
+
+        # Data subdirectories
+        data_dir = root_dir / "data"
+        if data_dir.exists():
+            lines.append("data subdirectories:")
+            subdirs = ['logs', 'media', 'cache', 'backups', 'deploy_logs']
+            for subdir in subdirs:
+                subpath = data_dir / subdir
+                if subpath.exists():
+                    size = dir_size(subpath)
+                    lines.append(f"  {format_size(size):>10}  data/{subdir}/")
+
+        self.show_info_panel("disk", lines)
+
+    def _status_network(self):
+        """Network connectivity status"""
+        import socket
+
+        lines = []
+
+        # Local hostname
+        lines.append(f"hostname: {socket.gethostname().lower()}")
+
+        # Get local IP
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            local_ip = s.getsockname()[0]
+            s.close()
+            lines.append(f"local ip: {local_ip}")
+        except:
+            lines.append("local ip: unknown")
+
+        lines.append("")
+
+        # Internet connectivity
+        lines.append("connectivity:")
+        tests = [
+            ("1.1.1.1", 53, "cloudflare dns"),
+            ("8.8.8.8", 53, "google dns"),
+            ("github.com", 443, "github"),
+        ]
+
+        for host, port, name in tests:
+            try:
+                sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                sock.settimeout(2)
+                result = sock.connect_ex((host, port))
+                sock.close()
+                if result == 0:
+                    lines.append(f"  ✓ {name}")
+                else:
+                    lines.append(f"  ✗ {name}")
+            except:
+                lines.append(f"  ✗ {name}")
+
+        lines.append("")
+
+        # SSH to servers
+        lines.append("ssh targets:")
+        for server in ['rocksteady', 'bebop']:
+            try:
+                result = subprocess.run(
+                    ['ssh', '-o', 'ConnectTimeout=2', '-o', 'BatchMode=yes', server, 'echo ok'],
+                    capture_output=True, text=True, timeout=5
+                )
+                if result.returncode == 0:
+                    lines.append(f"  ✓ {server}")
+                else:
+                    lines.append(f"  · {server} (not configured)")
+            except:
+                lines.append(f"  · {server} (timeout)")
+
+        self.show_info_panel("network", lines)
 
     def handle_code_forge(self, item: MenuItem) -> bool:
         """Git and version control"""
@@ -258,126 +572,199 @@ class UnibosDevTUI(BaseTUI):
         self.show_command_output(result)
 
     def handle_web_ui(self, item: MenuItem) -> bool:
-        """Web interface management"""
+        """Local development web interface management"""
+        # Check current server status for dynamic subtitle
+        server_status = self._check_dev_server_status()
+
         options = [
-            ("start", "🚀 start server", "start uvicorn in background"),
-            ("stop", "⏹️  stop server", "stop the running server"),
-            ("restart", "🔄 restart server", "stop and start server"),
-            ("status", "📊 server status", "check if server is running"),
-            ("logs", "📝 view logs", "show recent server logs"),
-            ("migrate", "🔃 run migrations", "apply database migrations"),
+            ("status", "📊 status", "check development server status"),
+            ("start", "🚀 start", "start uvicorn development server"),
+            ("stop", "⏹️  stop", "stop the development server"),
+            ("restart", "🔄 restart", "restart development server"),
+            ("open", "🌐 open browser", "open http://localhost:8000"),
+            ("logs", "📝 logs", "view server output logs"),
+            ("shell", "🐚 django shell", "open django interactive shell"),
+            ("migrate", "🔃 migrate", "apply database migrations"),
+            ("static", "📦 collectstatic", "collect static files"),
             ("back", "← back", "return to dev tools"),
         ]
 
         handlers = {
+            "status": self._web_ui_show_status,
             "start": self._web_ui_start_server,
             "stop": self._web_ui_stop_server,
             "restart": self._web_ui_restart_server,
-            "status": self._web_ui_show_status,
+            "open": self._web_ui_open_browser,
             "logs": self._web_ui_show_logs,
+            "shell": self._web_ui_django_shell,
             "migrate": self._web_ui_run_migrations,
+            "static": self._web_ui_collectstatic,
         }
 
         return self.show_submenu(
             title="web ui",
-            subtitle="uvicorn asgi server",
+            subtitle=f"local dev server · {server_status}",
             options=options,
             handlers=handlers
         )
 
+    def _check_dev_server_status(self) -> str:
+        """Quick check if dev server is running"""
+        try:
+            result = subprocess.run(['pgrep', '-f', 'uvicorn'], capture_output=True, text=True, timeout=1)
+            if result.returncode == 0 and result.stdout.strip():
+                return "running on :8000"
+            return "stopped"
+        except:
+            return "unknown"
+
     def _web_ui_start_server(self):
         """start uvicorn development server in background"""
-        self.update_content(
-            title="starting uvicorn server",
-            lines=["🚀 starting server in background...", ""],
-            color=Colors.CYAN
+        result = self.execute_command_streaming(
+            ['unibos-dev', 'dev', 'run', '-b'],
+            title="starting server"
         )
-        self.render()
-
-        # Start in background mode (-b flag)
-        result = self.execute_command(['unibos-dev', 'dev', 'run', '-b'])
         self.show_command_output(result)
 
     def _web_ui_stop_server(self):
         """stop development server"""
-        self.update_content(
-            title="stopping server",
-            lines=["⏹️ stopping development server...", ""],
-            color=Colors.CYAN
+        result = self.execute_command_streaming(
+            ['unibos-dev', 'dev', 'stop'],
+            title="stopping server"
         )
-        self.render()
-
-        result = self.execute_command(['unibos-dev', 'dev', 'stop'])
         self.show_command_output(result)
 
     def _web_ui_restart_server(self):
         """restart development server"""
         import time
 
-        self.update_content(
-            title="restarting server",
-            lines=["🔄 stopping server...", ""],
-            color=Colors.CYAN
-        )
-        self.render()
-
         # Stop first
-        stop_result = self.execute_command(['unibos-dev', 'dev', 'stop'])
-
-        # Show stop result and wait
-        stop_output = stop_result.stdout.strip() if stop_result.stdout else ""
-        self.update_content(
-            title="restarting server",
-            lines=[
-                stop_output or "⏹️  stopping...",
-                "",
-                "🚀 starting server...",
-            ],
-            color=Colors.CYAN
-        )
+        self.update_content(title="restarting", lines=["stopping server..."], color=Colors.CYAN)
         self.render()
-
-        # Wait for port to be released
+        subprocess.run(['unibos-dev', 'dev', 'stop'], capture_output=True)
         time.sleep(1.0)
 
-        # Then start in background
-        result = self.execute_command(['unibos-dev', 'dev', 'run', '-b'])
+        # Start
+        result = self.execute_command_streaming(
+            ['unibos-dev', 'dev', 'run', '-b'],
+            title="restarting server"
+        )
         self.show_command_output(result)
 
     def _web_ui_show_status(self):
-        """show server status"""
-        self.update_content(
-            title="server status",
-            lines=["📊 checking server status...", ""],
-            color=Colors.CYAN
-        )
-        self.render()
+        """Show detailed server status"""
+        lines = []
 
-        result = self.execute_command(['unibos-dev', 'dev', 'status'])
-        self.show_command_output(result)
+        # Check uvicorn process
+        try:
+            result = subprocess.run(['pgrep', '-f', 'uvicorn'], capture_output=True, text=True)
+            if result.returncode == 0 and result.stdout.strip():
+                pids = result.stdout.strip().split('\n')
+                lines.append(f"✓ uvicorn running (pid: {pids[0]})")
+            else:
+                lines.append("· uvicorn not running")
+        except:
+            lines.append("· uvicorn: check failed")
+
+        # Check port 8000
+        try:
+            result = subprocess.run(
+                ['lsof', '-i', ':8000', '-P', '-n'],
+                capture_output=True, text=True, timeout=2
+            )
+            if result.returncode == 0 and result.stdout.strip():
+                lines.append("✓ port 8000 in use")
+            else:
+                lines.append("· port 8000 free")
+        except:
+            pass
+
+        lines.append("")
+
+        # HTTP check
+        try:
+            result = subprocess.run(
+                ['curl', '-s', '-o', '/dev/null', '-w', '%{http_code}', 'http://localhost:8000/'],
+                capture_output=True, text=True, timeout=3
+            )
+            status_code = result.stdout.strip()
+            if status_code.startswith('2') or status_code.startswith('3'):
+                lines.append(f"✓ http://localhost:8000/ responding ({status_code})")
+            else:
+                lines.append(f"⚠ http://localhost:8000/ returned {status_code}")
+        except:
+            lines.append("· http check failed (server may be down)")
+
+        lines.append("")
+        lines.append("quick actions:")
+        lines.append("  start: unibos-dev dev run -b")
+        lines.append("  stop:  unibos-dev dev stop")
+
+        self.show_info_panel("server status", lines)
+
+    def _web_ui_open_browser(self):
+        """Open browser to local development server"""
+        import webbrowser
+        url = "http://localhost:8000"
+
+        lines = [
+            f"opening {url}",
+            "",
+            "if browser doesn't open, visit manually:",
+            f"  {url}",
+            "",
+            f"admin panel: {url}/admin/",
+        ]
+
+        try:
+            webbrowser.open(url)
+            lines.append("")
+            lines.append("✓ browser opened")
+        except Exception as e:
+            lines.append("")
+            lines.append(f"✗ could not open browser: {e}")
+
+        self.show_info_panel("open browser", lines)
 
     def _web_ui_show_logs(self):
         """show server logs"""
-        self.update_content(
-            title="server logs",
-            lines=["📝 loading server logs...", ""],
-            color=Colors.CYAN
-        )
-        self.render()
-
         result = self.execute_command(['unibos-dev', 'dev', 'logs'])
         self.show_command_output(result)
 
+    def _web_ui_django_shell(self):
+        """Show django shell instructions"""
+        lines = [
+            "django interactive shell",
+            "",
+            "run this command in terminal:",
+            "",
+            "  cd core/clients/web",
+            "  ./venv/bin/python manage.py shell",
+            "",
+            "or use:",
+            "  unibos-dev dev shell",
+            "",
+            "common commands:",
+            "  from django.contrib.auth.models import User",
+            "  User.objects.all()",
+        ]
+
+        self.show_info_panel("django shell", lines)
+
     def _web_ui_run_migrations(self):
         """run django migrations"""
-        self.update_content(
-            title="running migrations",
-            lines=["🔄 running database migrations...", ""],
-            color=Colors.CYAN
+        result = self.execute_command_streaming(
+            ['unibos-dev', 'dev', 'migrate'],
+            title="running migrations"
         )
-        self.render()
+        self.show_command_output(result)
 
-        result = self.execute_command(['unibos-dev', 'dev', 'migrate'])
+    def _web_ui_collectstatic(self):
+        """collect static files"""
+        result = self.execute_command_streaming(
+            ['unibos-dev', 'dev', 'collectstatic'],
+            title="collecting static files"
+        )
         self.show_command_output(result)
 
     def handle_administration(self, item: MenuItem) -> bool:
@@ -408,44 +795,41 @@ class UnibosDevTUI(BaseTUI):
 
     def _admin_users(self):
         """User management placeholder"""
-        self.update_content(title="user management", lines=[
-            "🚧 coming soon",
+        self.show_info_panel("user management", [
+            "coming soon",
             "",
             "for now, use django admin:",
             "  http://localhost:8000/admin/auth/user/"
-        ], color=Colors.YELLOW)
-        self.render()
+        ], Colors.YELLOW)
 
     def _admin_settings(self):
         """System settings placeholder"""
-        self.update_content(title="system settings", lines=[
-            "🚧 coming soon",
+        self.show_info_panel("system settings", [
+            "coming soon",
             "",
             "for now, edit settings files directly:",
             "  core/clients/web/unibos_backend/settings/"
-        ], color=Colors.YELLOW)
-        self.render()
+        ], Colors.YELLOW)
 
     def _admin_modules(self):
         """Module management placeholder"""
-        self.update_content(title="module management", lines=[
-            "🚧 coming soon",
+        self.show_info_panel("module management", [
+            "coming soon",
             "",
             "modules are managed via .enabled files:",
             "  modules/<module_name>/.enabled"
-        ], color=Colors.YELLOW)
-        self.render()
+        ], Colors.YELLOW)
 
     def _admin_logs(self):
         """View system logs"""
-        self.update_content(title="system logs", lines=["⏳ loading..."], color=Colors.CYAN)
-        self.render()
-        result = self.execute_command(['tail', '-50', '/Users/berkhatirli/Desktop/unibos-dev/core/clients/web/logs/django.log'])
+        from pathlib import Path
+        log_path = Path(__file__).parent.parent.parent.parent / "core" / "clients" / "web" / "logs" / "django.log"
+        result = self.execute_command(['tail', '-50', str(log_path)])
         self.show_command_output(result)
 
     def _admin_django(self):
         """Open Django admin info"""
-        self.update_content(title="django admin", lines=[
+        self.show_info_panel("django admin", [
             "django admin interface",
             "",
             "1. start server: unibos-dev dev run",
@@ -454,8 +838,7 @@ class UnibosDevTUI(BaseTUI):
             "default credentials:",
             "  username: admin",
             "  password: (set during setup)"
-        ], color=Colors.CYAN)
-        self.render()
+        ])
 
     def handle_ai_builder(self, item: MenuItem) -> bool:
         """AI-powered development tools"""
@@ -483,7 +866,7 @@ class UnibosDevTUI(BaseTUI):
 
     def _ai_claude(self):
         """Claude Code info"""
-        self.update_content(title="claude code", lines=[
+        self.show_info_panel("claude code", [
             "claude code - ai coding assistant",
             "",
             "currently active: you're using claude code right now!",
@@ -495,38 +878,34 @@ class UnibosDevTUI(BaseTUI):
             "  • documentation",
             "",
             "just ask me anything about your code."
-        ], color=Colors.MAGENTA)
-        self.render()
+        ], Colors.MAGENTA)
 
     def _ai_generate(self):
         """Code generation placeholder"""
-        self.update_content(title="generate code", lines=[
-            "🚧 coming soon",
+        self.show_info_panel("generate code", [
+            "coming soon",
             "",
             "for now, use claude code to generate code:",
             "  just describe what you need!"
-        ], color=Colors.YELLOW)
-        self.render()
+        ], Colors.YELLOW)
 
     def _ai_review(self):
         """Code review placeholder"""
-        self.update_content(title="code review", lines=[
-            "🚧 coming soon",
+        self.show_info_panel("code review", [
+            "coming soon",
             "",
             "for now, ask claude code to review your code:",
             "  share your code and ask for review"
-        ], color=Colors.YELLOW)
-        self.render()
+        ], Colors.YELLOW)
 
     def _ai_docs(self):
         """Documentation generation placeholder"""
-        self.update_content(title="generate docs", lines=[
-            "🚧 coming soon",
+        self.show_info_panel("generate docs", [
+            "coming soon",
             "",
             "for now, ask claude code to generate docs:",
             "  share your code and ask for documentation"
-        ], color=Colors.YELLOW)
-        self.render()
+        ], Colors.YELLOW)
 
     def handle_database_setup(self, item: MenuItem) -> bool:
         """PostgreSQL installation wizard"""
@@ -558,86 +937,56 @@ class UnibosDevTUI(BaseTUI):
 
     def _db_check_status(self):
         """Check database status"""
-        self.update_content(
-            title="database status",
-            lines=["🔍 Checking database status...", ""],
-            color=Colors.CYAN
-        )
-        self.render()
-
         result = self.execute_command(['unibos-dev', 'db', 'status'])
         self.show_command_output(result)
 
     def _db_install_postgresql(self):
         """install postgresql"""
-        self.update_content(
-            title="installing postgresql",
-            lines=[
-                "📥 PostgreSQL Installation",
-                "",
-                "this will install PostgreSQL using Homebrew.",
-                "",
-                "run this command in terminal:",
-                "",
-                "  brew install postgresql@14",
-                "  brew services start postgresql@14",
-                "",
-                "then create database:",
-                "",
-                "  createdb unibos_dev",
-                "",
-                "press esc to continue"
-            ],
-            color=Colors.YELLOW
-        )
-        self.render()
+        self.show_info_panel("postgresql installation", [
+            "postgresql installation",
+            "",
+            "this will install postgresql using homebrew.",
+            "",
+            "run these commands in terminal:",
+            "",
+            "  brew install postgresql@14",
+            "  brew services start postgresql@14",
+            "",
+            "then create database:",
+            "",
+            "  createdb unibos_dev",
+        ], Colors.YELLOW)
 
     def _db_create_database(self):
         """create database"""
-        self.update_content(
-            title="creating database",
-            lines=["🗄️ Creating UNIBOS database...", ""],
-            color=Colors.CYAN
+        result = self.execute_command_streaming(
+            ['unibos-dev', 'db', 'create'],
+            title="creating database"
         )
-        self.render()
-
-        result = self.execute_command(['unibos-dev', 'db', 'create'])
         self.show_command_output(result)
 
     def _db_run_migrations(self):
         """Run migrations"""
-        self.update_content(
-            title="running migrations",
-            lines=["🔄 Running database migrations...", ""],
-            color=Colors.CYAN
+        result = self.execute_command_streaming(
+            ['unibos-dev', 'db', 'migrate'],
+            title="running migrations"
         )
-        self.render()
-
-        result = self.execute_command(['unibos-dev', 'db', 'migrate'])
         self.show_command_output(result)
 
     def _db_backup(self):
         """Backup database"""
-        self.update_content(
-            title="database backup",
-            lines=["💾 Creating database backup...", ""],
-            color=Colors.CYAN
+        result = self.execute_command_streaming(
+            ['unibos-dev', 'db', 'backup'],
+            title="database backup"
         )
-        self.render()
-
-        result = self.execute_command(['unibos-dev', 'db', 'backup'])
         self.show_command_output(result)
 
     def _db_restore(self):
         """Restore database"""
-        self.update_content(
-            title="database restore",
-            lines=["♻️ Restoring database...", ""],
-            color=Colors.CYAN
+        result = self.execute_command_streaming(
+            ['unibos-dev', 'db', 'restore'],
+            title="database restore"
         )
-        self.render()
-
-        result = self.execute_command(['unibos-dev', 'db', 'restore'])
         self.show_command_output(result)
 
     # ===== DEPLOY SERVERS =====
@@ -800,29 +1149,15 @@ class UnibosDevTUI(BaseTUI):
 
     def _server_ssh(self, server: str):
         """SSH connection info"""
-        self.update_content(
-            title=f"ssh to {server}",
-            lines=[
-                f"🔐 ssh connection to {server}",
-                "",
-                "run this command in your terminal:",
-                "",
-                f"  ssh {server}",
-                "",
-                f"or use: unibos-dev deploy ssh {server}",
-                "",
-                "press esc to go back"
-            ],
-            color=Colors.YELLOW
-        )
-
-        sections = self.get_menu_sections()
-        self._navigation_redraw(sections)
-
-        while True:
-            key = self.get_key()
-            if key == 'ESC':
-                break
+        self.show_info_panel(f"ssh to {server}", [
+            f"ssh connection to {server}",
+            "",
+            "run this command in your terminal:",
+            "",
+            f"  ssh {server}",
+            "",
+            f"or use: unibos-dev deploy ssh {server}",
+        ], Colors.YELLOW)
 
     def handle_version_manager(self, item: MenuItem) -> bool:
         """Version control and archiving"""
@@ -885,13 +1220,7 @@ class UnibosDevTUI(BaseTUI):
             status = "✓" if enabled else "·"
             lines.append(f"  {status} {feature}")
 
-        self.update_content(title="version info", lines=lines, color=Colors.CYAN)
-        self.render()
-
-        while True:
-            key = self.get_key()
-            if key == 'ESC':
-                break
+        self.show_info_panel("version info", lines)
 
     def _version_quick_release(self):
         """Quick release wizard - simplified"""
@@ -1088,7 +1417,7 @@ class UnibosDevTUI(BaseTUI):
         """Create git tag - simplified"""
         from core.version import __version__
 
-        lines = [
+        self.show_info_panel("git tag", [
             f"tag: v{__version__}",
             "",
             "commands:",
@@ -1096,15 +1425,7 @@ class UnibosDevTUI(BaseTUI):
             f"  git push --tags",
             "",
             "or: unibos-dev git push-dev --tags"
-        ]
-
-        self.update_content(title="git tag", lines=lines, color=Colors.CYAN)
-        self.render()
-
-        while True:
-            key = self.get_key()
-            if key == 'ESC':
-                break
+        ])
 
     def _version_browse_archives(self):
         """Browse version archives with new format support"""
@@ -1112,21 +1433,14 @@ class UnibosDevTUI(BaseTUI):
         import json
         import re
 
-        archive_dir = Path("/Users/berkhatirli/Desktop/unibos-dev/archive/versions")
+        archive_dir = Path(__file__).parent.parent.parent.parent / "archive" / "versions"
 
         if not archive_dir.exists():
-            self.update_content(
-                title="browse archives",
-                lines=[
-                    "   archive directory not found",
-                    "",
-                    f"expected location: {archive_dir}",
-                    "",
-                    "press esc to continue"
-                ],
-                color=Colors.YELLOW
-            )
-            self.render()
+            self.show_info_panel("browse archives", [
+                "archive directory not found",
+                "",
+                f"expected: {archive_dir}",
+            ], Colors.YELLOW)
             return
 
         # Find all archives - both old and new format
@@ -1206,19 +1520,13 @@ class UnibosDevTUI(BaseTUI):
         else:
             lines.append("  no archives found")
 
-        self.update_content(title="archives", lines=lines, color=Colors.CYAN)
-        self.render()
-
-        while True:
-            key = self.get_key()
-            if key == 'ESC':
-                break
+        self.show_info_panel("archives", lines)
 
     def _version_analyze(self):
         """Analyze archives with statistics - simplified"""
         from pathlib import Path
 
-        archive_dir = Path("/Users/berkhatirli/Desktop/unibos-dev/archive/versions")
+        archive_dir = Path(__file__).parent.parent.parent.parent / "archive" / "versions"
 
         def format_size(size):
             if size >= 1024 * 1024 * 1024:
@@ -1261,23 +1569,14 @@ class UnibosDevTUI(BaseTUI):
                 if anomalies:
                     lines.extend(["", f"⚠ {len(anomalies)} anomalies (>2x avg)"])
 
-        self.update_content(title="analyzer", lines=lines, color=Colors.CYAN)
-        self.render()
-
-        while True:
-            key = self.get_key()
-            if key == 'ESC':
-                break
+        self.show_info_panel("analyzer", lines)
 
     def _version_git_status(self):
         """show git status - simplified"""
-        import subprocess
         from pathlib import Path
 
         project_root = Path(__file__).parent.parent.parent.parent
-
-        self.update_content(title="git status", lines=["loading..."], color=Colors.CYAN)
-        self.render()
+        lines = []
 
         try:
             # Get git status
@@ -1285,8 +1584,6 @@ class UnibosDevTUI(BaseTUI):
                 ['git', 'status', '--short', '--branch'],
                 capture_output=True, text=True, cwd=project_root
             )
-
-            lines = []
 
             # Parse branch info
             status_lines = result.stdout.strip().split('\n') if result.stdout.strip() else []
@@ -1300,7 +1597,7 @@ class UnibosDevTUI(BaseTUI):
                 changes = status_lines[1:] if len(status_lines) > 1 else []
                 if changes:
                     lines.append(f"changes ({len(changes)}):")
-                    for change in changes[:15]:  # Limit to 15 lines
+                    for change in changes[:15]:
                         lines.append(f"  {change}")
                     if len(changes) > 15:
                         lines.append(f"  ... and {len(changes) - 15} more")
@@ -1319,22 +1616,10 @@ class UnibosDevTUI(BaseTUI):
                 for commit in commits_result.stdout.strip().split('\n'):
                     lines.append(f"  {commit}")
 
-            self.update_content(title="git status", lines=lines, color=Colors.CYAN)
-            self.render()
-
         except Exception as e:
-            self.update_content(
-                title="git status",
-                lines=[f"error: {e}"],
-                color=Colors.RED
-            )
-            self.render()
+            lines = [f"error: {e}"]
 
-        # Wait for key
-        while True:
-            key = self.get_key()
-            if key == 'ESC':
-                break
+        self.show_info_panel("git status", lines)
 
 def run_interactive():
     """Run the dev TUI"""

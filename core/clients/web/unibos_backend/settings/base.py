@@ -18,13 +18,13 @@ from datetime import timedelta
 import environ
 
 # Build paths inside the project
-# This file is in: core/web/unibos_backend/settings/base.py
-# BASE_DIR = core/web/
+# This file is in: core/clients/web/unibos_backend/settings/base.py
+# BASE_DIR = core/clients/web/
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 # UNIBOS root directory (contains core/, modules/, data/)
-# From: core/web/unibos_backend/settings/ -> 4 levels up
-UNIBOS_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent
+# From: core/clients/web/unibos_backend/settings/ -> 5 levels up
+UNIBOS_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent.parent
 
 # Environment variables
 env = environ.Env(
