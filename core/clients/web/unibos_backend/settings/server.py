@@ -130,6 +130,10 @@ DEFAULT_FROM_EMAIL = os.environ.get('EMAIL_FROM', 'berk@recaria.org')
 SERVER_EMAIL = os.environ.get('SERVER_EMAIL', 'berk@recaria.org')
 
 # Logging - Production server
+# Log files stored in data/logs directory (created by deploy)
+LOG_DIR = Path(os.environ.get('LOG_DIR', '/home/ubuntu/unibos/data/logs'))
+LOG_DIR.mkdir(parents=True, exist_ok=True)
+
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
@@ -143,7 +147,7 @@ LOGGING = {
         'file': {
             'level': 'INFO',
             'class': 'logging.handlers.RotatingFileHandler',
-            'filename': '/var/log/unibos/django.log',
+            'filename': str(LOG_DIR / 'django.log'),
             'maxBytes': 1024 * 1024 * 10,  # 10MB
             'backupCount': 5,
             'formatter': 'verbose',

@@ -568,7 +568,7 @@ WantedBy=multi-user.target
 
             # check http response
             http_result = self.ssh_cmd(
-                f"curl -s -o /dev/null -w '%{{http_code}}' http://127.0.0.1:{self.config.server_port}/api/status/ || echo 'failed'",
+                f"curl -s -o /dev/null -w '%{{http_code}}' http://127.0.0.1:{self.config.server_port}/api/system-status/health/ || echo 'failed'",
                 check=False, quiet=True
             )
 
