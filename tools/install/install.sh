@@ -144,13 +144,15 @@ MENU_COLORS=("$GREEN" "$YELLOW" "$RED")
 draw_menu() {
     local selected=$1
 
-    # Move cursor up to redraw menu
+    # Move cursor up to redraw menu (3 options + 2 empty lines = 5 lines)
     if [ "$2" == "redraw" ]; then
-        printf "\033[4A"  # Move up 4 lines
+        printf "\033[5A"  # Move up 5 lines
+        printf "\033[K"   # Clear line
     fi
 
     echo ""
     for i in "${!MENU_OPTIONS[@]}"; do
+        printf "\033[K"  # Clear line before printing
         if [ $i -eq $selected ]; then
             echo -e "   ${MENU_COLORS[$i]}▸ ${MENU_OPTIONS[$i]}${NC}  ${DIM}- ${MENU_DESCRIPTIONS[$i]}${NC}"
         else
