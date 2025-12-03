@@ -366,6 +366,8 @@ class ReleasePipeline:
         # Paths relative to project root to exclude
         exclude_paths = {
             'archive',  # Don't copy archive directory at all
+            'data',     # Runtime data (logs, backups, cache, media)
+            'data_db',  # Database files
         }
 
         def ignore_patterns(directory, files):
