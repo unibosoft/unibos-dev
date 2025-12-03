@@ -176,5 +176,7 @@ UNIBOS_P2P_ENABLED = False  # Server doesn't participate in P2P mesh
 UNIBOS_OFFLINE_MODE = False  # Server is always online
 
 # Performance monitoring
-PROMETHEUS_METRICS_EXPORT_PORT = 9090
-PROMETHEUS_METRICS_EXPORT_ADDRESS = '0.0.0.0'
+# Disable prometheus auto-export to avoid port conflicts during migrations
+# Metrics will be served via /metrics endpoint instead
+PROMETHEUS_METRICS_EXPORT_PORT = None
+PROMETHEUS_METRICS_EXPORT_ADDRESS = None

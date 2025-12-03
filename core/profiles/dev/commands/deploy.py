@@ -45,10 +45,8 @@ def deploy_run(server, dry_run, verbose):
         click.echo(f'create {server}.config.json in project root')
         sys.exit(1)
 
-    click.echo(click.style(f'deploying to {server}...', fg='cyan', bold=True))
-
     if dry_run:
-        click.echo(click.style('[DRY RUN MODE]', fg='yellow'))
+        click.echo(click.style('[dry run mode]', fg='yellow'))
 
     try:
         config = DeployConfig.load(config_file)
@@ -56,9 +54,11 @@ def deploy_run(server, dry_run, verbose):
         result = deployer.deploy()
 
         if result.success:
-            click.echo(click.style(f'\n{result.message}', fg='green', bold=True))
+            click.echo(click.style(f'\n✓ {result.message}', fg='green', bold=True))
+            if result.duration:
+                click.echo(click.style(f'  completed in {result.duration:.1f}s', fg='green'))
         else:
-            click.echo(click.style(f'\nerror: {result.message}', fg='red'))
+            click.echo(click.style(f'\n✗ {result.message}', fg='red'))
             if result.details:
                 click.echo(result.details)
             sys.exit(1)
@@ -290,6 +290,74 @@ def deploy_list():
     for config_file in sorted(configs):
         server_name = config_file.stem.replace('.config', '')
         click.echo(f'  {server_name}')
+
+
+@deploy_group.command(name='history')
+@click.option('-n', '--lines', default=10, help='number of entries to show')
+def deploy_history(lines):
+    """show deployment history
+
+    examples:
+        unibos-dev deploy history           # last 10 deploys
+        unibos-dev deploy history -n 20     # last 20 deploys
+    """
+    log_dir = project_root / "data" / "deploy_logs"
+    history_file = log_dir / "deploy_history.log"
+
+    if not history_file.exists():
+        click.echo(click.style('no deployment history found', fg='yellow'))
+        return
+
+    click.echo(click.style('deployment history:', fg='cyan', bold=True))
+
+    with open(history_file) as f:
+        entries = f.readlines()
+
+    # show last N entries
+    for entry in entries[-lines:]:
+        entry = entry.strip()
+        if '✓' in entry:
+            click.echo(click.style(f'  {entry}', fg='green'))
+        elif '✗' in entry:
+            click.echo(click.style(f'  {entry}', fg='red'))
+        else:
+            click.echo(f'  {entry}')
+
+
+@deploy_group.command(name='log')
+@click.argument('server', default='rocksteady')
+@click.option('--last', is_flag=True, help='show last deployment log')
+def deploy_log(server, last):
+    """view deployment log files
+
+    examples:
+        unibos-dev deploy log rocksteady       # list logs for rocksteady
+        unibos-dev deploy log rocksteady --last  # show last log
+    """
+    log_dir = project_root / "data" / "deploy_logs"
+
+    if not log_dir.exists():
+        click.echo(click.style('no deployment logs found', fg='yellow'))
+        return
+
+    # find logs for this server
+    logs = sorted(log_dir.glob(f"deploy_{server}_*.log"), reverse=True)
+
+    if not logs:
+        click.echo(click.style(f'no logs found for {server}', fg='yellow'))
+        return
+
+    if last:
+        # show content of last log
+        click.echo(click.style(f'last deploy log: {logs[0].name}', fg='cyan', bold=True))
+        click.echo()
+        with open(logs[0]) as f:
+            click.echo(f.read())
+    else:
+        # list available logs
+        click.echo(click.style(f'deployment logs for {server}:', fg='cyan', bold=True))
+        for log_file in logs[:10]:
+            click.echo(f'  {log_file.name}')
 
 
 @deploy_group.command(name='backup')

@@ -665,12 +665,14 @@ class UnibosDevTUI(BaseTUI):
         options = [
             ("rocksteady", "🖥️  rocksteady", "production server"),
             ("bebop", "🧪 bebop", "staging server"),
+            ("history", "📜 deploy history", "view recent deployments"),
             ("back", "← back", "return to dev tools"),
         ]
 
         handlers = {
             "rocksteady": lambda: self._show_server_menu('rocksteady'),
             "bebop": lambda: self._show_server_menu('bebop'),
+            "history": self._deploy_show_history,
         }
 
         return self.show_submenu(
@@ -679,6 +681,11 @@ class UnibosDevTUI(BaseTUI):
             options=options,
             handlers=handlers
         )
+
+    def _deploy_show_history(self):
+        """Show deployment history"""
+        result = self.execute_command(['unibos-dev', 'deploy', 'history', '-n', '20'])
+        self.show_command_output(result)
 
     def _show_server_menu(self, server_name: str):
         """Show operations menu for a specific server"""
@@ -689,10 +696,11 @@ class UnibosDevTUI(BaseTUI):
         options = [
             ("status", "📊 status", f"check {server_name} service status"),
             ("deploy", "🚀 deploy", f"deploy to {server_name}"),
+            ("deploy_log", "📜 last deploy log", f"view last deployment log"),
             ("start", "▶️  start", f"start service on {server_name}"),
             ("stop", "⏹️  stop", f"stop service on {server_name}"),
             ("restart", "🔄 restart", f"restart service on {server_name}"),
-            ("logs", "📝 logs", f"view {server_name} logs"),
+            ("logs", "📝 service logs", f"view {server_name} service logs"),
             ("backup", "💾 backup", f"backup {server_name} database"),
             ("backups", "📋 backups", f"list {server_name} backups"),
             ("ssh", "🔐 ssh", f"ssh info for {server_name}"),
@@ -702,6 +710,7 @@ class UnibosDevTUI(BaseTUI):
         handlers = {
             "status": lambda: self._server_status(server_name),
             "deploy": lambda: self._server_deploy(server_name),
+            "deploy_log": lambda: self._server_deploy_log(server_name),
             "start": lambda: self._server_start(server_name),
             "stop": lambda: self._server_stop(server_name),
             "restart": lambda: self._server_restart(server_name),
@@ -731,6 +740,13 @@ class UnibosDevTUI(BaseTUI):
         result = self.execute_command_streaming(
             ['unibos-dev', 'deploy', 'run', server],
             title=f"deploying to {server}"
+        )
+        self.show_command_output(result)
+
+    def _server_deploy_log(self, server: str):
+        """View last deployment log"""
+        result = self.execute_command(
+            ['unibos-dev', 'deploy', 'log', server, '--last']
         )
         self.show_command_output(result)
 
