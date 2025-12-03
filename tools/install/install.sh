@@ -101,7 +101,8 @@ detect_system_info() {
     if [ -d "$INSTALL_DIR" ]; then
         UNIBOS_INSTALLED="yes"
         if [ -f "$INSTALL_DIR/VERSION.json" ]; then
-            INSTALLED_VERSION=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$INSTALL_DIR/VERSION.json" 2>/dev/null | cut -d'"' -f4)
+            # Get semantic version from display.semantic field
+            INSTALLED_VERSION=$(grep -o '"semantic"[[:space:]]*:[[:space:]]*"[^"]*"' "$INSTALL_DIR/VERSION.json" 2>/dev/null | head -1 | cut -d'"' -f4)
         fi
         if systemctl is-active --quiet unibos 2>/dev/null; then
             UNIBOS_RUNNING="yes"
