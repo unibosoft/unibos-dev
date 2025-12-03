@@ -68,8 +68,8 @@ echo -e "${GREEN}7. Checking deployment readiness...${NC}"
 python manage.py check --deploy
 
 echo -e "${GREEN}8. Setting up log directories...${NC}"
-sudo mkdir -p /var/log/unibos
-sudo chown $USER:$USER /var/log/unibos
+mkdir -p data/logs
+echo -e "${GREEN}  Log directory: data/logs${NC}"
 
 echo -e "${GREEN}9. Configuring systemd service...${NC}"
 sudo cp unibos.service /etc/systemd/system/

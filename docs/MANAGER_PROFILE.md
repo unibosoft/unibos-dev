@@ -169,7 +169,7 @@ unibos-dev manager ssh rocksteady --command "systemctl status unibos"
 
 ### 5. View Remote Logs
 ```bash
-unibos-dev manager ssh rocksteady --command "tail -f /var/log/unibos/app.log"
+unibos-dev manager ssh rocksteady --command "tail -f ~/unibos/data/logs/django.log"
 ```
 
 ## Testing

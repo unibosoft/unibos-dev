@@ -46,8 +46,8 @@ ENV PATH=/root/.local/bin:$PATH \
 
 # Create app user
 RUN useradd -m -u 1000 unibos && \
-    mkdir -p /app /var/log/unibos /var/run/unibos && \
-    chown -R unibos:unibos /app /var/log/unibos /var/run/unibos
+    mkdir -p /app /app/data/logs /var/run/unibos && \
+    chown -R unibos:unibos /app /var/run/unibos
 
 # Set working directory
 WORKDIR /app

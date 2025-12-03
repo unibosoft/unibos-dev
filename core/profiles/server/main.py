@@ -90,7 +90,7 @@ def logs():
     """View server logs"""
     click.echo("📝 Server Logs")
     click.echo("\nAvailable log files:")
-    click.echo("  • Django: tail -f /var/log/unibos/django.log")
+    click.echo("  • Django: tail -f ~/unibos/data/logs/django.log")
     click.echo("  • Nginx access: tail -f /var/log/nginx/access.log")
     click.echo("  • Nginx error: tail -f /var/log/nginx/error.log")
     click.echo("  • System: sudo journalctl -f")

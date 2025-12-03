@@ -98,7 +98,7 @@ unibos-dev manager status rocksteady
 
 ### View Production Logs
 ```bash
-unibos-dev manager ssh rocksteady --command "tail -f /var/log/unibos/app.log"
+unibos-dev manager ssh rocksteady --command "tail -f ~/unibos/data/logs/django.log"
 ```
 
 ### Restart Services
@@ -169,7 +169,7 @@ unibos-dev manager ssh --help
 3. **Monitor during deployment**
    ```bash
    # In another terminal, watch logs
-   unibos-dev manager ssh rocksteady --command "tail -f /var/log/unibos/app.log"
+   unibos-dev manager ssh rocksteady --command "tail -f ~/unibos/data/logs/django.log"
    ```
 
 4. **Backup before major changes**

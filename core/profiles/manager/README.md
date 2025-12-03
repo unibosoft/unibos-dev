@@ -186,7 +186,7 @@ Opens an interactive SSH session to the target server.
 ```bash
 unibos-dev manager ssh rocksteady --command "ls -la /opt/unibos"
 unibos-dev manager ssh rocksteady --command "systemctl status unibos"
-unibos-dev manager ssh rocksteady --command "tail -f /var/log/unibos/app.log"
+unibos-dev manager ssh rocksteady --command "tail -f ~/unibos/data/logs/django.log"
 ```
 
 ## Integration with Main CLI
@@ -243,7 +243,7 @@ unibos-dev manager deploy rocksteady
 
 ### View Remote Logs
 ```bash
-unibos-dev manager ssh rocksteady --command "tail -f /var/log/unibos/app.log"
+unibos-dev manager ssh rocksteady --command "tail -f ~/unibos/data/logs/django.log"
 ```
 
 ### Restart Services

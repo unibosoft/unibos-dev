@@ -184,7 +184,7 @@ sudo systemctl restart nginx
 sudo systemctl status postgresql
 
 # Logs
-tail -f /var/log/unibos/django.log
+tail -f ~/unibos/data/logs/django.log
 tail -f /var/log/nginx/access.log
 sudo journalctl -u gunicorn -f
 
