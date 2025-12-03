@@ -10,6 +10,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 
+
+---
+
+## [1.0.1] - 2025-12-03
+
+### Added
+
+- ✨ **tui**: add alternate screen buffer to prevent terminal scroll pollution
+- ✨ **tui**: add scroll navigation keys (PageUp/PageDown, g/G for top/bottom)
+- ✨ **tui**: add live footer clock updates during submenu and streaming operations
+- ✨ **tui**: add terminal resize support during streaming with full redraw
+- ✨ **tui**: add spinner animation during long-running operations
+- ✨ **deploy**: add multi-server support (rocksteady/bebop) with hierarchical menu
+- ✨ **colors**: add BG_ORANGE_DIM for inactive sidebar selection state
+
+### Changed
+
+- ♻️ **tui**: use _navigation_redraw() instead of render() to prevent blink on submenu exit
+- ♻️ **tui**: buffer-based rendering in sidebar and content components
+- ♻️ **tui**: keep cursor hidden during navigation to prevent character blink
+- ♻️ **deploy**: use sudo rm -rf for locked venv files during deployment
+
+### Fixed
+
+- 🐛 **tui**: fix sidebar not dimming on first ENTER (content area focus)
+- 🐛 **tui**: fix blink when transitioning between sidebar and submenu
+- 🐛 **tui**: fix header disappearing on terminal resize during streaming
+- 🐛 **tui**: fix footer blink on resize by resetting update timer
+- 🐛 **tui**: fix cursor blink in header/footer/content areas
+- 🐛 **deploy**: fix EXISTS check matching NOT_EXISTS (changed to YES/NO)
+
 ---
 
 ## [1.0.0] - 2025-12-03
