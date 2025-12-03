@@ -130,6 +130,7 @@ CORE_SYSTEM_APPS = [
     'core.system.users.backend',  # Custom User model with UUID
     'core.system.common.backend',  # Common utilities
     'core.system.web_ui.backend',  # UNIBOS Web UI
+    'core.system.nodes.backend',  # Node Registry for multi-node architecture
 ]
 
 LOCAL_APPS = [
@@ -175,6 +176,10 @@ MIDDLEWARE = [
     'core.system.common.backend.middleware.SecurityHeadersMiddleware',
     'core.system.common.backend.middleware.RequestLoggingMiddleware',
     'core.system.common.backend.middleware.RateLimitMiddleware',
+    'core.system.common.backend.middleware.HealthCheckMiddleware',  # Quick health check bypass
+    'core.system.common.backend.middleware.NodeIdentityMiddleware',  # Multi-node identity
+    'core.system.common.backend.middleware.P2PDiscoveryMiddleware',  # Peer discovery
+    'core.system.common.backend.middleware.MaintenanceModeMiddleware',  # Graceful maintenance
     'core.system.web_ui.backend.middleware.SolitaireSecurityMiddleware',  # Solitaire screen lock security
     'core.system.web_ui.backend.middleware_navigation.NavigationTrackingMiddleware',  # Track last visited page
     'core.system.common.backend.middleware_activity.UserActivityMiddleware',  # Track user activity

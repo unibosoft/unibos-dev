@@ -19,10 +19,10 @@ API_V1_PREFIX = 'api/v1/'
 urlpatterns = [
     # Admin interface
     path('admin/', admin.site.urls),
-    
-    # Health checks (disabled - module not installed)
-    # path('health/', include('health_check.urls')),
-    
+
+    # Health checks (comprehensive endpoints)
+    path('health/', include('core.system.common.backend.health_urls', namespace='health')),
+
     # Prometheus metrics (disabled - module not installed)
     # path('metrics/', include('django_prometheus.urls')),
     
@@ -57,6 +57,9 @@ urlpatterns = [
 
     # Administration Module
     path('administration/', include('core.system.administration.backend.urls', namespace='administration')),
+
+    # Node Registry API
+    path(f'{API_V1_PREFIX}nodes/', include('core.system.nodes.backend.urls', namespace='nodes')),
 
     # Movies Module - Movie/Series Collection Management
     path('movies/', include('modules.movies.backend.urls', namespace='movies')),

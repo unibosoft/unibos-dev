@@ -1,164 +1,48 @@
 {
   "id": "birlikteyiz",
   "name": "Birlikteyiz",
-  "display_name": {
-    "tr": "Birlikteyiz",
-    "en": "Together We Stand"
-  },
   "version": "1.0.0",
-  "description": "Emergency mesh network communication system for disaster response and earthquake early warning",
-  "icon": "📡",
-  "author": "Berk Hatırlı",
-
-  "features": [
-    "Real-time earthquake alerts",
-    "Mesh network capability",
-    "Emergency contact management",
-    "Safe zone mapping",
-    "User location tracking",
-    "Offline messaging support",
-    "WebSocket real-time updates",
-    "Disaster response coordination"
-  ],
+  "description": "Emergency mesh network for disaster response. Real-time earthquake data, peer-to-peer communication, and offline-capable emergency coordination.",
+  "author": "UNIBOS Team",
+  "icon": "🌍",
+  "license": "Proprietary",
 
   "capabilities": {
     "backend": true,
-    "web": false,
-    "mobile": true,
-    "cli": false,
+    "web": true,
+    "mobile": false,
+    "cli": true,
     "realtime": true
   },
 
   "dependencies": {
-    "core_modules": ["authentication", "users"],
-    "python_packages": [
-      "djangorestframework",
-      "channels",
-      "celery",
-      "redis"
-    ],
-    "system_requirements": ["redis", "postgresql", "celery", "channels"]
+    "modules": [],
+    "python": ["websockets", "geopy"],
+    "system": []
   },
 
-  "database": {
-    "uses_shared_db": true,
-    "tables_prefix": "birlikteyiz_",
-    "models": [
-      "MeshNode",
-      "Earthquake",
-      "EarthquakeAlert",
-      "SafeZone",
-      "EmergencyContact",
-      "UserLocation",
-      "MeshMessage"
-    ]
-  },
+  "platforms": ["macos", "linux", "windows", "raspberry-pi"],
 
-  "api": {
-    "base_path": "/api/v1/birlikteyiz/",
-    "endpoints": [
-      {
-        "path": "earthquakes/",
-        "methods": ["GET"],
-        "public": true,
-        "auth_required": false
-      },
-      {
-        "path": "earthquakes/recent/",
-        "methods": ["GET"],
-        "public": true,
-        "auth_required": false
-      },
-      {
-        "path": "earthquakes/manual_fetch/",
-        "methods": ["POST"],
-        "public": false,
-        "auth_required": true
-      },
-      {
-        "path": "safe-zones/",
-        "methods": ["GET", "POST"],
-        "public": false,
-        "auth_required": true
-      },
-      {
-        "path": "user-location/",
-        "methods": ["GET", "POST", "PUT"],
-        "public": false,
-        "auth_required": true
-      },
-      {
-        "path": "mesh-nodes/",
-        "methods": ["GET", "POST"],
-        "public": false,
-        "auth_required": true
-      },
-      {
-        "path": "alerts/",
-        "methods": ["GET"],
-        "public": false,
-        "auth_required": true
-      }
-    ]
-  },
-
-  "permissions": [
-    "birlikteyiz.view_earthquake",
-    "birlikteyiz.add_earthquake",
-    "birlikteyiz.view_safezone",
-    "birlikteyiz.add_safezone",
-    "birlikteyiz.change_safezone",
-    "birlikteyiz.view_meshnode",
-    "birlikteyiz.add_meshnode"
+  "features": [
+    "Real-time earthquake data from AFAD and EMSC",
+    "Peer-to-peer mesh communication",
+    "Offline message queue",
+    "Emergency resource coordination",
+    "Location-based alerts"
   ],
 
-  "celery_tasks": [
-    "fetch_earthquakes",
-    "process_earthquake_alerts",
-    "sync_mesh_nodes",
-    "send_emergency_notifications"
-  ],
-
-  "channels": {
-    "websocket_routes": [
-      "ws/birlikteyiz/earthquakes/",
-      "ws/birlikteyiz/alerts/",
-      "ws/birlikteyiz/mesh/"
-    ]
+  "settings": {
+    "earthquake_poll_interval": 300,
+    "mesh_discovery_enabled": true,
+    "offline_mode_enabled": true
   },
 
-  "integration": {
-    "sidebar": {
-      "enabled": true,
-      "position": 1,
-      "category": "security"
-    },
-    "dashboard_widgets": [
-      {
-        "id": "recent_earthquakes",
-        "title": "Recent Earthquakes",
-        "size": "large"
-      },
-      {
-        "id": "active_alerts",
-        "title": "Active Alerts",
-        "size": "medium"
-      }
-    ]
+  "endpoints": {
+    "api": "/api/v1/birlikteyiz/",
+    "web": "/birlikteyiz/",
+    "ws": "/ws/birlikteyiz/"
   },
 
-  "mobile_app": {
-    "package": "org.unibos.birlikteyiz",
-    "min_version": "1.0.0",
-    "store_urls": {
-      "ios": "",
-      "android": ""
-    }
-  },
-
-  "development": {
-    "repository": "https://github.com/berkhatira/unibos",
-    "documentation": "",
-    "maintainer": "berk@berkhatirli.com"
-  }
+  "category": "emergency",
+  "tags": ["disaster", "earthquake", "mesh-network", "p2p", "offline"]
 }

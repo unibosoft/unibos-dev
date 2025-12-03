@@ -1,6 +1,6 @@
 # UNIBOS Development Roadmap
 
-**Version:** v1.0.8
+**Version:** v1.0.10
 **Last Update:** 2025-12-03
 **Current Phase:** Production Ready - Active Development
 **Architecture:** 4-Tier CLI (dev, manager, server, prod)
@@ -42,10 +42,10 @@
 
 ### Version History (Recent)
 
+- **v1.0.10** (2025-12-03): Middleware completion & health endpoints
 - **v1.0.8** (2025-12-03): Docs consolidation, README/CHANGELOG update
 - **v1.0.7** (2025-12-03): Log path standardization (data/logs/)
 - **v1.0.6** (2025-12-03): Archive exclusion fixes
-- **v1.0.5** (2025-12-03): Deploy pipeline improvements
 - **v1.0.0** (2025-12-01): First stable release
 
 ---
@@ -73,19 +73,29 @@
 - Channel Layer (WebSocket)
 - Celery broker
 
-### Middleware Stack - PARTIAL
+### Middleware Stack - COMPLETED
 
-**Completed:**
-- SecurityHeadersMiddleware
-- RequestLoggingMiddleware
-- RateLimitMiddleware
-- JWTAuthMiddleware (WebSocket)
-- HealthCheckMiddleware (/health/quick/)
+- SecurityHeadersMiddleware - Security headers (CSP, XSS, etc.)
+- RequestLoggingMiddleware - Request/response logging
+- RateLimitMiddleware - API rate limiting
+- JWTAuthMiddleware - WebSocket JWT authentication
+- HealthCheckMiddleware - Quick health bypass (/health/quick/, /health/live/)
+- NodeIdentityMiddleware - Multi-node UUID identity
+- P2PDiscoveryMiddleware - Peer discovery headers
+- MaintenanceModeMiddleware - Graceful maintenance mode (503)
 
-**Pending:**
-- [ ] NodeIdentityMiddleware
-- [ ] P2PDiscoveryMiddleware
-- [ ] MaintenanceModeMiddleware
+### Health Endpoints - COMPLETED
+
+- `/health/` - Full comprehensive health check (same as /health/full/)
+- `/health/quick/` - Minimal overhead health check (middleware bypass)
+- `/health/db/` - PostgreSQL connectivity test
+- `/health/redis/` - Redis connectivity test
+- `/health/celery/` - Celery worker status
+- `/health/channels/` - Django Channels/WebSocket test
+- `/health/node/` - Node identity and capabilities
+- `/health/full/` - Aggregated service status
+- `/health/ready/` - Kubernetes readiness probe
+- `/health/live/` - Kubernetes liveness probe (middleware bypass)
 
 ### TUI Framework - COMPLETED
 
@@ -94,91 +104,50 @@
 - 3-section menu structure
 - Keyboard navigation
 - i18n support (TR/EN)
+- Triple-flush input buffer (ghost key fix)
+- 50ms debouncing threshold
+- Selective sidebar redraw (no flicker)
+- Emoji-safe string handling
+- Breadcrumb navigation (`section › item` format in header)
+- Terminal resize detection (polling-based with full redraw)
 
 ---
 
 ## Active Development Tasks
 
-### Priority 1: TUI Bug Fixes (v527 Patterns)
-
-**Problem:** Ghost keypresses, navigation jumps 2-3 items, sidebar flicker
-
-- [ ] **Triple-Flush Input Buffer**
-  - File: `core/clients/tui/base.py`
-  - Add `clear_input_buffer()` method
-  - Call before/after submenu entry/exit
-  - Pattern from v527/src/submenu_handler.py
-
-- [ ] **50ms Debouncing Threshold**
-  - File: `core/clients/tui/base.py` - run() method
-  - Pattern from v527/src/main.py lines 3206-3216
-
-- [ ] **Selective Sidebar Redraw**
-  - File: `core/clients/tui/components/sidebar.py`
-  - Update only 2 lines instead of 30+
-  - Pattern from v527/src/sidebar_fix.py
-
-- [ ] **Emoji-Safe String Handling**
-  - Copy `emoji_safe_slice.py` from v527
-  - Destination: `core/clients/tui/utils/`
-
-### Priority 2: UX Enhancements
-
-- [ ] **Breadcrumb Navigation**
-  - File: `core/clients/tui/components/header.py`
-  - Display: `UNIBOS v1.0.8 > tools > version manager`
-
-- [ ] **Terminal Resize Detection**
-  - File: `core/clients/tui/base.py`
-  - Handle SIGWINCH signal
-
-### Priority 3: Middleware Completion
-
-- [ ] Complete remaining 3 middleware items
-- [ ] Test security headers on all responses
-- [ ] Verify rate limiting on API endpoints
-
-### Priority 4: Health Endpoints Enhancement
-
-- [ ] Expand `/health/quick/` to full health check
-- [ ] Add service-specific health endpoints
-- [ ] Database connectivity check
-- [ ] Redis connectivity check
-- [ ] Celery worker status
-
----
-
-## Phase Roadmap
-
-### Phase 1: Service Management & Node Identity (IN PROGRESS)
-
-#### Service Manager Implementation
-
-- [ ] Create `core/platform/service_manager.py`
-  - systemd support (Linux/Raspberry Pi)
-  - launchd support (macOS)
-  - Windows Services support
-  - Supervisor fallback
-
-- [ ] CLI Integration:
-  - `unibos service start`
-  - `unibos service stop`
-  - `unibos service status`
-  - `unibos-server service restart`
-
-#### Node Identity & Persistence
-
-- [ ] Extend `core/instance/identity.py`
-  - UUID persistence (`data/core/node.uuid`)
-  - Node type detection (central, local, edge)
-  - Capability declaration
-  - Registration method
+### Priority 1: Node Registry Django App (IN PROGRESS)
 
 - [ ] Create Django app `core/system/nodes/`
   - Models: Node, NodeCapability, NodeStatus
   - API: `/api/nodes/register`, `/api/nodes/list`
   - Admin interface
   - WebSocket for real-time status
+
+---
+
+## Phase Roadmap
+
+### Phase 1: Service Management & Node Identity - COMPLETED ✅
+
+#### Service Manager (core/base/platform/service_manager.py) ✅
+
+- [x] systemd support (Linux/Raspberry Pi)
+- [x] launchd support (macOS)
+- [x] Supervisor fallback
+- [x] Auto-detection mechanism
+- [x] CLI: `unibos-server service start/stop/restart/status`
+
+#### Node Identity (core/base/identity/identity.py) ✅
+
+- [x] UUID persistence (`data/core/node.json`)
+- [x] Node type detection (CENTRAL, LOCAL, EDGE, DESKTOP)
+- [x] NodeCapabilities dataclass (GPU, camera, GPIO, LoRa, etc.)
+- [x] Platform detection integration
+- [x] Registration method foundation
+
+#### Remaining (Phase 1.5)
+
+- [ ] Django app `core/system/nodes/` for centralized node management
 
 ### Phase 2: Module System Enhancement
 

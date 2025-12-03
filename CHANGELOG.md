@@ -10,6 +10,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ---
 
+## [1.0.10] - 2025-12-03
+
+### Added
+
+- ✨ **middleware**: implement NodeIdentityMiddleware for multi-node architecture
+- ✨ **middleware**: implement P2PDiscoveryMiddleware for peer discovery headers
+- ✨ **middleware**: implement MaintenanceModeMiddleware with graceful 503 handling
+- ✨ **health**: comprehensive health endpoints system
+  - `/health/` - Full comprehensive health check
+  - `/health/quick/` - Minimal overhead (middleware bypass)
+  - `/health/db/` - PostgreSQL connectivity
+  - `/health/redis/` - Redis connectivity
+  - `/health/celery/` - Celery worker status
+  - `/health/channels/` - Django Channels/WebSocket
+  - `/health/node/` - Node identity and capabilities
+  - `/health/full/` - Aggregated service status
+  - `/health/ready/` - Kubernetes readiness probe
+  - `/health/live/` - Kubernetes liveness probe
+
+### Changed
+
+- ♻️ **middleware**: enhance HealthCheckMiddleware with bypass paths
+- ♻️ **settings**: add new middleware to Django MIDDLEWARE stack
+
+---
+
 ## [1.0.9] - 2025-12-03
 
 ### Breaking Changes

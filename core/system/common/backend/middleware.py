@@ -216,9 +216,187 @@ class CorsMiddleware(MiddlewareMixin):
 
 
 class HealthCheckMiddleware(MiddlewareMixin):
-    """Quick health check middleware"""
-    
+    """
+    Quick health check middleware - bypasses all other middleware.
+    Returns immediately for /health/quick/ and /health/live/ paths.
+    Other health checks go through the full middleware stack.
+    """
+
+    # Paths that bypass the middleware stack
+    BYPASS_PATHS = ['/health/quick/', '/health/live/']
+
     def process_request(self, request):
-        if request.path == '/health/quick/':
+        if request.path in self.BYPASS_PATHS:
             return JsonResponse({'status': 'ok', 'timestamp': time.time()})
         return None
+
+
+class NodeIdentityMiddleware(MiddlewareMixin):
+    """
+    Add node identity information to request context and response headers.
+    Enables multi-node architecture by identifying which node handled the request.
+    """
+
+    _identity = None
+
+    @classmethod
+    def get_identity(cls):
+        """Lazy load node identity"""
+        if cls._identity is None:
+            try:
+                from core.base.identity.identity import get_instance_identity
+                cls._identity = get_instance_identity()
+            except Exception as e:
+                logger.warning(f"Failed to load node identity: {e}")
+                cls._identity = None
+        return cls._identity
+
+    def process_request(self, request):
+        """Add node identity to request"""
+        identity = self.get_identity()
+        if identity:
+            request.node_uuid = identity.get_uuid()
+            request.node_type = identity.get_node_type().value
+        else:
+            request.node_uuid = None
+            request.node_type = 'unknown'
+
+    def process_response(self, request, response):
+        """Add node identity headers to response"""
+        identity = self.get_identity()
+        if identity:
+            response['X-Node-UUID'] = identity.get_uuid()
+            response['X-Node-Type'] = identity.get_node_type().value
+        return response
+
+
+class P2PDiscoveryMiddleware(MiddlewareMixin):
+    """
+    Handle P2P node discovery headers.
+    Allows nodes to advertise themselves and discover peers.
+    """
+
+    def process_request(self, request):
+        """Check for peer discovery requests"""
+        # Check if this is a peer discovery request
+        if request.META.get('HTTP_X_UNIBOS_DISCOVER') == 'true':
+            request.is_peer_discovery = True
+        else:
+            request.is_peer_discovery = False
+
+        # Extract peer info if provided
+        peer_uuid = request.META.get('HTTP_X_PEER_UUID')
+        peer_type = request.META.get('HTTP_X_PEER_TYPE')
+        if peer_uuid:
+            request.peer_uuid = peer_uuid
+            request.peer_type = peer_type
+
+    def process_response(self, request, response):
+        """Add discovery information to responses"""
+        # If this was a discovery request, add node info
+        if getattr(request, 'is_peer_discovery', False):
+            try:
+                from core.base.identity.identity import get_instance_identity
+                identity = get_instance_identity()
+
+                response['X-UNIBOS-Node'] = 'true'
+                response['X-Node-UUID'] = identity.get_uuid()
+                response['X-Node-Type'] = identity.get_node_type().value
+                response['X-Node-Hostname'] = identity.identity.hostname
+
+                # Add capabilities summary
+                caps = identity.get_capabilities()
+                capabilities = []
+                if caps.can_run_django:
+                    capabilities.append('django')
+                if caps.can_run_celery:
+                    capabilities.append('celery')
+                if caps.can_run_websocket:
+                    capabilities.append('websocket')
+                response['X-Node-Capabilities'] = ','.join(capabilities)
+
+            except Exception as e:
+                logger.warning(f"P2P discovery error: {e}")
+
+        return response
+
+
+class MaintenanceModeMiddleware(MiddlewareMixin):
+    """
+    Enable graceful maintenance mode.
+    When enabled, returns 503 for all requests except health checks and admin.
+    """
+
+    # Paths that bypass maintenance mode
+    EXEMPT_PATHS = [
+        '/health/',
+        '/admin/',
+        '/api/auth/login/',  # Allow login during maintenance
+        '/static/',
+        '/media/',
+    ]
+
+    def process_request(self, request):
+        """Check if maintenance mode is active"""
+        # Check maintenance mode from cache or settings
+        maintenance_mode = cache.get('maintenance_mode', False)
+
+        # Also check settings for static maintenance
+        if not maintenance_mode:
+            maintenance_mode = getattr(settings, 'MAINTENANCE_MODE', False)
+
+        if maintenance_mode:
+            # Check if path is exempt
+            if any(request.path.startswith(path) for path in self.EXEMPT_PATHS):
+                return None
+
+            # Check if user is superuser (allow admin access)
+            if hasattr(request, 'user') and request.user.is_authenticated:
+                if request.user.is_superuser:
+                    return None
+
+            # Get maintenance message
+            maintenance_message = cache.get(
+                'maintenance_message',
+                getattr(settings, 'MAINTENANCE_MESSAGE', 'System is under maintenance. Please try again later.')
+            )
+
+            # Get estimated end time
+            maintenance_until = cache.get('maintenance_until')
+
+            response_data = {
+                'error': 'maintenance',
+                'message': maintenance_message,
+                'status': 503,
+            }
+
+            if maintenance_until:
+                response_data['estimated_end'] = maintenance_until
+
+            return JsonResponse(response_data, status=503)
+
+        return None
+
+    @classmethod
+    def enable_maintenance(cls, message: str = None, until: str = None):
+        """
+        Enable maintenance mode
+
+        Args:
+            message: Custom maintenance message
+            until: Estimated end time (ISO format)
+        """
+        cache.set('maintenance_mode', True, timeout=None)
+        if message:
+            cache.set('maintenance_message', message, timeout=None)
+        if until:
+            cache.set('maintenance_until', until, timeout=None)
+        logger.info("Maintenance mode enabled")
+
+    @classmethod
+    def disable_maintenance(cls):
+        """Disable maintenance mode"""
+        cache.delete('maintenance_mode')
+        cache.delete('maintenance_message')
+        cache.delete('maintenance_until')
+        logger.info("Maintenance mode disabled")
