@@ -1,6 +1,6 @@
 """
 UNIBOS Deploy Configuration
-Handles server deployment configuration loading and validation
+Handles hub server deployment configuration loading and validation
 """
 
 import json
@@ -11,7 +11,7 @@ from typing import Optional
 
 @dataclass
 class DeployConfig:
-    """Server deployment configuration"""
+    """Hub server deployment configuration"""
 
     # Server identification
     name: str
@@ -24,7 +24,7 @@ class DeployConfig:
     venv_path: str = "/home/ubuntu/unibos/core/clients/web/venv"
 
     # Git settings
-    repo_url: str = "git@github.com:unibosoft/unibos-server.git"
+    repo_url: str = "git@github.com:unibosoft/unibos-hub.git"
     branch: str = "main"
 
     # Django settings

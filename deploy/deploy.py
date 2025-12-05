@@ -1,6 +1,6 @@
 """
-unibos server deployer
-handles complete server deployment lifecycle
+unibos hub deployer
+handles complete hub server deployment lifecycle
 """
 
 import subprocess
@@ -38,13 +38,13 @@ class DeployLog:
         return f"{self.timestamp} | {status} {self.server} | {self.steps_completed}/{self.total_steps} steps | {self.duration:.1f}s"
 
 
-class ServerDeployer:
+class HubDeployer:
     """
-    server deployment automation for unibos
+    hub deployment automation for unibos
 
     handles:
     - ssh connection and command execution
-    - git clone/pull from unibos-server repo
+    - git clone/pull from unibos-hub repo
     - python venv setup and dependencies
     - environment file creation
     - module registry setup (.enabled files)
@@ -299,7 +299,7 @@ class ServerDeployer:
                 f"{self.config.venv_path}/bin/pip install -e . -q",
                 quiet=True
             )
-            self.log("  ✓ unibos-server cli installed")
+            self.log("  ✓ unibos-hub cli installed")
 
             # step 8: create .env file
             self.log_step("env")
@@ -526,7 +526,7 @@ class ServerDeployer:
     def _setup_systemd(self) -> None:
         """create and install systemd service"""
         service_content = f"""[Unit]
-Description=unibos server ({self.config.name})
+Description=unibos hub ({self.config.name})
 After=network.target postgresql.service redis.service
 
 [Service]

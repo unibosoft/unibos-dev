@@ -1,6 +1,6 @@
 """
 UNIBOS CLI - Deployment Commands
-Handles deployment to various servers using the deploy module
+Handles deployment to hub servers using the deploy module
 """
 
 import click
@@ -15,7 +15,7 @@ sys.path.insert(0, str(project_root))
 
 @click.group(name='deploy')
 def deploy_group():
-    """deployment commands for UNIBOS servers"""
+    """deployment commands for UNIBOS hub servers"""
     pass
 
 
@@ -33,7 +33,7 @@ def deploy_run(server, dry_run, verbose):
     """
     try:
         from deploy.config import DeployConfig
-        from deploy.deploy import ServerDeployer
+        from deploy.deploy import HubDeployer
     except ImportError as e:
         click.echo(click.style(f'error: deploy module not found: {e}', fg='red'))
         sys.exit(1)
@@ -50,7 +50,7 @@ def deploy_run(server, dry_run, verbose):
 
     try:
         config = DeployConfig.load(config_file)
-        deployer = ServerDeployer(config, dry_run=dry_run, verbose=verbose)
+        deployer = HubDeployer(config, dry_run=dry_run, verbose=verbose)
         result = deployer.deploy()
 
         if result.success:
@@ -79,7 +79,7 @@ def deploy_status(server):
     """
     try:
         from deploy.config import DeployConfig
-        from deploy.deploy import ServerDeployer
+        from deploy.deploy import HubDeployer
     except ImportError as e:
         click.echo(click.style(f'error: deploy module not found: {e}', fg='red'))
         sys.exit(1)
@@ -92,7 +92,7 @@ def deploy_status(server):
 
     try:
         config = DeployConfig.load(config_file)
-        deployer = ServerDeployer(config, verbose=False)
+        deployer = HubDeployer(config, verbose=False)
         result = deployer.status()
 
         click.echo(click.style(f'status: {server}', fg='cyan', bold=True))
@@ -109,7 +109,7 @@ def deploy_start(server):
     """start service on a server"""
     try:
         from deploy.config import DeployConfig
-        from deploy.deploy import ServerDeployer
+        from deploy.deploy import HubDeployer
     except ImportError as e:
         click.echo(click.style(f'error: deploy module not found: {e}', fg='red'))
         sys.exit(1)
@@ -122,7 +122,7 @@ def deploy_start(server):
 
     try:
         config = DeployConfig.load(config_file)
-        deployer = ServerDeployer(config)
+        deployer = HubDeployer(config)
         result = deployer.start()
 
         if result.success:
@@ -142,7 +142,7 @@ def deploy_stop(server):
     """stop service on a server"""
     try:
         from deploy.config import DeployConfig
-        from deploy.deploy import ServerDeployer
+        from deploy.deploy import HubDeployer
     except ImportError as e:
         click.echo(click.style(f'error: deploy module not found: {e}', fg='red'))
         sys.exit(1)
@@ -155,7 +155,7 @@ def deploy_stop(server):
 
     try:
         config = DeployConfig.load(config_file)
-        deployer = ServerDeployer(config)
+        deployer = HubDeployer(config)
         result = deployer.stop()
 
         if result.success:
@@ -175,7 +175,7 @@ def deploy_restart(server):
     """restart service on a server"""
     try:
         from deploy.config import DeployConfig
-        from deploy.deploy import ServerDeployer
+        from deploy.deploy import HubDeployer
     except ImportError as e:
         click.echo(click.style(f'error: deploy module not found: {e}', fg='red'))
         sys.exit(1)
@@ -188,7 +188,7 @@ def deploy_restart(server):
 
     try:
         config = DeployConfig.load(config_file)
-        deployer = ServerDeployer(config)
+        deployer = HubDeployer(config)
         result = deployer.restart()
 
         if result.success:
@@ -216,7 +216,7 @@ def deploy_logs(server, lines, follow):
     """
     try:
         from deploy.config import DeployConfig
-        from deploy.deploy import ServerDeployer
+        from deploy.deploy import HubDeployer
     except ImportError as e:
         click.echo(click.style(f'error: deploy module not found: {e}', fg='red'))
         sys.exit(1)
@@ -229,7 +229,7 @@ def deploy_logs(server, lines, follow):
 
     try:
         config = DeployConfig.load(config_file)
-        deployer = ServerDeployer(config, verbose=False)
+        deployer = HubDeployer(config, verbose=False)
         result = deployer.logs(lines=lines, follow=follow)
 
         if result.details:
@@ -372,7 +372,7 @@ def deploy_backup(server):
     """
     try:
         from deploy.config import DeployConfig
-        from deploy.deploy import ServerDeployer
+        from deploy.deploy import HubDeployer
     except ImportError as e:
         click.echo(click.style(f'error: deploy module not found: {e}', fg='red'))
         sys.exit(1)
@@ -385,7 +385,7 @@ def deploy_backup(server):
 
     try:
         config = DeployConfig.load(config_file)
-        deployer = ServerDeployer(config)
+        deployer = HubDeployer(config)
         result = deployer.backup()
 
         if result.success:
@@ -411,7 +411,7 @@ def deploy_backups(server):
     """
     try:
         from deploy.config import DeployConfig
-        from deploy.deploy import ServerDeployer
+        from deploy.deploy import HubDeployer
     except ImportError as e:
         click.echo(click.style(f'error: deploy module not found: {e}', fg='red'))
         sys.exit(1)
@@ -424,7 +424,7 @@ def deploy_backups(server):
 
     try:
         config = DeployConfig.load(config_file)
-        deployer = ServerDeployer(config, verbose=False)
+        deployer = HubDeployer(config, verbose=False)
         result = deployer.list_backups()
 
         click.echo(click.style(f'backups on {server}:', fg='cyan', bold=True))
