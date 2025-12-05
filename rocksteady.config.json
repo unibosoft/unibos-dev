@@ -5,7 +5,7 @@
   "port": 22,
   "deploy_path": "/home/ubuntu/unibos",
   "venv_path": "/home/ubuntu/unibos/core/clients/web/venv",
-  "repo_url": "git@github.com:unibosoft/unibos-server.git",
+  "repo_url": "git@github.com-unibos-hub:unibosoft/unibos-hub.git",
   "branch": "main",
   "django_settings": "unibos_backend.settings.hub",
   "server_port": 8000,
