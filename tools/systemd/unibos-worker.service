@@ -1,0 +1,49 @@
+[Unit]
+Description=UNIBOS Celery Worker
+After=network.target redis.service postgresql.service
+Requires=redis.service
+
+[Service]
+Type=forking
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/unibos
+Environment="PATH=/home/ubuntu/unibos/core/clients/web/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/home/ubuntu/unibos:/home/ubuntu/unibos/core/clients/web"
+Environment="DJANGO_SETTINGS_MODULE=unibos_backend.settings.hub"
+Environment="UNIBOS_SETTINGS=hub"
+
+# Celery worker command
+ExecStart=/home/ubuntu/unibos/core/clients/web/venv/bin/celery \
+    -A core.profiles.worker.celery_app \
+    multi start worker \
+    --pidfile=/home/ubuntu/unibos/data/run/celery-%n.pid \
+    --logfile=/home/ubuntu/unibos/data/logs/celery-%n.log \
+    --loglevel=INFO \
+    -Q:worker default,ocr,media \
+    -c:worker 4
+
+ExecStop=/home/ubuntu/unibos/core/clients/web/venv/bin/celery \
+    -A core.profiles.worker.celery_app \
+    multi stopwait worker \
+    --pidfile=/home/ubuntu/unibos/data/run/celery-%n.pid
+
+ExecReload=/home/ubuntu/unibos/core/clients/web/venv/bin/celery \
+    -A core.profiles.worker.celery_app \
+    multi restart worker \
+    --pidfile=/home/ubuntu/unibos/data/run/celery-%n.pid \
+    --logfile=/home/ubuntu/unibos/data/logs/celery-%n.log \
+    --loglevel=INFO \
+    -Q:worker default,ocr,media \
+    -c:worker 4
+
+Restart=always
+RestartSec=10
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=1G
+CPUQuota=200%
+
+[Install]
+WantedBy=multi-user.target

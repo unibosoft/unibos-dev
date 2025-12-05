@@ -88,6 +88,10 @@ CELERY_TIMEZONE = 'Europe/Istanbul'
 CELERY_TASK_TRACK_STARTED = True
 CELERY_TASK_TIME_LIMIT = 30 * 60  # 30 minutes max
 CELERY_TASK_SOFT_TIME_LIMIT = 25 * 60  # 25 minutes soft limit
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1  # Fair task distribution
+CELERY_RESULT_EXPIRES = 3600  # Results expire after 1 hour
+CELERY_TASK_ACKS_LATE = True  # Tasks acknowledged after completion
+CELERY_WORKER_HIJACK_ROOT_LOGGER = False  # Don't override logging
 
 # Security - Production hardened
 SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-server-key-change-this!')

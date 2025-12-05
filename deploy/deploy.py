@@ -524,7 +524,8 @@ class HubDeployer:
         )
 
     def _setup_systemd(self) -> None:
-        """create and install systemd service"""
+        """create and install systemd services (web, worker, beat)"""
+        # Main web service (uvicorn)
         service_content = f"""[Unit]
 Description=unibos hub ({self.config.name})
 After=network.target postgresql.service redis.service
@@ -547,6 +548,65 @@ WantedBy=multi-user.target
             f"sudo bash -c 'cat > /etc/systemd/system/{self.config.service_name}.service << EOF\n{service_content}EOF'",
             quiet=True
         )
+
+        # Worker service (celery)
+        worker_content = f"""[Unit]
+Description=unibos worker ({self.config.name})
+After=network.target redis.service postgresql.service
+Requires=redis.service
+
+[Service]
+Type=simple
+User={self.config.user}
+Group={self.config.user}
+WorkingDirectory={self.config.deploy_path}
+Environment="PYTHONPATH={self.config.web_dir}:{self.config.deploy_path}"
+Environment="DJANGO_SETTINGS_MODULE={self.config.django_settings}"
+Environment="UNIBOS_SETTINGS=hub"
+ExecStart={self.config.venv_path}/bin/celery -A core.profiles.worker.celery_app worker --loglevel=INFO -Q default,ocr,media -c 4
+Restart=always
+RestartSec=10
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
+"""
+        self.ssh_cmd(
+            f"sudo bash -c 'cat > /etc/systemd/system/{self.config.service_name}-worker.service << EOF\n{worker_content}EOF'",
+            quiet=True
+        )
+
+        # Beat scheduler service
+        beat_content = f"""[Unit]
+Description=unibos beat scheduler ({self.config.name})
+After=network.target redis.service
+Requires=redis.service
+
+[Service]
+Type=simple
+User={self.config.user}
+Group={self.config.user}
+WorkingDirectory={self.config.deploy_path}
+Environment="PYTHONPATH={self.config.web_dir}:{self.config.deploy_path}"
+Environment="DJANGO_SETTINGS_MODULE={self.config.django_settings}"
+Environment="UNIBOS_SETTINGS=hub"
+ExecStart={self.config.venv_path}/bin/celery -A core.profiles.worker.celery_app beat --loglevel=INFO --pidfile={self.config.data_dir}/run/celerybeat.pid --schedule={self.config.data_dir}/run/celerybeat-schedule
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+"""
+        self.ssh_cmd(
+            f"sudo bash -c 'cat > /etc/systemd/system/{self.config.service_name}-beat.service << EOF\n{beat_content}EOF'",
+            quiet=True
+        )
+
+        # Create run directory for pid files
+        self.ssh_cmd(f"mkdir -p {self.config.data_dir}/run", quiet=True)
+
+        # Reload systemd
+        self.ssh_cmd("sudo systemctl daemon-reload", quiet=True)
 
     def _health_check(self) -> bool:
         """check if service is running and healthy"""

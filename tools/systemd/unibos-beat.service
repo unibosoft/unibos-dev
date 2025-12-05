@@ -1,0 +1,32 @@
+[Unit]
+Description=UNIBOS Celery Beat Scheduler
+After=network.target redis.service postgresql.service
+Requires=redis.service
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/unibos
+Environment="PATH=/home/ubuntu/unibos/core/clients/web/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="PYTHONPATH=/home/ubuntu/unibos:/home/ubuntu/unibos/core/clients/web"
+Environment="DJANGO_SETTINGS_MODULE=unibos_backend.settings.hub"
+Environment="UNIBOS_SETTINGS=hub"
+
+# Celery beat command
+ExecStart=/home/ubuntu/unibos/core/clients/web/venv/bin/celery \
+    -A core.profiles.worker.celery_app \
+    beat \
+    --loglevel=INFO \
+    --pidfile=/home/ubuntu/unibos/data/run/celerybeat.pid \
+    --schedule=/home/ubuntu/unibos/data/run/celerybeat-schedule
+
+Restart=always
+RestartSec=10
+
+# Resource limits
+LimitNOFILE=65536
+MemoryMax=256M
+
+[Install]
+WantedBy=multi-user.target
