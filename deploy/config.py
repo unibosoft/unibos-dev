@@ -28,7 +28,7 @@ class DeployConfig:
     branch: str = "main"
 
     # Django settings
-    django_settings: str = "unibos_backend.settings.server"
+    django_settings: str = "unibos_backend.settings.hub"
 
     # Server settings
     server_port: int = 8000

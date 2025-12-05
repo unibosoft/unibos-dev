@@ -52,9 +52,10 @@ Changelog = "https://github.com/unibosoft/unibos_dev/blob/main/CHANGELOG.md"
 Releases = "https://github.com/unibosoft/unibos_dev/releases"
 
 [project.scripts]
-unibos = "core.profiles.prod.main:main"
+unibos = "core.profiles.node.main:main"
 unibos-dev = "core.profiles.dev.main:main"
-unibos-server = "core.profiles.server.main:main"
+unibos-hub = "core.profiles.hub.main:main"
+unibos-worker = "core.profiles.worker.main:main"
 unibos-manager = "core.profiles.manager.main:main"
 
 [tool.setuptools]

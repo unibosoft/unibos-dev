@@ -13,7 +13,7 @@ import random
 
 # Django setup
 sys.path.append(str(Path(__file__).parent.parent))
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.emergency')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.development')
 django.setup()
 
 from modules.documents.backend.models import Document

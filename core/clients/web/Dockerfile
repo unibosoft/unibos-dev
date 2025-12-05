@@ -41,7 +41,7 @@ COPY --from=builder /root/.local /home/django/.local
 ENV PATH=/home/django/.local/bin:$PATH
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-ENV DJANGO_SETTINGS_MODULE=unibos_backend.settings.production
+ENV DJANGO_SETTINGS_MODULE=unibos_backend.settings.hub
 
 # Set work directory
 WORKDIR /app

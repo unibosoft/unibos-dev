@@ -7,7 +7,7 @@ from celery import Celery
 from celery.signals import setup_logging
 
 # Set the default Django settings module
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.production')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.hub')
 
 # Create Celery app
 app = Celery('unibos_backend')

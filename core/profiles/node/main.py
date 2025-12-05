@@ -41,7 +41,7 @@ def cli(ctx):
     # If no subcommand, run TUI
     if ctx.invoked_subcommand is None:
         try:
-            from core.profiles.prod.tui import run_interactive
+            from core.profiles.node.tui import run_interactive
             run_interactive()
         except KeyboardInterrupt:
             click.echo("\n\ngoodbye!")
@@ -76,8 +76,8 @@ def status():
     """Show node status"""
     click.echo("💚 UNIBOS Node Status")
     click.echo("\nNode Information:")
-    click.echo("  • Profile: Client")
-    click.echo("  • Version: v0.534.0")
+    click.echo("  • Profile: Node")
+    click.echo("  • Version: v1.1.6")
     click.echo("  • Status: Operational")
     click.echo("\nSystem Resources:")
     click.echo("  Run: top")

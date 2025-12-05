@@ -1,5 +1,5 @@
 """
-UNIBOS Server CLI - Service Management Commands
+UNIBOS Hub CLI - Service Management Commands
 
 Cross-platform service management using the platform abstraction layer.
 """
@@ -19,8 +19,8 @@ def start_service(service_name):
     """Start a service
 
     Examples:
-        unibos-server service start nginx
-        unibos-server service start postgresql
+        unibos-hub service start nginx
+        unibos-hub service start postgresql
     """
     click.echo(f"🔄 Starting {service_name}...")
 
@@ -55,8 +55,8 @@ def stop_service(service_name):
     """Stop a service
 
     Examples:
-        unibos-server service stop nginx
-        unibos-server service stop postgresql
+        unibos-hub service stop nginx
+        unibos-hub service stop postgresql
     """
     click.echo(f"🛑 Stopping {service_name}...")
 
@@ -88,8 +88,8 @@ def restart_service(service_name):
     """Restart a service
 
     Examples:
-        unibos-server service restart nginx
-        unibos-server service restart postgresql
+        unibos-hub service restart nginx
+        unibos-hub service restart postgresql
     """
     click.echo(f"🔄 Restarting {service_name}...")
 
@@ -124,8 +124,8 @@ def status_service(service_name):
     """Show service status
 
     Examples:
-        unibos-server service status nginx
-        unibos-server service status        # All UNIBOS services
+        unibos-hub service status nginx
+        unibos-hub service status        # All UNIBOS services
     """
     manager = get_service_manager()
 

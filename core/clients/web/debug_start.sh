@@ -22,7 +22,7 @@ echo "Installing requirements..."
 pip install django djangorestframework django-cors-headers python-dotenv
 
 # Use emergency settings
-export DJANGO_SETTINGS_MODULE=unibos_backend.settings.emergency
+export DJANGO_SETTINGS_MODULE=unibos_backend.settings.development
 
 # Try to run the server with error output
 echo "Starting server..."

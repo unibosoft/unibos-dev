@@ -18,7 +18,7 @@ if str(_unibos_root) not in sys.path:
     sys.path.insert(0, str(_unibos_root))
 
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.production')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.hub')
 django.setup()
 
 # Import after Django setup

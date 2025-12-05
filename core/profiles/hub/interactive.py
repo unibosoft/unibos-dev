@@ -1,12 +1,12 @@
 """
-UNIBOS-SERVER Interactive Mode
-Interactive TUI mode for server CLI
+UNIBOS-HUB Interactive Mode
+Interactive TUI mode for hub CLI
 
-Implements server-specific menu structure and actions for:
-- Production server management (rocksteady)
+Implements hub-specific menu structure and actions for:
+- Hub server management (rocksteady + bebop HA)
 - Service monitoring and health checks
-- Distributed node coordination
-- Central API management
+- Identity provider and node registry
+- Data sync coordination
 """
 
 import sys
@@ -21,26 +21,26 @@ from core.clients.cli.framework.ui import MenuItem, Colors
 from core.version import __version__
 
 
-class UnibosServerInteractive(InteractiveMode):
+class UnibosHubInteractive(InteractiveMode):
     """
-    Interactive mode for unibos-server CLI
+    Interactive mode for unibos-hub CLI
 
-    Provides TUI interface for production server operations:
+    Provides TUI interface for hub server operations:
     - Service management (django, postgresql, redis, celery)
     - Health monitoring
-    - Node registry and coordination
-    - Backup and maintenance
+    - Identity provider and node registry
+    - Data sync coordination
     """
 
     def __init__(self):
         super().__init__(
-            title="unibos server",
+            title="unibos hub",
             version=__version__
         )
 
     def get_sections(self):
         """
-        Get menu sections for unibos-server
+        Get menu sections for unibos-hub
 
         Returns:
             List of section dicts with menu items
@@ -209,7 +209,7 @@ class UnibosServerInteractive(InteractiveMode):
                     subprocess.run(['sudo', 'journalctl', '-u', 'celery', '-f'], check=False)
 
             elif item.id == 'service_health':
-                subprocess.run(['unibos-server', 'health'], check=True)
+                subprocess.run(['unibos-hub', 'health'], check=True)
 
             # Node management
             elif item.id == 'nodes_list':
@@ -219,14 +219,14 @@ class UnibosServerInteractive(InteractiveMode):
 
             # Database management
             elif item.id == 'db_backup':
-                subprocess.run(['unibos-server', 'db', 'backup'], check=True)
+                subprocess.run(['unibos-hub', 'db', 'backup'], check=True)
 
             elif item.id == 'db_migrate':
-                subprocess.run(['unibos-server', 'db', 'migrate'], check=True)
+                subprocess.run(['unibos-hub', 'db', 'migrate'], check=True)
 
             # Monitoring
             elif item.id == 'mon_stats':
-                subprocess.run(['unibos-server', 'stats'], check=True)
+                subprocess.run(['unibos-hub', 'stats'], check=True)
 
             else:
                 print(f"{Colors.YELLOW}� action not yet implemented: {item.id}{Colors.RESET}")
@@ -246,6 +246,10 @@ class UnibosServerInteractive(InteractiveMode):
 
 
 def run_interactive():
-    """Run unibos-server in interactive mode"""
-    interactive = UnibosServerInteractive()
+    """Run unibos-hub in interactive mode"""
+    interactive = UnibosHubInteractive()
     interactive.run(show_splash=True)
+
+
+# Backwards compatibility alias
+UnibosServerInteractive = UnibosHubInteractive

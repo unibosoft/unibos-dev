@@ -14,7 +14,7 @@ project_root = django_path.parent.parent.parent
 sys.path.insert(0, str(project_root))
 sys.path.insert(0, str(django_path))
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.emergency')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.development')
 django.setup()
 
 from django.contrib.auth import get_user_model

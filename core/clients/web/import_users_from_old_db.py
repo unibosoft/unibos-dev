@@ -11,7 +11,7 @@ from datetime import datetime
 
 # Django setup
 sys.path.append('/Users/berkhatirli/Desktop/unibos/apps/web/backend')
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.emergency')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.development')
 django.setup()
 
 from django.contrib.auth.models import User

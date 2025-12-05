@@ -35,7 +35,7 @@ if \! check_port 8000; then
 fi
 
 # Use emergency settings explicitly
-export DJANGO_SETTINGS_MODULE=unibos_backend.settings.emergency
+export DJANGO_SETTINGS_MODULE=unibos_backend.settings.development
 
 # Check if Django is installed
 if \! python -c "import django" 2>/dev/null; then

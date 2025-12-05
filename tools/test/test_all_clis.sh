@@ -1,11 +1,11 @@
 #!/bin/bash
-# Test script for all 4 UNIBOS CLIs
-# Tests the complete 4-tier architecture
+# Test script for all 5 UNIBOS CLIs
+# Tests the complete 5-tier architecture
 
 set -e
 
 echo "=========================================="
-echo "UNIBOS 4-Tier CLI Architecture Test"
+echo "UNIBOS 5-Tier CLI Architecture Test"
 echo "=========================================="
 echo ""
 
@@ -92,21 +92,30 @@ test_help "unibos-manager"
 test_version "unibos-manager"
 
 echo "=========================================="
-echo "3. Testing unibos-server (Server)"
+echo "3. Testing unibos-hub (Hub)"
 echo "=========================================="
 echo ""
 
-test_help "unibos-server"
-test_version "unibos-server"
-test_cli "unibos-server" "unibos-server start (dry-run)" "unibos-server start"
-test_cli "unibos-server" "unibos-server stop (dry-run)" "unibos-server stop"
-test_cli "unibos-server" "unibos-server restart (dry-run)" "unibos-server restart"
-test_cli "unibos-server" "unibos-server logs (dry-run)" "unibos-server logs"
-test_cli "unibos-server" "unibos-server status (dry-run)" "unibos-server status"
-test_cli "unibos-server" "unibos-server backup (dry-run)" "unibos-server backup"
+test_help "unibos-hub"
+test_version "unibos-hub"
+test_cli "unibos-hub" "unibos-hub start (dry-run)" "unibos-hub start"
+test_cli "unibos-hub" "unibos-hub stop (dry-run)" "unibos-hub stop"
+test_cli "unibos-hub" "unibos-hub restart (dry-run)" "unibos-hub restart"
+test_cli "unibos-hub" "unibos-hub logs (dry-run)" "unibos-hub logs"
+test_cli "unibos-hub" "unibos-hub status (dry-run)" "unibos-hub status"
+test_cli "unibos-hub" "unibos-hub backup (dry-run)" "unibos-hub backup"
 
 echo "=========================================="
-echo "4. Testing unibos (Client)"
+echo "4. Testing unibos-worker (Worker)"
+echo "=========================================="
+echo ""
+
+test_help "unibos-worker"
+test_version "unibos-worker"
+test_cli "unibos-worker" "unibos-worker status" "unibos-worker status"
+
+echo "=========================================="
+echo "5. Testing unibos (Node)"
 echo "=========================================="
 echo ""
 
@@ -131,25 +140,28 @@ if [ $TESTS_FAILED -eq 0 ]; then
     echo -e "${GREEN}✓ All tests passed!${NC}"
     echo ""
     echo "=========================================="
-    echo "4-Tier Architecture Verified"
+    echo "5-Tier Architecture Verified"
     echo "=========================================="
     echo ""
     echo "Available CLIs:"
     echo "  1. unibos-dev       - Development environment"
     echo "  2. unibos-manager   - Remote management"
-    echo "  3. unibos-server    - Production server (rocksteady)"
-    echo "  4. unibos           - Client/end user"
+    echo "  3. unibos-hub       - Hub server (rocksteady + bebop)"
+    echo "  4. unibos-worker    - Background task processing"
+    echo "  5. unibos           - Node / end user"
     echo ""
     echo "TUI Mode (no arguments):"
     echo "  unibos-dev"
     echo "  unibos-manager"
-    echo "  unibos-server"
+    echo "  unibos-hub"
+    echo "  unibos-worker"
     echo "  unibos"
     echo ""
     echo "CLI Mode (with arguments):"
     echo "  unibos-dev status"
     echo "  unibos-manager --help"
-    echo "  unibos-server start"
+    echo "  unibos-hub start"
+    echo "  unibos-worker start --type ocr"
     echo "  unibos launch recaria"
     echo ""
     exit 0

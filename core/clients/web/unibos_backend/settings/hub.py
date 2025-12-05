@@ -1,14 +1,14 @@
 """
-UNIBOS Server Settings
-Production server deployment (rocksteady)
+UNIBOS Hub Settings
+Hub server deployment (rocksteady + bebop HA pair)
 
-This settings file is optimized for the central UNIBOS server:
+This settings file is optimized for the UNIBOS hub server:
+- Identity Provider and user registry
+- Node registry and coordination
 - Central PostgreSQL database (unibos_db)
 - Redis for caching and Celery
-- Full module ecosystem enabled
-- Node coordination and registry
-- Central API endpoints for sync
-- Performance monitoring and health checks
+- Data sync coordination
+- Service monitoring and health checks
 """
 
 import os
@@ -20,12 +20,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 # Import all base settings
 from .base import *
 
-# Override for server production deployment
+# Override for hub production deployment
 DEBUG = False
 
-# Server-specific allowed hosts
+# Hub-specific allowed hosts
 ALLOWED_HOSTS = [
     'rocksteady.local',
+    'bebop.local',  # HA pair
     'unibos.local',
     'localhost',
     '127.0.0.1',
@@ -33,7 +34,7 @@ ALLOWED_HOSTS = [
     'recaria.org',
     'www.recaria.org',
     '.recaria.org',
-    os.environ.get('SERVER_HOST', 'localhost'),
+    os.environ.get('HUB_HOST', 'localhost'),
 ]
 
 # Database - Central PostgreSQL (production)
@@ -70,7 +71,7 @@ CACHES = {
                 'retry_on_timeout': True,
             }
         },
-        'KEY_PREFIX': 'unibos_server',
+        'KEY_PREFIX': 'unibos_hub',
         'TIMEOUT': 300,
     }
 }
@@ -172,12 +173,13 @@ LOGGING = {
     },
 }
 
-# UNIBOS Server-specific settings
-UNIBOS_DEPLOYMENT_TYPE = 'server'  # server, node, dev
+# UNIBOS Hub-specific settings
+UNIBOS_DEPLOYMENT_TYPE = 'hub'  # hub, node, worker, dev
+UNIBOS_IDENTITY_PROVIDER = True  # This is the identity provider
 UNIBOS_NODE_REGISTRY_ENABLED = True  # Enable node coordination
 UNIBOS_SYNC_HUB_ENABLED = True  # Enable central sync hub
-UNIBOS_P2P_ENABLED = False  # Server doesn't participate in P2P mesh
-UNIBOS_OFFLINE_MODE = False  # Server is always online
+UNIBOS_P2P_ENABLED = False  # Hub doesn't participate in P2P mesh
+UNIBOS_OFFLINE_MODE = False  # Hub is always online
 
 # Performance monitoring
 # Disable prometheus auto-export to avoid port conflicts during migrations

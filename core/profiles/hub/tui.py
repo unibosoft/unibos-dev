@@ -1,6 +1,6 @@
 """
-UNIBOS-SERVER TUI - Production Server Management
-Server TUI for rocksteady.fun production server operations
+UNIBOS-HUB TUI - Hub Server Management
+Hub TUI for identity provider, registry, and sync coordination
 """
 
 import subprocess
@@ -14,16 +14,16 @@ from core.clients.cli.framework.ui import MenuItem, Colors
 from core.clients.tui.common_items import CommonItems
 
 
-class ServerTUI(BaseTUI):
-    """Production server TUI for rocksteady management"""
+class HubTUI(BaseTUI):
+    """Hub server TUI for identity, registry, and sync management"""
 
     def __init__(self):
-        """Initialize server TUI with proper config"""
+        """Initialize hub TUI with proper config"""
         from core.clients.tui.base import TUIConfig
 
         config = TUIConfig(
-            title="unibos-server",
-            version="v0.534.0",
+            title="unibos-hub",
+            version="v1.1.6",
             location="rocksteady.fun",
             sidebar_width=30,
             show_splash=True,
@@ -37,17 +37,17 @@ class ServerTUI(BaseTUI):
 
         super().__init__(config)
 
-        # Register server-specific handlers
-        self.register_server_handlers()
+        # Register hub-specific handlers
+        self.register_hub_handlers()
 
     def get_profile_name(self) -> str:
         """Get profile name"""
-        return "server"
+        return "hub"
 
     def get_menu_sections(self) -> List[MenuSection]:
-        """Get server menu sections - 3-section structure"""
+        """Get hub menu sections - 3-section structure"""
         return [
-            # Section 1: Services (Server services management)
+            # Section 1: Services (Hub services management)
             MenuSection(
                 id='services',
                 label='services',
@@ -65,7 +65,7 @@ class ServerTUI(BaseTUI):
                                    'Manage Django application service',
                         enabled=True
                     ),
-                    CommonItems.database_setup(profile_type='server'),
+                    CommonItems.database_setup(profile_type='hub'),
                     MenuItem(
                         id='nginx_service',
                         label='🌐 nginx web server',
@@ -105,15 +105,15 @@ class ServerTUI(BaseTUI):
                 ]
             ),
 
-            # Section 2: Operations (Server operations)
+            # Section 2: Operations (Hub operations)
             MenuSection(
                 id='operations',
                 label='operations',
                 icon='🛠️',
                 items=[
-                    CommonItems.view_logs(profile_type='server'),
-                    CommonItems.restart_services(profile_type='server'),
-                    CommonItems.backup_database(profile_type='server'),
+                    CommonItems.view_logs(profile_type='hub'),
+                    CommonItems.restart_services(profile_type='hub'),
+                    CommonItems.backup_database(profile_type='hub'),
                     MenuItem(
                         id='update_system',
                         label='🚀 update system',
@@ -142,13 +142,13 @@ class ServerTUI(BaseTUI):
                 ]
             ),
 
-            # Section 3: Monitoring (Server monitoring)
+            # Section 3: Monitoring (Hub monitoring)
             MenuSection(
                 id='monitoring',
                 label='monitoring',
                 icon='📊',
                 items=[
-                    CommonItems.system_status(profile_type='server'),
+                    CommonItems.system_status(profile_type='hub'),
                     MenuItem(
                         id='service_health',
                         label='🏥 service health',
@@ -201,8 +201,8 @@ class ServerTUI(BaseTUI):
             ),
         ]
 
-    def register_server_handlers(self):
-        """Register all server action handlers"""
+    def register_hub_handlers(self):
+        """Register all hub action handlers"""
         # Services section handlers
         self.register_action('django_service', self.handle_django_service)
         self.register_action('postgresql_service', self.handle_postgresql_service)
@@ -552,9 +552,9 @@ class ServerTUI(BaseTUI):
     def handle_system_status(self, item: MenuItem) -> bool:
         """Show system status"""
         self.update_content(
-            title="System Status",
+            title="Hub Status",
             lines=[
-                "💚 System Status - Rocksteady",
+                "💚 Hub Status - Rocksteady",
                 "",
                 "System Resources:",
                 "",
@@ -708,8 +708,8 @@ class ServerTUI(BaseTUI):
 
 
 def run_interactive():
-    """Run the server TUI"""
-    tui = ServerTUI()
+    """Run the hub TUI"""
+    tui = HubTUI()
     tui.run()
 
 

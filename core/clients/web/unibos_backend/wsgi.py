@@ -15,6 +15,6 @@ _unibos_root = Path(__file__).resolve().parent.parent.parent.parent.parent.paren
 if str(_unibos_root) not in sys.path:
     sys.path.insert(0, str(_unibos_root))
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.production')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.hub')
 
 application = get_wsgi_application()

@@ -17,7 +17,7 @@ echo "Installing requirements..."
 pip install -q django djangorestframework django-cors-headers python-dotenv
 
 # Set Django settings
-export DJANGO_SETTINGS_MODULE=unibos_backend.settings.emergency
+export DJANGO_SETTINGS_MODULE=unibos_backend.settings.development
 
 # Run migrations
 python manage.py migrate --run-syncdb >/dev/null 2>&1

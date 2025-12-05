@@ -1,6 +1,6 @@
 """
-UNIBOS Client TUI - End User Interface
-Client TUI for end users running on local machines and Raspberry Pi
+UNIBOS Node TUI - End User Interface
+Node TUI for end users running on local machines and Raspberry Pi
 """
 
 import subprocess
@@ -14,16 +14,16 @@ from core.clients.cli.framework.ui import MenuItem, Colors
 from core.clients.tui.common_items import CommonItems
 
 
-class ClientTUI(BaseTUI):
-    """Client TUI for end user UNIBOS nodes"""
+class NodeTUI(BaseTUI):
+    """Node TUI for end user UNIBOS nodes"""
 
     def __init__(self):
-        """Initialize client TUI with proper config"""
+        """Initialize node TUI with proper config"""
         from core.clients.tui.base import TUIConfig
 
         config = TUIConfig(
             title="unibos",
-            version="v0.534.0",
+            version="v1.1.6",
             location="local node",
             sidebar_width=30,
             show_splash=True,
@@ -37,12 +37,12 @@ class ClientTUI(BaseTUI):
 
         super().__init__(config)
 
-        # Register client-specific handlers
-        self.register_client_handlers()
+        # Register node-specific handlers
+        self.register_node_handlers()
 
     def get_profile_name(self) -> str:
         """Get profile name"""
-        return "client"
+        return "node"
 
     def load_module_metadata(self, module_path: Path) -> Optional[Dict[str, Any]]:
         """
@@ -126,7 +126,7 @@ class ClientTUI(BaseTUI):
         return modules
 
     def get_menu_sections(self) -> List[MenuSection]:
-        """Get client menu sections - 3-section structure"""
+        """Get node menu sections - 3-section structure"""
         return [
             # Section 1: Modules (User applications)
             MenuSection(
@@ -136,7 +136,7 @@ class ClientTUI(BaseTUI):
                 items=self.discover_modules()
             ),
 
-            # Section 2: System (Client system management)
+            # Section 2: System (Node system management)
             MenuSection(
                 id='system',
                 label='system',
@@ -205,13 +205,13 @@ class ClientTUI(BaseTUI):
                 ]
             ),
 
-            # Section 3: Info (Client information)
+            # Section 3: Info (Node information)
             MenuSection(
                 id='info',
                 label='info',
                 icon='ℹ️',
                 items=[
-                    CommonItems.system_status(profile_type='client'),
+                    CommonItems.system_status(profile_type='node'),
                     MenuItem(
                         id='module_status',
                         label='📊 module status',
@@ -264,8 +264,8 @@ class ClientTUI(BaseTUI):
             ),
         ]
 
-    def register_client_handlers(self):
-        """Register all client action handlers"""
+    def register_node_handlers(self):
+        """Register all node action handlers"""
         # System section handlers
         self.register_action('system_settings', self.handle_system_settings)
         self.register_action('network_settings', self.handle_network_settings)
@@ -375,8 +375,8 @@ class ClientTUI(BaseTUI):
                 "  4. Restart if needed",
                 "",
                 "→ Current Version",
-                "  • UNIBOS: v0.534.0",
-                "  • Profile: client",
+                "  • UNIBOS: v1.1.6",
+                "  • Profile: node",
                 "",
                 "To update manually:",
                 "  Run: unibos update",
@@ -467,15 +467,15 @@ class ClientTUI(BaseTUI):
     def handle_system_status(self, item: MenuItem) -> bool:
         """Show system status"""
         self.update_content(
-            title="System Status",
+            title="Node Status",
             lines=[
-                "💚 System Status",
+                "💚 Node Status",
                 "",
-                "System Information:",
+                "Node Information:",
                 "",
                 "→ Health: Operational",
-                "→ Profile: Client",
-                "→ Version: v0.534.0",
+                "→ Profile: Node",
+                "→ Version: v1.1.6",
                 "",
                 "Resources:",
                 "  Run: top",
@@ -625,8 +625,8 @@ class ClientTUI(BaseTUI):
                 "",
                 "Version Information:",
                 "",
-                f"→ Version: v0.534.0",
-                f"→ Profile: Client",
+                f"→ Version: v1.1.6",
+                f"→ Profile: Node",
                 f"→ Platform: {system} {machine}",
                 f"→ Hostname: {hostname}",
                 "",
@@ -655,8 +655,8 @@ class ClientTUI(BaseTUI):
 
 
 def run_interactive():
-    """Run the client TUI"""
-    tui = ClientTUI()
+    """Run the node TUI"""
+    tui = NodeTUI()
     tui.run()
 
 

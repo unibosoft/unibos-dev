@@ -7,7 +7,7 @@ import django
 sys.path.append('/Users/berkhatirli/Desktop/unibos/apps/web/backend')
 os.environ['SECRET_KEY'] = 'django-insecure-unibos-import-temp-key-2025'
 os.environ['DATABASE_URL'] = 'postgresql://unibos_user:unibos_password@localhost:5432/unibos_db'
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.emergency')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.development')
 django.setup()
 
 from django.contrib.auth.models import User

@@ -83,6 +83,6 @@ def on_reload(server):
 
 # Environment variables
 raw_env = [
-    "DJANGO_SETTINGS_MODULE=unibos_backend.settings.production",
+    "DJANGO_SETTINGS_MODULE=unibos_backend.settings.hub",
     f"PYTHONPATH={os.path.dirname(os.path.abspath(__file__))}",
 ]

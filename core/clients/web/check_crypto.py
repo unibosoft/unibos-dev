@@ -4,7 +4,7 @@ import os
 import sys
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.emergency')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.development')
 django.setup()
 
 from modules.currencies.backend.models import CryptoExchangeRate

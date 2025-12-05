@@ -40,7 +40,7 @@ LimitNPROC=4096
 
 # Environment
 Environment="PYTHONUNBUFFERED=1"
-Environment="DJANGO_SETTINGS_MODULE=unibos_backend.settings.production"
+Environment="DJANGO_SETTINGS_MODULE=unibos_backend.settings.hub"
 
 [Install]
 WantedBy=multi-user.target

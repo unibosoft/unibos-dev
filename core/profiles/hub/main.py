@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-UNIBOS Server CLI - Main Entry Point
-Production server management and monitoring (rocksteady)
+UNIBOS Hub CLI - Main Entry Point
+Hub server management - Identity Provider, Registry, Sync Coordinator
 """
 
 import click
@@ -16,33 +16,34 @@ from core.version import __version__
 
 
 @click.group(invoke_without_command=True)
-@click.version_option(version=__version__, prog_name='unibos-server')
+@click.version_option(version=__version__, prog_name='unibos-hub')
 @click.pass_context
 def cli(ctx):
     """
-    🖥️  unibos-server - production server management
+    🌐 unibos-hub - hub server management
 
-    manages rocksteady production server:
+    manages unibos hub server (rocksteady + bebop):
+    - identity provider and user registry
+    - node registry and management
+    - data sync coordination
     - service monitoring and health checks
-    - database management
-    - system operations and maintenance
-    - performance monitoring
 
     examples:
-        unibos-server                  # interactive tui mode
-        unibos-server start           # start all services
-        unibos-server stop            # stop all services
-        unibos-server restart         # restart all services
-        unibos-server logs            # view logs
-        unibos-server status          # system status
-        unibos-server backup          # backup database
+        unibos-hub                     # interactive tui mode
+        unibos-hub start              # start all services
+        unibos-hub stop               # stop all services
+        unibos-hub restart            # restart all services
+        unibos-hub status             # system status
+        unibos-hub users              # user management
+        unibos-hub nodes              # node registry
+        unibos-hub backup             # backup database
     """
     ctx.ensure_object(dict)
 
     # If no subcommand, run TUI
     if ctx.invoked_subcommand is None:
         try:
-            from core.profiles.server.tui import run_interactive
+            from core.profiles.hub.tui import run_interactive
             run_interactive()
         except KeyboardInterrupt:
             click.echo("\n\n👋 goodbye!")
@@ -99,7 +100,7 @@ def logs():
 @cli.command()
 def status():
     """Show system status"""
-    click.echo("💚 System Status - Rocksteady")
+    click.echo("💚 Hub Status - Rocksteady")
     click.echo("\nChecking services...")
     click.echo("\nRun these commands:")
     click.echo("  • System: systemctl status gunicorn celery nginx postgresql")

@@ -1,5 +1,5 @@
 """
-UNIBOS Server Profile Splash Screen
+UNIBOS Hub Profile Splash Screen
 
 !! BU DOSYAYI DÜZENLEME !!
 Bu dosya sadece merkezi splash modülünü re-export eder.
@@ -42,4 +42,4 @@ def show_splash():
 
 def show_header():
     """Legacy alias for show_compact_header"""
-    show_compact_header(cli_name="unibos-server")
+    show_compact_header(cli_name="unibos-hub")

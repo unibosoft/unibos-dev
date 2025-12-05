@@ -1,6 +1,6 @@
 """
-UNIBOS Server CLI - Health Command
-Comprehensive health checks for server
+UNIBOS Hub CLI - Health Command
+Comprehensive health checks for hub server
 """
 
 import click
@@ -40,5 +40,5 @@ def health_command():
 
     click.echo()
     click.echo(click.style('💡 Tip:', fg='yellow'))
-    click.echo('  Run "unibos-server stats" for performance metrics')
-    click.echo('  Run "unibos-server logs" to view logs')
+    click.echo('  Run "unibos-hub stats" for performance metrics')
+    click.echo('  Run "unibos-hub logs" to view logs')

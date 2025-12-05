@@ -9,7 +9,7 @@ from io import BytesIO
 from django.core.files.base import ContentFile
 
 # Setup Django
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.emergency')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'unibos_backend.settings.development')
 sys.path.insert(0, '/Users/berkhatirli/Desktop/unibos/apps/web/backend')
 django.setup()
 

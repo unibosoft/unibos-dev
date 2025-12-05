@@ -40,7 +40,7 @@ COPY --from=builder /root/.local /root/.local
 # Set environment variables
 ENV PATH=/root/.local/bin:$PATH \
     PYTHONUNBUFFERED=1 \
-    DJANGO_SETTINGS_MODULE=unibos_backend.settings.production \
+    DJANGO_SETTINGS_MODULE=unibos_backend.settings.hub \
     DB_HOST=db \
     DB_PORT=5432
 
