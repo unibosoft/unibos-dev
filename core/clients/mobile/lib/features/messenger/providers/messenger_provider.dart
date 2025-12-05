@@ -47,13 +47,13 @@ final p2pStatusProvider = FutureProvider<List<P2PSession>>((ref) async {
 class TypingNotifier extends StateNotifier<Map<String, List<TypingState>>> {
   TypingNotifier() : super({});
 
-  void setTyping(String conversationId, TypingState state) {
-    final current = Map<String, List<TypingState>>.from(this.state);
+  void setTyping(String conversationId, TypingState typingState) {
+    final current = Map<String, List<TypingState>>.from(state);
     final conversationTyping = List<TypingState>.from(current[conversationId] ?? []);
 
     // Remove expired or same user typing states
-    conversationTyping.removeWhere((t) => t.isExpired || t.userId == state.userId);
-    conversationTyping.add(state);
+    conversationTyping.removeWhere((t) => t.isExpired || t.userId == typingState.userId);
+    conversationTyping.add(typingState);
 
     current[conversationId] = conversationTyping;
     state = current;

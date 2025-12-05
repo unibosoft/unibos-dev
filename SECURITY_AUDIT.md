@@ -123,9 +123,12 @@ Context: "messenger-v1" (messages), "group-key-v1" (groups)
 
 ### Future Improvements
 
-1. **Key Rotation Policy**
-   - Implement automatic key rotation every 30 days
-   - Add key revocation notifications via WebSocket
+1. ~~**Key Rotation Policy**~~ ⏭️ SKIPPED (Not Needed)
+   - ~~Implement automatic key rotation every 30 days~~
+   - ~~Add key revocation notifications via WebSocket~~
+   - **Reason**: Double Ratchet Algorithm already provides per-message key rotation,
+     which is far superior to time-based rotation. Each message uses a unique
+     derived key, making 30-day rotation redundant.
 
 2. ~~**Perfect Forward Secrecy**~~ ✅ IMPLEMENTED
    - ~~Consider implementing Double Ratchet Algorithm~~ ✅ Done

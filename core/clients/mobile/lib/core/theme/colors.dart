@@ -23,6 +23,11 @@ class UnibosColors {
   static const Color gray = Color(0xFF808080);
   static const Color darkGray = Color(0xFF404040);
   static const Color red = Color(0xFFFF0000);
+  static const Color blue = Color(0xFF0088FF);
+
+  // text colors
+  static const Color textMain = Color(0xFFFFFFFF);
+  static const Color textMuted = Color(0xFF808080);
 
   // semantic colors
   static const Color success = Color(0xFF4CAF50);

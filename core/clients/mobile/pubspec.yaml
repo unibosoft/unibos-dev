@@ -38,6 +38,9 @@ dependencies:
   cached_network_image: ^3.4.1
   logger: ^2.5.0
 
+  # Encryption (E2E messaging)
+  cryptography: ^2.7.0
+
   # Maps (for birlikteyiz)
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
