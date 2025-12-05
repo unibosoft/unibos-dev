@@ -387,6 +387,32 @@ archive/versions/
 # Örnek: unibos_v2.0.0_b20251205150933
 ```
 
+### Version Branch Stratejisi (IMMUTABLE SNAPSHOT)
+```
+⚠️ ÖNEMLİ: Version branch'ler RELEASE SNAPSHOT'ıdır!
+
+KURAL: Version branch = O release anındaki kod (değişmez)
+       main branch = Her zaman en güncel kod
+
+ÖRNEK:
+  v2.0.0+build.20251205150933  →  Release anındaki commit (frozen)
+  main                          →  En son commit'ler (active)
+
+NEDEN?
+  ✅ Reproduceability: "v2.0.0 ne içeriyordu?" sorusuna kesin cevap
+  ✅ Hotfix: v2.0.0'dan branch alıp v2.0.1 yapılabilir
+  ✅ Archive ile uyum: archive/versions/ aynı mantık
+  ✅ Git tag'lerle tutarlı (immutable)
+
+PUSH AKIŞI:
+  unibos-dev git push-all                  # Sadece main push
+  unibos-dev git push-all --with-version   # main + version branch (as-is)
+
+❌ YAPILMAMASI GEREKEN:
+  Version branch'i main ile merge etme!
+  Version branch release snapshot'ı olarak kalmalı.
+```
+
 ### Detaylı Döküman
 - `CHANGELOG.md` - Version history (otomatik güncellenir)
 - `core/version.py` - Version metadata & functions
