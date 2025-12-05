@@ -1,8 +1,8 @@
 #!/bin/bash
 #
-# UNIBOS Edge Node Installer
-# ==========================
-# Install, repair, or uninstall UNIBOS on Raspberry Pi and Linux systems
+# UNIBOS Node Installer
+# =====================
+# Install, repair, or uninstall UNIBOS Node on Raspberry Pi and Linux systems
 #
 # Usage:
 #   curl -sSL https://recaria.org/install.sh | bash              # Install
@@ -13,8 +13,13 @@
 #   - Raspberry Pi Zero 2W, Pi 3, Pi 4, Pi 5
 #   - Ubuntu/Debian Linux
 #
+# Architecture: v2.0
+#   - Uses unibos (node) repository
+#   - Connects to Hub at recaria.org
+#   - Local Celery worker for background tasks
+#
 # Author: UNIBOS Team
-# Version: 1.1.4
+# Version: 2.0.2
 #
 
 set -e
@@ -29,12 +34,13 @@ DIM='\033[2m'
 NC='\033[0m'
 
 # Configuration
-UNIBOS_VERSION="1.1.4"
+UNIBOS_VERSION="2.0.2"
 UNIBOS_REPO="https://github.com/unibosoft/unibos.git"
-CENTRAL_REGISTRY_URL="https://recaria.org"
+HUB_URL="https://recaria.org"
 INSTALL_DIR="$HOME/unibos"
 VENV_DIR="$INSTALL_DIR/core/clients/web/venv"
 SERVICE_PORT=8000
+SETTINGS_MODULE="unibos_backend.settings.node"
 
 # Logging
 log() { echo -e "  $1"; }
@@ -57,7 +63,7 @@ print_banner() {
     echo " | |_| | |\  || || |_) | |_| |___) |"
     echo "  \___/|_| \_|___|____/ \___/|____/ "
     echo -e "${NC}"
-    echo -e "  ${DIM}edge node installer v${UNIBOS_VERSION}${NC}"
+    echo -e "  ${DIM}node installer v${UNIBOS_VERSION}${NC}"
     echo ""
 }
 
@@ -69,6 +75,7 @@ detect_system_info() {
     # Platform detection
     PLATFORM="linux"
     PLATFORM_NAME="linux"
+    PLATFORM_DETAIL="generic"
 
     if [ -f /proc/cpuinfo ]; then
         if grep -q "Raspberry Pi" /proc/cpuinfo 2>/dev/null || \
@@ -76,14 +83,19 @@ detect_system_info() {
             PLATFORM="raspberry-pi"
             if grep -q "Zero 2" /proc/device-tree/model 2>/dev/null; then
                 PLATFORM_NAME="raspberry pi zero 2w"
+                PLATFORM_DETAIL="zero2w"
             elif grep -q "Pi 5" /proc/device-tree/model 2>/dev/null; then
                 PLATFORM_NAME="raspberry pi 5"
+                PLATFORM_DETAIL="pi5"
             elif grep -q "Pi 4" /proc/device-tree/model 2>/dev/null; then
                 PLATFORM_NAME="raspberry pi 4"
+                PLATFORM_DETAIL="pi4"
             elif grep -q "Pi 3" /proc/device-tree/model 2>/dev/null; then
                 PLATFORM_NAME="raspberry pi 3"
+                PLATFORM_DETAIL="pi3"
             else
                 PLATFORM_NAME="raspberry pi"
+                PLATFORM_DETAIL="pi"
             fi
         fi
     fi
@@ -93,6 +105,35 @@ detect_system_info() {
     [ -f /proc/meminfo ] && RAM_MB=$(grep MemTotal /proc/meminfo | awk '{print int($2/1024)}')
     CPU_CORES=$(nproc 2>/dev/null || echo 1)
 
+    # Detect capabilities
+    HAS_GPIO="false"
+    HAS_CAMERA="false"
+    HAS_GPU="false"
+
+    [ -d /sys/class/gpio ] && HAS_GPIO="true"
+    [ -e /dev/video0 ] && HAS_CAMERA="true"
+    command -v vcgencmd &>/dev/null && HAS_GPU="true"
+
+    # Worker config based on platform
+    case "$PLATFORM_DETAIL" in
+        "zero2w"|"pi3")
+            WORKER_COUNT=1
+            CELERY_CONCURRENCY=1
+            ;;
+        "pi4")
+            WORKER_COUNT=$((RAM_MB >= 4000 ? 2 : 1))
+            CELERY_CONCURRENCY=2
+            ;;
+        "pi5")
+            WORKER_COUNT=2
+            CELERY_CONCURRENCY=4
+            ;;
+        *)
+            WORKER_COUNT=$((CPU_CORES > 4 ? 4 : CPU_CORES))
+            CELERY_CONCURRENCY=$CPU_CORES
+            ;;
+    esac
+
     # UNIBOS status
     UNIBOS_INSTALLED="no"
     UNIBOS_RUNNING="no"
@@ -101,13 +142,16 @@ detect_system_info() {
     if [ -d "$INSTALL_DIR" ]; then
         UNIBOS_INSTALLED="yes"
         if [ -f "$INSTALL_DIR/VERSION.json" ]; then
-            # Get semantic version from display.semantic field
             INSTALLED_VERSION=$(grep -o '"semantic"[[:space:]]*:[[:space:]]*"[^"]*"' "$INSTALL_DIR/VERSION.json" 2>/dev/null | head -1 | cut -d'"' -f4)
         fi
         if systemctl is-active --quiet unibos 2>/dev/null; then
             UNIBOS_RUNNING="yes"
         fi
     fi
+
+    export PLATFORM PLATFORM_NAME PLATFORM_DETAIL RAM_MB CPU_CORES
+    export HAS_GPIO HAS_CAMERA HAS_GPU
+    export WORKER_COUNT CELERY_CONCURRENCY
 }
 
 print_system_info() {
@@ -116,6 +160,7 @@ print_system_info() {
     echo -e "    platform    : ${PLATFORM_NAME}"
     echo -e "    ram         : ${RAM_MB} mb"
     echo -e "    cpu cores   : ${CPU_CORES}"
+    echo -e "    capabilities: gpio=${HAS_GPIO} camera=${HAS_CAMERA} gpu=${HAS_GPU}"
     echo ""
     echo -e "  ${CYAN}unibos${NC}"
     if [ "$UNIBOS_INSTALLED" == "yes" ]; then
@@ -136,7 +181,6 @@ print_system_info() {
 # MODE SELECTION (Arrow Key Navigation)
 # =============================================================================
 
-# Menu options (lowercase)
 MENU_OPTIONS=("install" "repair" "uninstall")
 MENU_DESCRIPTIONS=("fresh installation" "fix existing installation" "remove unibos")
 MENU_COLORS=("$GREEN" "$YELLOW" "$RED")
@@ -144,15 +188,14 @@ MENU_COLORS=("$GREEN" "$YELLOW" "$RED")
 draw_menu() {
     local selected=$1
 
-    # Move cursor up to redraw menu (3 options + 2 empty lines = 5 lines)
     if [ "$2" == "redraw" ]; then
-        printf "\033[5A"  # Move up 5 lines
-        printf "\033[K"   # Clear line
+        printf "\033[5A"
+        printf "\033[K"
     fi
 
     echo ""
     for i in "${!MENU_OPTIONS[@]}"; do
-        printf "\033[K"  # Clear line before printing
+        printf "\033[K"
         if [ $i -eq $selected ]; then
             echo -e "   ${MENU_COLORS[$i]}▸ ${MENU_OPTIONS[$i]}${NC}  ${DIM}- ${MENU_DESCRIPTIONS[$i]}${NC}"
         else
@@ -166,62 +209,54 @@ select_menu() {
     local selected=0
     local key
 
-    # Default to repair if already installed
     if [ "$UNIBOS_INSTALLED" == "yes" ]; then
         selected=1
     fi
 
     echo -e "  ${CYAN}select action${NC}  ${DIM}(↑↓ navigate, enter select, q quit)${NC}"
 
-    # Draw initial menu
     draw_menu $selected
 
-    # Hide cursor
     printf "\033[?25l"
-
-    # Trap to restore cursor on exit
     trap 'printf "\033[?25h"' EXIT
 
-    # Read from /dev/tty to handle pipe input (curl | bash)
     exec 3</dev/tty
 
     while true; do
-        # Read single key from tty
         IFS= read -rsn1 key <&3
 
-        # Handle empty key (Enter pressed)
         if [ -z "$key" ]; then
-            printf "\033[?25h"  # Show cursor
-            exec 3<&-  # Close fd
+            printf "\033[?25h"
+            exec 3<&-
             echo ""
             SELECTED_MODE="${MENU_OPTIONS[$selected]}"
             return 0
         fi
 
         case "$key" in
-            $'\x1b')  # Escape sequence (arrow keys)
+            $'\x1b')
                 read -rsn2 -t 0.1 rest <&3
                 case "$rest" in
-                    '[A')  # Up arrow
+                    '[A')
                         ((selected--)) || true
                         [ $selected -lt 0 ] && selected=$((${#MENU_OPTIONS[@]} - 1))
                         draw_menu $selected "redraw"
                         ;;
-                    '[B')  # Down arrow
+                    '[B')
                         ((selected++)) || true
                         [ $selected -ge ${#MENU_OPTIONS[@]} ] && selected=0
                         draw_menu $selected "redraw"
                         ;;
                 esac
                 ;;
-            'q'|'Q')  # Quit
-                printf "\033[?25h"  # Show cursor
-                exec 3<&-  # Close fd
+            'q'|'Q')
+                printf "\033[?25h"
+                exec 3<&-
                 echo ""
                 log "cancelled."
                 exit 0
                 ;;
-            '1')  # Quick select
+            '1')
                 printf "\033[?25h"
                 exec 3<&-
                 echo ""
@@ -247,66 +282,17 @@ select_menu() {
 }
 
 # =============================================================================
-# PLATFORM DETECTION
-# =============================================================================
-
-detect_platform() {
-    log_step "Detecting platform..."
-
-    PLATFORM="linux"
-    PLATFORM_DETAIL="generic"
-    RAM_MB=0
-    CPU_CORES=1
-
-    # Check if Raspberry Pi
-    if [ -f /proc/cpuinfo ]; then
-        if grep -q "Raspberry Pi" /proc/cpuinfo 2>/dev/null || \
-           grep -q "BCM" /proc/cpuinfo 2>/dev/null; then
-            PLATFORM="raspberry-pi"
-
-            if grep -q "Zero 2" /proc/device-tree/model 2>/dev/null; then
-                PLATFORM_DETAIL="zero2w"
-            elif grep -q "Pi 5" /proc/device-tree/model 2>/dev/null; then
-                PLATFORM_DETAIL="pi5"
-            elif grep -q "Pi 4" /proc/device-tree/model 2>/dev/null; then
-                PLATFORM_DETAIL="pi4"
-            elif grep -q "Pi 3" /proc/device-tree/model 2>/dev/null; then
-                PLATFORM_DETAIL="pi3"
-            fi
-        fi
-    fi
-
-    # Get RAM and CPU
-    [ -f /proc/meminfo ] && RAM_MB=$(grep MemTotal /proc/meminfo | awk '{print int($2/1024)}')
-    CPU_CORES=$(nproc 2>/dev/null || echo 1)
-
-    # Set worker config based on platform
-    case "$PLATFORM_DETAIL" in
-        "zero2w"|"pi3") WORKER_COUNT=1 ;;
-        "pi4") WORKER_COUNT=$((RAM_MB >= 4000 ? 3 : 2)) ;;
-        "pi5") WORKER_COUNT=4 ;;
-        *) WORKER_COUNT=$((CPU_CORES > 4 ? 4 : CPU_CORES)) ;;
-    esac
-
-    log_ok "$PLATFORM ($PLATFORM_DETAIL) - ${RAM_MB}MB RAM, $CPU_CORES cores"
-
-    export PLATFORM PLATFORM_DETAIL RAM_MB CPU_CORES WORKER_COUNT
-}
-
-# =============================================================================
 # PRE-FLIGHT CHECKS
 # =============================================================================
 
 check_requirements() {
     log_step "Checking requirements..."
 
-    # Not root
     if [ "$EUID" -eq 0 ]; then
         log_err "Do not run as root! Use: curl ... | bash"
         exit 1
     fi
 
-    # Sudo available
     if ! sudo -n true 2>/dev/null; then
         log "Sudo password required for system packages..."
         sudo -v || { log_err "Sudo required"; exit 1; }
@@ -343,16 +329,15 @@ install_dependencies() {
 }
 
 install_unibos() {
-    log_step "Installing UNIBOS..."
+    log_step "Installing UNIBOS Node..."
 
-    # Clone repo
     if [ -d "$INSTALL_DIR" ]; then
         log_warn "Existing installation found, updating..."
         cd "$INSTALL_DIR" && git pull origin main 2>/dev/null || true
     else
-        log "Cloning repository (GitHub credentials may be required)..."
+        log "Cloning repository..."
         git clone --depth 1 "$UNIBOS_REPO" "$INSTALL_DIR" || {
-            log_err "Clone failed. Use GitHub PAT as password."
+            log_err "Clone failed. Check network or use GitHub PAT."
             exit 1
         }
     fi
@@ -368,15 +353,19 @@ install_unibos() {
         redis celery channels daphne uvicorn django-environ django-redis \
         djangorestframework-simplejwt django-cors-headers django-filter \
         drf-spectacular django-extensions django-celery-beat channels-redis \
-        django-prometheus -q
+        django-prometheus psutil -q
 
-    log_ok "UNIBOS installed"
+    # Install unibos CLI
+    cd "$INSTALL_DIR"
+    "$VENV_DIR/bin/pip" install -e . -q 2>/dev/null || true
+
+    log_ok "UNIBOS Node installed"
 }
 
 setup_database() {
     log_step "Setting up database..."
 
-    DB_NAME="unibos_db"
+    DB_NAME="unibos_node"
     DB_USER="unibos_user"
     DB_PASS=$(openssl rand -base64 24 | tr -dc 'a-zA-Z0-9' | head -c 24)
 
@@ -397,19 +386,38 @@ EOF
     log_ok "Database configured"
 }
 
+generate_node_uuid() {
+    # Generate unique node UUID
+    NODE_UUID=$(cat /proc/sys/kernel/random/uuid)
+
+    # Try to use MAC address for deterministic UUID on same hardware
+    if [ -f /sys/class/net/eth0/address ]; then
+        MAC=$(cat /sys/class/net/eth0/address | tr -d ':')
+        NODE_UUID="${MAC:0:8}-${MAC:8:4}-4${MAC:12:3}-8000-$(hostname | md5sum | head -c 12)"
+    elif [ -f /sys/class/net/wlan0/address ]; then
+        MAC=$(cat /sys/class/net/wlan0/address | tr -d ':')
+        NODE_UUID="${MAC:0:8}-${MAC:8:4}-4${MAC:12:3}-8000-$(hostname | md5sum | head -c 12)"
+    fi
+
+    echo "$NODE_UUID"
+}
+
 setup_environment() {
     log_step "Configuring environment..."
 
     SECRET_KEY=$(openssl rand -base64 48 | tr -dc 'a-zA-Z0-9' | head -c 64)
     LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
+    NODE_UUID=$(generate_node_uuid)
     source "$INSTALL_DIR/data/config/db.env"
 
     cat > "$INSTALL_DIR/.env" << EOF
-# UNIBOS Edge Node Configuration
+# UNIBOS Node Configuration
 # Generated: $(date -Iseconds)
+# Version: $UNIBOS_VERSION
 
 # Django Settings
-DJANGO_SETTINGS_MODULE=unibos_backend.settings.edge
+DJANGO_SETTINGS_MODULE=$SETTINGS_MODULE
+UNIBOS_SETTINGS=node
 SECRET_KEY=$SECRET_KEY
 DEBUG=False
 ALLOWED_HOSTS=$LOCAL_IP,localhost,127.0.0.1,$(hostname),$(hostname).local
@@ -418,7 +426,7 @@ ALLOWED_HOSTS=$LOCAL_IP,localhost,127.0.0.1,$(hostname),$(hostname).local
 DATABASE_URL=postgres://$DB_USER:$DB_PASS@localhost:5432/$DB_NAME
 DB_NAME=$DB_NAME
 DB_USER=$DB_USER
-DB_PASS=$DB_PASS
+DB_PASSWORD=$DB_PASS
 DB_HOST=localhost
 DB_PORT=5432
 
@@ -426,34 +434,45 @@ DB_PORT=5432
 REDIS_URL=redis://localhost:6379/0
 
 # Node Identity
+NODE_UUID=$NODE_UUID
 NODE_TYPE=edge
 NODE_PLATFORM=$PLATFORM
 NODE_PLATFORM_DETAIL=$PLATFORM_DETAIL
+NODE_HOSTNAME=$(hostname)
 
-# Central Registry
-CENTRAL_REGISTRY_URL=$CENTRAL_REGISTRY_URL
+# Hub Connection
+HUB_URL=$HUB_URL
+CENTRAL_REGISTRY_URL=$HUB_URL
+
+# Capabilities
+NODE_HAS_GPIO=$HAS_GPIO
+NODE_HAS_CAMERA=$HAS_CAMERA
+NODE_HAS_GPU=$HAS_GPU
+NODE_RAM_MB=$RAM_MB
+NODE_CPU_CORES=$CPU_CORES
 
 # Performance
 WORKER_COUNT=$WORKER_COUNT
-WORKER_TYPE=uvicorn.workers.UvicornWorker
-
-# Modules
-ENABLED_MODULES=all
+CELERY_CONCURRENCY=$CELERY_CONCURRENCY
 EOF
 
     chmod 600 "$INSTALL_DIR/.env"
     ln -sf "$INSTALL_DIR/.env" "$INSTALL_DIR/core/clients/web/.env" 2>/dev/null || true
 
-    log_ok "Environment configured"
+    # Save node UUID for future reference
+    echo "$NODE_UUID" > "$INSTALL_DIR/data/config/node_uuid"
+    chmod 644 "$INSTALL_DIR/data/config/node_uuid"
+
+    log_ok "Environment configured (Node UUID: ${NODE_UUID:0:8}...)"
 }
 
 setup_services() {
     log_step "Setting up services..."
 
-    # Main service
+    # Main service (uvicorn)
     sudo tee /etc/systemd/system/unibos.service > /dev/null << EOF
 [Unit]
-Description=UNIBOS Edge Node
+Description=UNIBOS Node
 After=network.target postgresql.service redis.service
 Wants=postgresql.service redis.service
 
@@ -473,42 +492,73 @@ RestartSec=5
 WantedBy=multi-user.target
 EOF
 
-    # Celery service
-    sudo tee /etc/systemd/system/unibos-celery.service > /dev/null << EOF
+    # Worker service (celery)
+    sudo tee /etc/systemd/system/unibos-worker.service > /dev/null << EOF
 [Unit]
-Description=UNIBOS Celery Worker
+Description=UNIBOS Worker
 After=network.target redis.service
+Requires=redis.service
 
 [Service]
 Type=simple
 User=$USER
 Group=$USER
-WorkingDirectory=$INSTALL_DIR/core/clients/web
+WorkingDirectory=$INSTALL_DIR
 EnvironmentFile=$INSTALL_DIR/.env
 Environment="PYTHONPATH=$INSTALL_DIR:$INSTALL_DIR/core/clients/web"
 Environment="UNIBOS_ROOT=$INSTALL_DIR"
-ExecStart=$VENV_DIR/bin/celery -A unibos_backend worker --loglevel=info --concurrency=2
+ExecStart=$VENV_DIR/bin/celery -A core.profiles.worker.celery_app worker --loglevel=INFO -Q default,ocr,media -c $CELERY_CONCURRENCY
 Restart=always
-RestartSec=5
+RestartSec=10
 
 [Install]
 WantedBy=multi-user.target
 EOF
 
-    # mDNS service
+    # Beat scheduler (only on capable nodes)
+    if [ "$RAM_MB" -ge 2000 ]; then
+        sudo tee /etc/systemd/system/unibos-beat.service > /dev/null << EOF
+[Unit]
+Description=UNIBOS Beat Scheduler
+After=network.target redis.service
+Requires=redis.service
+
+[Service]
+Type=simple
+User=$USER
+Group=$USER
+WorkingDirectory=$INSTALL_DIR
+EnvironmentFile=$INSTALL_DIR/.env
+Environment="PYTHONPATH=$INSTALL_DIR:$INSTALL_DIR/core/clients/web"
+Environment="UNIBOS_ROOT=$INSTALL_DIR"
+ExecStart=$VENV_DIR/bin/celery -A core.profiles.worker.celery_app beat --loglevel=INFO --pidfile=$INSTALL_DIR/data/run/celerybeat.pid --schedule=$INSTALL_DIR/data/run/celerybeat-schedule
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    fi
+
+    # mDNS service for node discovery
     sudo tee /etc/avahi/services/unibos.service > /dev/null << EOF
 <?xml version="1.0" standalone='no'?>
 <!DOCTYPE service-group SYSTEM "avahi-service.dtd">
 <service-group>
-  <name replace-wildcards="yes">UNIBOS on %h</name>
+  <name replace-wildcards="yes">UNIBOS Node on %h</name>
   <service>
     <type>_unibos._tcp</type>
     <port>$SERVICE_PORT</port>
     <txt-record>version=$UNIBOS_VERSION</txt-record>
     <txt-record>platform=$PLATFORM_DETAIL</txt-record>
+    <txt-record>type=node</txt-record>
   </service>
 </service-group>
 EOF
+
+    # Create run directory
+    mkdir -p "$INSTALL_DIR/data/run"
+    mkdir -p "$INSTALL_DIR/data/logs"
 
     sudo systemctl daemon-reload
     log_ok "Services configured"
@@ -527,17 +577,60 @@ run_migrations() {
     log_ok "Migrations complete"
 }
 
+register_with_hub() {
+    log_step "Registering with Hub..."
+
+    source "$INSTALL_DIR/.env"
+    LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
+
+    # Prepare registration data
+    REG_DATA=$(cat << EOF
+{
+    "id": "$NODE_UUID",
+    "hostname": "$(hostname)",
+    "node_type": "edge",
+    "platform": "$PLATFORM_DETAIL",
+    "ip_address": "$LOCAL_IP",
+    "port": $SERVICE_PORT,
+    "version": "$UNIBOS_VERSION",
+    "capabilities": {
+        "has_gpio": $HAS_GPIO,
+        "has_camera": $HAS_CAMERA,
+        "has_gpu": $HAS_GPU,
+        "ram_gb": $((RAM_MB / 1024)),
+        "cpu_cores": $CPU_CORES,
+        "can_run_celery": true
+    }
+}
+EOF
+)
+
+    # Try to register
+    RESPONSE=$(curl -s -X POST "$HUB_URL/api/v1/nodes/register/" \
+        -H "Content-Type: application/json" \
+        -d "$REG_DATA" 2>/dev/null || echo '{"error": "connection failed"}')
+
+    if echo "$RESPONSE" | grep -q '"id"'; then
+        log_ok "Registered with Hub"
+    else
+        log_warn "Hub registration deferred (Hub may be offline)"
+    fi
+}
+
 start_services() {
     log_step "Starting services..."
 
-    sudo systemctl enable unibos unibos-celery 2>/dev/null || true
+    sudo systemctl enable unibos unibos-worker 2>/dev/null || true
+    [ "$RAM_MB" -ge 2000 ] && sudo systemctl enable unibos-beat 2>/dev/null || true
+
     sudo systemctl restart avahi-daemon 2>/dev/null || true
-    sudo systemctl start unibos unibos-celery 2>/dev/null || true
+    sudo systemctl start unibos unibos-worker 2>/dev/null || true
+    [ "$RAM_MB" -ge 2000 ] && sudo systemctl start unibos-beat 2>/dev/null || true
 
     sleep 3
 
     if systemctl is-active --quiet unibos; then
-        log_ok "UNIBOS is running"
+        log_ok "UNIBOS Node is running"
     else
         log_warn "Service may still be starting..."
     fi
@@ -548,7 +641,7 @@ start_services() {
 # =============================================================================
 
 repair_installation() {
-    log_step "Repairing UNIBOS installation..."
+    log_step "Repairing UNIBOS Node installation..."
 
     if [ ! -d "$INSTALL_DIR" ]; then
         log_err "No installation found at $INSTALL_DIR"
@@ -557,7 +650,7 @@ repair_installation() {
     fi
 
     # Stop services
-    sudo systemctl stop unibos unibos-celery 2>/dev/null || true
+    sudo systemctl stop unibos unibos-worker unibos-beat 2>/dev/null || true
 
     # Update code
     log "Updating code..."
@@ -577,12 +670,13 @@ repair_installation() {
 
     # Restart services
     sudo systemctl daemon-reload
-    sudo systemctl start unibos unibos-celery 2>/dev/null || true
+    sudo systemctl start unibos unibos-worker 2>/dev/null || true
+    [ -f /etc/systemd/system/unibos-beat.service ] && sudo systemctl start unibos-beat 2>/dev/null || true
 
     sleep 2
 
     if systemctl is-active --quiet unibos; then
-        log_ok "Repair complete - UNIBOS is running"
+        log_ok "Repair complete - UNIBOS Node is running"
     else
         log_warn "Repair complete - check logs: journalctl -u unibos -f"
     fi
@@ -593,18 +687,17 @@ repair_installation() {
 # =============================================================================
 
 uninstall_unibos() {
-    log_step "uninstalling unibos..."
+    log_step "uninstalling unibos node..."
 
     echo ""
     echo -e "  ${RED}warning: this will remove:${NC}"
     echo "    - unibos installation at $INSTALL_DIR"
-    echo "    - systemd services (unibos, unibos-celery)"
+    echo "    - systemd services (unibos, unibos-worker, unibos-beat)"
     echo "    - mdns service configuration"
     echo ""
     echo -e "  ${YELLOW}database and system packages will not be removed.${NC}"
     echo ""
 
-    # Read from /dev/tty for pipe support
     echo -n "  are you sure? [y/N] "
     read -n 1 -r REPLY </dev/tty
     echo ""
@@ -616,13 +709,14 @@ uninstall_unibos() {
 
     # Stop and disable services
     log "Stopping services..."
-    sudo systemctl stop unibos unibos-celery 2>/dev/null || true
-    sudo systemctl disable unibos unibos-celery 2>/dev/null || true
+    sudo systemctl stop unibos unibos-worker unibos-beat 2>/dev/null || true
+    sudo systemctl disable unibos unibos-worker unibos-beat 2>/dev/null || true
 
     # Remove service files
     log "Removing service files..."
     sudo rm -f /etc/systemd/system/unibos.service
-    sudo rm -f /etc/systemd/system/unibos-celery.service
+    sudo rm -f /etc/systemd/system/unibos-worker.service
+    sudo rm -f /etc/systemd/system/unibos-beat.service
     sudo rm -f /etc/avahi/services/unibos.service
     sudo systemctl daemon-reload
 
@@ -630,13 +724,9 @@ uninstall_unibos() {
     log "Removing installation..."
     rm -rf "$INSTALL_DIR"
 
-    # Remove pipx installation
-    pipx uninstall unibos 2>/dev/null || true
-    ~/.local/bin/pipx uninstall unibos 2>/dev/null || true
-
-    log_ok "UNIBOS uninstalled"
+    log_ok "UNIBOS Node uninstalled"
     echo ""
-    log "To remove database: sudo -u postgres dropdb unibos_db"
+    log "To remove database: sudo -u postgres dropdb unibos_node"
     log "To remove db user:  sudo -u postgres dropuser unibos_user"
 }
 
@@ -647,11 +737,17 @@ uninstall_unibos() {
 print_summary() {
     LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}' || echo "127.0.0.1")
     NODE_NAME=$(hostname)
+    source "$INSTALL_DIR/.env" 2>/dev/null || true
 
     echo ""
     echo -e "${GREEN}============================================${NC}"
-    echo -e "${GREEN}     UNIBOS Installation Complete!         ${NC}"
+    echo -e "${GREEN}     UNIBOS Node Installation Complete!    ${NC}"
     echo -e "${GREEN}============================================${NC}"
+    echo ""
+    echo -e "  ${CYAN}Node Info:${NC}"
+    echo -e "    UUID:     ${NODE_UUID:-unknown}"
+    echo -e "    Platform: $PLATFORM_NAME"
+    echo -e "    Hub:      $HUB_URL"
     echo ""
     echo -e "  ${CYAN}Access:${NC}"
     echo -e "    http://$LOCAL_IP:$SERVICE_PORT"
@@ -680,24 +776,19 @@ print_summary() {
 main() {
     print_banner
 
-    # Detect system info first
     detect_system_info
     print_system_info
 
-    # Check for command line argument
     MODE="${1:-}"
 
-    # If no argument, show interactive menu
     if [ -z "$MODE" ]; then
         select_menu
         MODE="$SELECTED_MODE"
     fi
 
-    # Execute based on mode
     case "$MODE" in
         install)
             check_requirements
-            detect_platform
             install_dependencies
             install_unibos
             setup_database
@@ -705,11 +796,11 @@ main() {
             setup_services
             run_migrations
             start_services
+            register_with_hub
             print_summary
             ;;
         repair)
             check_requirements
-            detect_platform
             repair_installation
             ;;
         uninstall)
