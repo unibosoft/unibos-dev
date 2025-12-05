@@ -7,7 +7,50 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
 
+- ✨ **messenger**: Complete E2E encrypted messaging module
+  - X25519 key exchange (Curve25519)
+  - AES-256-GCM message encryption
+  - Ed25519 message signing
+  - Group chat with encrypted group keys
+  - File encryption support
+  - P2P direct messaging with hub fallback
+  - Hybrid transport mode (P2P + Hub)
+- ✨ **messenger**: REST API endpoints
+  - Conversations CRUD
+  - Messages with pagination
+  - Encryption key management
+  - P2P session control
+  - Typing indicators
+  - Message search
+- ✨ **messenger**: WebSocket real-time messaging
+  - New message notifications
+  - Typing indicators
+  - Read receipts
+  - P2P signaling (offer/answer/ICE)
+- ✨ **messenger**: Flutter mobile client
+  - MessengerService with full API
+  - Riverpod state management
+  - ConversationListScreen, ChatScreen
+  - MessageBubble, TypingIndicator components
+- ✨ **security**: Comprehensive security test suite (69 tests)
+  - Cryptographic security tests
+  - Signature forgery detection
+  - Ciphertext tampering detection
+  - Timing attack resistance
+  - Input validation tests
+- ✨ **docs**: SECURITY_AUDIT.md report
+
+### Changed
+
+- ♻️ **version**: Update module count from 13 to 14
+
+### Documentation
+
+- 📝 **todo**: Mark Messenger module as complete
+- 📝 **todo**: Mark security testing as complete
+- 📝 **security**: Add comprehensive security audit report
 
 ---
 

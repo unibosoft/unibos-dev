@@ -1,6 +1,6 @@
 # UNIBOS - Unicorn Bodrum Operating System
 
-> **v2.2.0** - Production-ready modular platform with 5-profile CLI architecture, P2P mesh networking, end-to-end encrypted messenger, real-time WebSocket, federated auth, sync engine, data export control, and cross-platform mobile client
+> **v2.1.1** - Production-ready modular platform with 5-profile CLI architecture, P2P mesh networking, end-to-end encrypted messenger, real-time WebSocket, federated auth, sync engine, data export control, and cross-platform mobile client
 
 ## Overview
 
@@ -420,18 +420,23 @@ Personal finance (Where Is My Money) and inventory (Where Is My Stuff) managemen
 
 End-to-end encrypted messaging with P2P support. Features include:
 - X25519 key exchange with AES-256-GCM encryption
+- Ed25519 digital signatures for message authentication
 - Hub relay or P2P direct transport (user-selectable)
-- Group chats with group key management
+- Group chats with encrypted group key distribution
 - Message reactions, replies, and threading
 - File attachments with encrypted transfer
 - Typing indicators and read receipts
 - Multi-device key synchronization
+- **Security Tested**: 69 automated security tests covering cryptographic integrity, signature forgery prevention, and timing attack resistance
 
 ## Documentation
 
 - `TODO.md` - Comprehensive development roadmap
+- `TODO_ARCHITECTURE.md` - System architecture details
+- `TODO_DATA_FLOW.md` - Data flow & identity specs
 - `CHANGELOG.md` - Complete version history
 - `RULES.md` - Project rules and conventions
+- `SECURITY_AUDIT.md` - Security audit report
 
 ## Server Configuration
 
@@ -452,5 +457,5 @@ Bitez, Bodrum, Mugla, Turkiye
 
 ---
 
-**Current Version**: v2.2.0
+**Current Version**: v2.1.1
 **Last Updated**: 2025-12-05

@@ -20,7 +20,7 @@
   "git": {
     "commit": null,
     "branch": "main",
-    "tag": "v1.0.0"
+    "tag": "v2.1.1"
   },
   "migration": {
     "from_version": "v0.534.0",
@@ -35,9 +35,9 @@
     "release_type": "stable",
     "codename": "Phoenix Rising"
   },
-  "description": "UNIBOS v1.0.0 - First stable release with new versioning system",
+  "description": "UNIBOS v2.1.1 - Messenger module with E2E encryption, P2P messaging, and 69 security tests",
   "features": [
-    "13 integrated business modules",
+    "14 integrated business modules",
     "5-profile architecture (dev, hub, manager, node, worker)",
     "Hybrid CLI/TUI system",
     "PostgreSQL database",
@@ -125,6 +125,21 @@
     "terminal_recommended": "120x40"
   },
   "changelog": [
+    {
+      "version": "v2.1.1",
+      "build": "20251205222621",
+      "date": "2025-12-05",
+      "description": "Messenger module with E2E encryption and security testing",
+      "changes": [
+        "Complete E2E encrypted messenger module (X25519, AES-256-GCM, Ed25519)",
+        "P2P messaging with mDNS discovery and Hub fallback",
+        "69 security tests (43 encryption + 26 security penetration)",
+        "Security audit passed with A rating",
+        "14 integrated modules (messenger added)",
+        "WebSocket consumer for real-time messaging",
+        "Flutter client integration"
+      ]
+    },
     {
       "version": "v1.0.0",
       "build": "20251201222554",
