@@ -53,6 +53,7 @@
   - [x] AES-256-GCM message encryption
   - [x] Ed25519 message signing
   - [x] Perfect Forward Secrecy (PFS) with session keys
+  - [x] Double Ratchet Algorithm (Signal Protocol)
 - [x] Key Management
   - [x] User key pair generation (server-side with cryptography library)
   - [x] Key rotation mechanism (revoke + generate new)
