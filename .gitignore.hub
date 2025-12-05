@@ -1,39 +1,41 @@
 # =============================================================================
-# UNIBOS-SERVER Repository .gitignore TEMPLATE (KAYNAK ŞABLON)
-# Production server environment - Rocksteady
+# UNIBOS-HUB Repository .gitignore TEMPLATE (KAYNAK ŞABLON)
+# Hub server environment - Rocksteady + Bebop HA
 # =============================================================================
 # ⚠️  BU DOSYA KAYNAK TEMPLATE'DIR
 #
 # Bu template .gitignore dosyasına kopyalanarak kullanılır:
-#   cp .gitignore.server .gitignore
+#   cp .gitignore.hub .gitignore
 #
-# TEMPLATE ÇALIŞMA MANTIĞI (4-Repo Architecture):
+# TEMPLATE ÇALIŞMA MANTIĞI (5-Repo Architecture):
 # - .gitignore.dev     → unibos-dev repo için
 # - .gitignore.manager → unibos-manager repo için
-# - .gitignore.server  → unibos-server repo için (bu dosya)
-# - .gitignore.prod    → unibos (prod) repo için
+# - .gitignore.hub     → unibos-hub repo için (bu dosya)
+# - .gitignore.node    → unibos (node) repo için
+# - .gitignore.worker  → unibos-worker repo için
 #
 # push-all komutu her repo'ya push ederken doğru template'i otomatik kopyalar:
 #   dev     → cp .gitignore.dev .gitignore     → push to dev
 #   manager → cp .gitignore.manager .gitignore → push to manager
-#   server  → cp .gitignore.server .gitignore  → push to server
-#   prod    → cp .gitignore.prod .gitignore    → push to prod
+#   hub     → cp .gitignore.hub .gitignore     → push to hub
+#   node    → cp .gitignore.node .gitignore    → push to node
+#   worker  → cp .gitignore.worker .gitignore  → push to worker
 #
 # DEĞİŞİKLİK YAPARKEN:
-# ✅ Bu template'i (.gitignore.server) düzenleyebilirsiniz
+# ✅ Bu template'i (.gitignore.hub) düzenleyebilirsiniz
 # ✅ Ortak değişiklikleri diğer template'lere de ekleyin
 #
-# Bu şablon unibos-server repo'su için tasarlanmıştır.
-# Merkezi production server (rocksteady) için.
+# Bu şablon unibos-hub repo'su için tasarlanmıştır.
+# Merkezi hub server (rocksteady + bebop) için.
 #
-# Repo: https://github.com/unibosoft/unibos-server
-# Purpose: Production server deployment (central hub)
-# Includes: server profile, prod profile, all modules (backend)
+# Repo: https://github.com/unibosoft/unibos-hub
+# Purpose: Hub server deployment (identity provider, registry, sync)
+# Includes: hub profile, node profile, worker profile, all modules (backend)
 # Excludes: dev profile, manager profile (GÜVENLİK), archive/, data/
 # =============================================================================
 
 # ===== CRITICAL: EXCLUDE DEV & MANAGER PROFILES (SECURITY) =====
-# Development and manager profiles should NEVER be on production server
+# Development and manager profiles should NEVER be on hub server
 core/profiles/dev/
 core/profiles/manager/
 setup-dev.py
@@ -42,10 +44,10 @@ setup-manager.py
 # Deploy system is dev-only
 deploy/
 
-# Server deployment configs (contain secrets)
+# Hub deployment configs (contain secrets)
 *.config.json
 
-# ===== CRITICAL: NO ARCHIVES ON SERVER =====
+# ===== CRITICAL: NO ARCHIVES ON HUB =====
 # Archives are development-only, never on production
 archive/
 archive_backup*/
@@ -158,7 +160,7 @@ npm-debug.log
 yarn-error.log
 
 # ===== FLUTTER/MOBILE - EXCLUDE ENTIRELY =====
-# Mobile app is development-only, not needed on server
+# Mobile app is development-only, not needed on hub
 core/clients/mobile/
 modules/*/mobile/
 
@@ -190,27 +192,18 @@ missing_versions.txt
 pushed_versions.txt
 
 # ===== EXCLUDE DEV-ONLY SETTINGS =====
-# Keep: server.py, node.py, base.py
-# Exclude: development.py, dev_*.py
+# Keep: hub.py, node.py, worker.py, base.py
+# Exclude: development.py
 core/clients/web/unibos_backend/settings/development.py
-core/clients/web/unibos_backend/settings/dev_*.py
-core/clients/web/unibos_backend/settings/emergency.py
-core/clients/web/unibos_backend/settings/dev_postgres.py
-core/clients/web/unibos_backend/settings/dev_simple.py
-core/clients/web/unibos_backend/settings/dev_no_redis.py
-
-# ===== EXCLUDE NODE DEPLOYMENT (SERVER DOESN'T NEED IT) =====
-# Keep server deployment, exclude node deployment
-# Actually, keep both since server can also be node
-# core/deployment/node.py  # KEEP - server can be node too
 
 # ===== IGNORE FILES THEMSELVES (META) =====
 # NOTE: .gitignore.* templates SHOULD be in dev repo only
-# Server repo only needs active .gitignore
+# Hub repo only needs active .gitignore
 .gitignore.dev
 .gitignore.manager
-.gitignore.server
-.gitignore.prod
+.gitignore.hub
+.gitignore.node
+.gitignore.worker
 
 # Legacy ignore files
 .archiveignore

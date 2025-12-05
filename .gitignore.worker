@@ -1,0 +1,218 @@
+# =============================================================================
+# UNIBOS-WORKER Repository .gitignore TEMPLATE (KAYNAK ŞABLON)
+# Dedicated worker deployment - GPU servers, processing nodes
+# =============================================================================
+# ⚠️  BU DOSYA KAYNAK TEMPLATE'DIR
+#
+# Bu template .gitignore dosyasına kopyalanarak kullanılır:
+#   cp .gitignore.worker .gitignore
+#
+# TEMPLATE ÇALIŞMA MANTIĞI (5-Repo Architecture):
+# - .gitignore.dev     → unibos-dev repo için
+# - .gitignore.manager → unibos-manager repo için
+# - .gitignore.hub     → unibos-hub repo için
+# - .gitignore.node    → unibos (node) repo için
+# - .gitignore.worker  → unibos-worker repo için (bu dosya)
+#
+# push-all komutu her repo'ya push ederken doğru template'i otomatik kopyalar:
+#   dev     → cp .gitignore.dev .gitignore     → push to dev
+#   manager → cp .gitignore.manager .gitignore → push to manager
+#   hub     → cp .gitignore.hub .gitignore     → push to hub
+#   node    → cp .gitignore.node .gitignore    → push to node
+#   worker  → cp .gitignore.worker .gitignore  → push to worker
+#
+# DEĞİŞİKLİK YAPARKEN:
+# ✅ Bu template'i (.gitignore.worker) düzenleyebilirsiniz
+# ✅ Ortak değişiklikleri diğer template'lere de ekleyin
+#
+# Bu şablon unibos-worker repo'su için tasarlanmıştır.
+# Dedicated worker deployment (GPU servers, processing nodes) için.
+#
+# Repo: https://github.com/unibosoft/unibos-worker
+# Purpose: Dedicated worker deployment (OCR, media, background tasks)
+# Includes: worker profile ONLY, minimal dependencies
+# Excludes: dev, manager, hub, node profiles (GÜVENLİK), archive/, data/
+# =============================================================================
+
+# ===== CRITICAL: EXCLUDE ALL PROFILES EXCEPT WORKER (SECURITY) =====
+# Only worker profile should be on dedicated worker servers
+core/profiles/dev/
+core/profiles/manager/
+core/profiles/hub/
+core/profiles/node/
+setup-dev.py
+setup-manager.py
+setup-hub.py
+setup-node.py
+
+# Deploy system is dev-only
+deploy/
+
+# Deployment configs (contain secrets)
+*.config.json
+
+# ===== CRITICAL: NO ARCHIVES ON WORKERS =====
+# Archives are development-only
+archive/
+archive_backup*/
+
+# ===== CRITICAL: NO RUNTIME DATA IN REPO =====
+# Workers process data but don't store it
+data/
+data_db/
+data_db_backup*/
+
+# Build artifacts - never on workers
+/build/
+/dist/
+
+# ===== EXCLUDE DEV-ONLY FILES =====
+.claude/
+CLAUDE_COMMUNICATION_LOG_*.md
+Screenshot*.png
+*.screenshot.png
+screenshots_archive/
+quarantine/
+berk_claude_file_pool_DONT_DELETE/
+
+# ===== EXCLUDE DEV-ONLY DOCS =====
+TODO.md
+RULES.md
+docs/rules/
+docs/design/decisions/
+
+# ===== PYTHON ENVIRONMENT =====
+venv/
+.venv/
+env/
+.env/
+ENV/
+
+# ===== PYTHON CACHE & BUILD =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ===== DATABASE FILES =====
+# Workers connect to hub database, no local DBs
+*.sqlite3
+*.sqlite3-journal
+*.sqlite3.backup
+*.db
+*.db.backup
+db.sqlite3*
+
+# ===== LOG FILES =====
+*.log
+*.log.*
+logs/
+
+# ===== DJANGO GENERATED =====
+# Workers don't serve static files
+staticfiles/
+core/clients/web/staticfiles/
+core/clients/web/media/
+modules/*/backend/staticfiles/
+modules/*/backend/media/
+modules/*/backend/uploads/
+
+# ===== ENVIRONMENT & SECRETS =====
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.cert
+*.crt
+.api_keys.json
+secrets/
+credentials/
+
+# ===== SYSTEM FILES =====
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+# ===== PID FILES =====
+*.pid
+.*.pid
+
+# ===== TEMPORARY FILES =====
+*.tmp
+*.temp
+*.bak
+*.backup
+tmp/
+temp/
+
+# ===== BACKUP DIRECTORIES =====
+backup/
+backups/
+
+# ===== NODE.JS =====
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# ===== FLUTTER/MOBILE - EXCLUDE ENTIRELY =====
+# Workers don't need mobile code
+core/clients/mobile/
+modules/*/mobile/
+
+# ===== WEB FRONTEND - EXCLUDE FOR WORKERS =====
+# Workers only need backend/task code
+core/clients/web/templates/
+core/clients/web/static/
+modules/*/web/
+
+# ===== TEST FILES =====
+.pytest_cache/
+.coverage
+htmlcov/
+*.test.html
+*_test.html
+test_*.html
+test_*.py
+*_test.py
+
+# ===== LARGE MEDIA =====
+*.mp4
+*.avi
+*.mov
+*.zip
+*.tar.gz
+*.rar
+
+# ===== SQL BACKUPS =====
+*.sql
+*.sql.gz
+
+# ===== EXCLUDE ALL SETTINGS EXCEPT WORKER =====
+# Keep: worker.py, base.py
+# Exclude: everything else
+core/clients/web/unibos_backend/settings/development.py
+core/clients/web/unibos_backend/settings/hub.py
+core/clients/web/unibos_backend/settings/node.py
+
+# ===== IGNORE FILES THEMSELVES (META) =====
+# NOTE: .gitignore.* templates SHOULD be in dev repo only
+# Worker repo only needs active .gitignore
+.gitignore.dev
+.gitignore.manager
+.gitignore.hub
+.gitignore.node
+.gitignore.worker
+
+# Legacy ignore files
+.archiveignore
+.rsyncignore
+.prodignore

@@ -175,61 +175,51 @@ def git_status():
 @git_group.command('setup')
 @click.option('--force', is_flag=True, help='Force setup even if remotes exist')
 def git_setup(force):
-    """Setup git remotes for dev, server, and prod repositories (3-repo architecture)"""
-    click.echo("🔧 setting up git remotes (3-repo architecture)\n")
+    """Setup git remotes for 5-repo architecture (dev, hub, manager, node, worker)"""
+    click.echo("🔧 setting up git remotes (5-repo architecture)\n")
 
-    dev_url = "https://github.com/unibosoft/unibos-dev.git"
-    server_url = "https://github.com/unibosoft/unibos-server.git"
-    prod_url = "https://github.com/unibosoft/unibos.git"
+    remotes = {
+        'dev': {
+            'url': 'https://github.com/unibosoft/unibos-dev.git',
+            'description': 'development (full codebase)'
+        },
+        'hub': {
+            'url': 'https://github.com/unibosoft/unibos-hub.git',
+            'description': 'hub server (rocksteady + bebop)'
+        },
+        'manager': {
+            'url': 'https://github.com/unibosoft/unibos-manager.git',
+            'description': 'remote management'
+        },
+        'node': {
+            'url': 'https://github.com/unibosoft/unibos.git',
+            'description': 'node (end user)'
+        },
+        'worker': {
+            'url': 'https://github.com/unibosoft/unibos-worker.git',
+            'description': 'worker (background tasks)'
+        }
+    }
 
-    # Check if remotes exist
-    dev_exists = check_remote_exists('dev')
-    server_exists = check_remote_exists('server')
-    prod_exists = check_remote_exists('prod')
+    for remote_name, config in remotes.items():
+        exists = check_remote_exists(remote_name)
 
-    # Setup dev
-    if dev_exists and not force:
-        click.echo(f"   ℹ️  remote 'dev' already exists")
-        result = run_command(['git', 'remote', 'get-url', 'dev'])
-        click.echo(f"      url: {result.stdout.strip()}")
-    else:
-        if dev_exists:
-            click.echo(f"   🔄 updating remote 'dev'")
-            run_command(['git', 'remote', 'set-url', 'dev', dev_url])
+        if exists and not force:
+            click.echo(f"   ℹ️  remote '{remote_name}' already exists")
+            result = run_command(['git', 'remote', 'get-url', remote_name])
+            click.echo(f"      url: {result.stdout.strip()}")
         else:
-            click.echo(f"   ➕ adding remote 'dev' (development)")
-            run_command(['git', 'remote', 'add', 'dev', dev_url])
-        click.echo(f"      url: {dev_url}")
+            if exists:
+                click.echo(f"   🔄 updating remote '{remote_name}'")
+                run_command(['git', 'remote', 'set-url', remote_name, config['url']])
+            else:
+                click.echo(f"   ➕ adding remote '{remote_name}' ({config['description']})")
+                run_command(['git', 'remote', 'add', remote_name, config['url']])
+            click.echo(f"      url: {config['url']}")
 
-    # Setup server
-    if server_exists and not force:
-        click.echo(f"\n   ℹ️  remote 'server' already exists")
-        result = run_command(['git', 'remote', 'get-url', 'server'])
-        click.echo(f"      url: {result.stdout.strip()}")
-    else:
-        if server_exists:
-            click.echo(f"\n   🔄 updating remote 'server'")
-            run_command(['git', 'remote', 'set-url', 'server', server_url])
-        else:
-            click.echo(f"\n   ➕ adding remote 'server' (production server)")
-            run_command(['git', 'remote', 'add', 'server', server_url])
-        click.echo(f"      url: {server_url}")
+        click.echo()
 
-    # Setup prod
-    if prod_exists and not force:
-        click.echo(f"\n   ℹ️  remote 'prod' already exists")
-        result = run_command(['git', 'remote', 'get-url', 'prod'])
-        click.echo(f"      url: {result.stdout.strip()}")
-    else:
-        if prod_exists:
-            click.echo(f"\n   🔄 updating remote 'prod'")
-            run_command(['git', 'remote', 'set-url', 'prod', prod_url])
-        else:
-            click.echo(f"\n   ➕ adding remote 'prod' (production nodes)")
-            run_command(['git', 'remote', 'add', 'prod', prod_url])
-        click.echo(f"      url: {prod_url}")
-
-    click.echo("\n✅ git remotes configured successfully (3 repositories)")
+    click.echo("✅ git remotes configured successfully (5 repositories)")
 
 
 @git_group.command('push-dev')
@@ -429,7 +419,7 @@ def push_prod(dry_run, force):
 @git_group.command('push-all')
 @click.argument('message', required=False, default=None)
 @click.option('--repos', '-r',
-              type=click.Choice(['dev', 'server', 'manager', 'prod', 'all']),
+              type=click.Choice(['dev', 'hub', 'manager', 'node', 'worker', 'all']),
               default='all',
               help='Which repositories to push to (default: all)')
 @click.option('--dry-run', '-d', is_flag=True,
@@ -438,10 +428,12 @@ def push_all(message, repos, dry_run):
     """
     Push to multiple repositories with correct .gitignore templates
 
-    3-REPO ARCHITECTURE:
+    5-REPO ARCHITECTURE:
     - dev: All CLIs, all settings (development)
-    - server: cli_server + cli_node, no cli_dev (production server)
-    - prod: cli_node only, minimal (production nodes)
+    - hub: hub + node + worker profiles (hub server)
+    - manager: manager tools only
+    - node: node + worker only (end user nodes)
+    - worker: worker profile only (dedicated workers)
 
     USAGE:
         unibos-dev git push-all                    # Push existing commits
@@ -452,16 +444,17 @@ def push_all(message, repos, dry_run):
     This command:
     1. Optionally commits changes with provided message
     2. Pushes to each repo with appropriate .gitignore template
-    3. Ensures security (cli_dev never goes to server/prod)
+    3. Ensures security (cli_dev never goes to hub/node)
     """
     project_root = get_project_root()
 
     # Verify .gitignore templates exist
     templates = {
         'dev': project_root / '.gitignore.dev',
-        'server': project_root / '.gitignore.server',
+        'hub': project_root / '.gitignore.hub',
         'manager': project_root / '.gitignore.manager',
-        'prod': project_root / '.gitignore.prod'
+        'node': project_root / '.gitignore.node',
+        'worker': project_root / '.gitignore.worker'
     }
 
     missing = [name for name, path in templates.items() if not path.exists()]
@@ -479,7 +472,7 @@ def push_all(message, repos, dry_run):
     # Determine which repos to push to
     repo_list = []
     if repos == 'all':
-        repo_list = ['dev', 'server', 'manager', 'prod']
+        repo_list = ['dev', 'hub', 'manager', 'node', 'worker']
     else:
         repo_list = [repos]
 
@@ -542,8 +535,8 @@ def push_all(message, repos, dry_run):
     click.echo("")
     click.echo("📊 summary:")
     for repo in repo_list:
-        repo_name = 'unibos' if repo == 'prod' else f'unibos-{repo}'
-        click.echo(f"   ✓ {repo:6s} → https://github.com/unibosoft/{repo_name}.git")
+        repo_name = 'unibos' if repo == 'node' else f'unibos-{repo}'
+        click.echo(f"   ✓ {repo:8s} → https://github.com/unibosoft/{repo_name}.git")
 
 
 def _push_to_single_repo(repo, dry_run, root_dir, step_num, total_steps):
@@ -557,11 +550,11 @@ def _push_to_single_repo(repo, dry_run, root_dir, step_num, total_steps):
             'url': 'unibos-dev',
             'description': 'full codebase'
         },
-        'server': {
-            'template': '.gitignore.server',
-            'remote': 'server',
-            'url': 'unibos-server',
-            'description': 'server + node'
+        'hub': {
+            'template': '.gitignore.hub',
+            'remote': 'hub',
+            'url': 'unibos-hub',
+            'description': 'hub server'
         },
         'manager': {
             'template': '.gitignore.manager',
@@ -569,11 +562,17 @@ def _push_to_single_repo(repo, dry_run, root_dir, step_num, total_steps):
             'url': 'unibos-manager',
             'description': 'manager tools'
         },
-        'prod': {
-            'template': '.gitignore.prod',
-            'remote': 'prod',
+        'node': {
+            'template': '.gitignore.node',
+            'remote': 'node',
             'url': 'unibos',
-            'description': 'node only, minimal'
+            'description': 'node only'
+        },
+        'worker': {
+            'template': '.gitignore.worker',
+            'remote': 'worker',
+            'url': 'unibos-worker',
+            'description': 'worker only'
         }
     }
 

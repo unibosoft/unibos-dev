@@ -748,11 +748,10 @@ unibos-worker = "core.profiles.worker.main:main"
 core/clients/web/unibos_backend/settings/
 ├── __init__.py
 ├── base.py                 # Shared base settings
-├── hub.py                  # Hub settings
+├── hub.py                  # Hub server settings
 ├── node.py                 # Node settings
-├── development.py          # Development settings
-├── test.py                 # Test settings
-└── emergency.py            # Emergency fallback
+├── worker.py               # Worker settings
+└── development.py          # Development settings
 ```
 
 ### 8.2 Settings Comparison
@@ -978,20 +977,20 @@ build/
 
 ## 11. Implementation Roadmap
 
-### Phase 1: Foundation Refactor (Week 1-2)
+### Phase 1: Foundation Refactor (Week 1-2) ✅ COMPLETED
 
 ```
-[ ] 1.1 Profile Restructure
-    [ ] Rename server/ -> hub/
-    [ ] Rename prod/ -> node/
-    [ ] Create worker/ profile
-    [ ] Update pyproject.toml entry points
+[x] 1.1 Profile Restructure
+    [x] Rename server/ -> hub/
+    [x] Rename prod/ -> node/
+    [x] Create worker/ profile
+    [x] Update pyproject.toml entry points
 
-[ ] 1.2 Settings Refactor
-    [ ] Create hub.py from production.py
-    [ ] Merge edge.py into node.py
-    [ ] Remove deprecated settings files
-    [ ] Add colocation support
+[x] 1.2 Settings Refactor
+    [x] Create hub.py from server.py
+    [x] Create worker.py for worker settings
+    [x] Remove deprecated settings files (10 files removed)
+    [ ] Add colocation support (future)
 
 [ ] 1.3 Directory Structure
     [ ] Create core/system/workers/
