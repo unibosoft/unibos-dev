@@ -246,7 +246,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               TextFormField(
                                 controller: _firstNameController,
                                 decoration: const InputDecoration(
-                                  hintText: 'first name',
+                                  hintText: 'first name (optional)',
                                 ),
                                 textInputAction: TextInputAction.next,
                                 textCapitalization: TextCapitalization.words,
@@ -267,7 +267,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                               TextFormField(
                                 controller: _lastNameController,
                                 decoration: const InputDecoration(
-                                  hintText: 'last name',
+                                  hintText: 'last name (optional)',
                                 ),
                                 textInputAction: TextInputAction.next,
                                 textCapitalization: TextCapitalization.words,

@@ -96,8 +96,8 @@ class RegisterSerializer(serializers.ModelSerializer):
             'first_name', 'last_name'
         )
         extra_kwargs = {
-            'first_name': {'required': True},
-            'last_name': {'required': True},
+            'first_name': {'required': False, 'allow_blank': True},
+            'last_name': {'required': False, 'allow_blank': True},
         }
     
     def validate(self, attrs):
