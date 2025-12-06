@@ -645,6 +645,29 @@ class APIStatusView(View):
             return False
 
 @method_decorator(csrf_exempt, name='dispatch')
+class RegisterView(TemplateView):
+    """Register page view"""
+    template_name = 'web_ui/register.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        # Redirect if already authenticated
+        if request.user.is_authenticated:
+            return redirect('web_ui:main')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Add server location indicator
+        import socket
+        hostname = socket.gethostname()
+        if 'rocksteady' in hostname.lower() or 'recaria' in hostname.lower():
+            context['server_location'] = 'recaria.org'
+        else:
+            context['server_location'] = 'local'
+        return context
+
+
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(TemplateView):
     """Login page view"""
     template_name = 'web_ui/login.html'
