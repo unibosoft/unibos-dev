@@ -121,11 +121,22 @@
             display: block;
         }
 
+        .password-strength-container {
+            display: none;
+            margin-top: 8px;
+        }
+
+        .password-strength-container.show {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
         .password-strength {
+            flex: 1;
             height: 3px;
-            background: transparent;
+            background: #303030;
             border-radius: 2px;
-            margin-top: 6px;
             overflow: hidden;
         }
 
@@ -139,6 +150,16 @@
         .password-strength-bar.weak { width: 33%; background: #ff4444; }
         .password-strength-bar.medium { width: 66%; background: #ffaa00; }
         .password-strength-bar.strong { width: 100%; background: #44ff44; }
+
+        .password-strength-text {
+            font-size: 11px;
+            min-width: 50px;
+            text-align: right;
+        }
+
+        .password-strength-text.weak { color: #ff4444; }
+        .password-strength-text.medium { color: #ffaa00; }
+        .password-strength-text.strong { color: #44ff44; }
 
         .register-button {
             padding: 15px;
@@ -352,8 +373,11 @@
                     minlength="8"
                     required
                 >
-                <div class="password-strength">
-                    <div class="password-strength-bar" id="strengthBar"></div>
+                <div class="password-strength-container" id="strengthContainer">
+                    <div class="password-strength">
+                        <div class="password-strength-bar" id="strengthBar"></div>
+                    </div>
+                    <span class="password-strength-text" id="strengthText"></span>
                 </div>
                 <div class="input-hint">minimum 8 characters</div>
                 <div class="input-error" id="passwordError"></div>
@@ -403,24 +427,44 @@
         const emailInput = document.getElementById('email');
         const passwordInput = document.getElementById('password');
         const passwordConfirmInput = document.getElementById('passwordConfirm');
+        const strengthContainer = document.getElementById('strengthContainer');
         const strengthBar = document.getElementById('strengthBar');
+        const strengthText = document.getElementById('strengthText');
         const registerButton = document.getElementById('registerButton');
 
         // Password strength checker
         function checkPasswordStrength(password) {
+            // Hide if empty
+            if (!password) {
+                strengthContainer.classList.remove('show');
+                return;
+            }
+
+            // Show container
+            strengthContainer.classList.add('show');
+
             let strength = 0;
             if (password.length >= 8) strength++;
             if (password.match(/[a-z]/) && password.match(/[A-Z]/)) strength++;
             if (password.match(/[0-9]/)) strength++;
             if (password.match(/[^a-zA-Z0-9]/)) strength++;
 
+            // Reset classes
             strengthBar.className = 'password-strength-bar';
+            strengthText.className = 'password-strength-text';
+
             if (strength >= 4) {
                 strengthBar.classList.add('strong');
+                strengthText.classList.add('strong');
+                strengthText.textContent = 'strong';
             } else if (strength >= 2) {
                 strengthBar.classList.add('medium');
-            } else if (strength >= 1) {
+                strengthText.classList.add('medium');
+                strengthText.textContent = 'fair';
+            } else {
                 strengthBar.classList.add('weak');
+                strengthText.classList.add('weak');
+                strengthText.textContent = 'weak';
             }
         }
 
