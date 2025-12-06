@@ -462,7 +462,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                           },
                           child: const Text(
                             'login here',
-                            style: TextStyle(fontSize: 14),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: UnibosColors.orange,
+                            ),
                           ),
                         ),
                       ],

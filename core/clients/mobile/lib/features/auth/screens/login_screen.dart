@@ -209,7 +209,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           },
                           child: const Text(
                             'register here',
-                            style: TextStyle(fontSize: 14),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: UnibosColors.orange,
+                            ),
                           ),
                         ),
                       ],
@@ -237,7 +240,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                           },
                           child: const Text(
                             'change',
-                            style: TextStyle(fontSize: 12),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: UnibosColors.orange,
+                            ),
                           ),
                         ),
                       ],
